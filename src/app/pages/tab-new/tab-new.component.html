@@ -1,1 +1,26 @@
-<p>tab-new works!</p>
+<h2>Create New Excel Tab</h2>
+
+<form (ngSubmit)="onSubmit()" #tabForm="ngForm">
+  <label for="sheetName">Worksheet Name:</label>
+  <input
+    type="text"
+    id="sheetName"
+    name="sheetName"
+    required
+    [(ngModel)]="sheetName"
+  />
+
+  <label for="queryParam">Query Parameter:</label>
+  <input
+    type="text"
+    id="queryParam"
+    name="queryParam"
+    [(ngModel)]="queryParam"
+  />
+
+  <button type="submit">Create Sheet and Load Data</button>
+</form>
+
+<div *ngIf="statusMessage" class="status">
+  {{ statusMessage }}
+</div>

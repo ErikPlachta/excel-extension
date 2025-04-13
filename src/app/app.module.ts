@@ -1,7 +1,7 @@
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
-import { HttpClientModule } from '@angular/common/http';
+import { HttpClientModule } from '@angular/common/http'; // Using HttpClientModule because we'I'm using NgModule design. TS warning only relevant If was using standalone components.
 import { AppRoutingModule } from './app-routing.module';
 
 import { AppComponent } from './app.component';

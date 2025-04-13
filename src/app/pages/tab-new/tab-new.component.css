@@ -1,0 +1,25 @@
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 300px;
+}
+
+input {
+  padding: 6px;
+  font-size: 1rem;
+}
+
+button {
+  padding: 8px;
+  font-weight: bold;
+  background-color: #337ab7;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.status {
+  margin-top: 16px;
+  font-style: italic;
+}
