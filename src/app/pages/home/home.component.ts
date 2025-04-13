@@ -3,7 +3,9 @@ import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-home',
-  template: `<h2>Welcome, {{ user?.name }}</h2>`,
+  standalone: false,
+  templateUrl: './home.component.html',
+  styleUrl: './home.component.css',
 })
 export class HomeComponent implements OnInit {
   user: { id: string; name: string } | null = null;

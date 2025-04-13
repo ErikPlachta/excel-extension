@@ -8,7 +8,7 @@ describe('HelpComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [HelpComponent]
+      declarations: [HelpComponent]
     })
     .compileComponents();
 

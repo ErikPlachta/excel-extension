@@ -2,7 +2,7 @@ import { Component } from '@angular/core';
 
 @Component({
   selector: 'app-help',
-  imports: [],
+  standalone: false,
   templateUrl: './help.component.html',
   styleUrl: './help.component.css'
 })

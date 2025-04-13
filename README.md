@@ -1,5 +1,18 @@
 # ExcelExtension
 
+## Notes
+
+- Start local server
+  - Standard:
+    - `ng serve`
+  - SSL:
+    - Testing with SSL because extension requires it.
+    - `ng serve --ssl true`
+- Add a new component
+  - `ng g c pages/home --standalone=false`
+
+---
+
 This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 19.2.7.
 
 ## Development server
