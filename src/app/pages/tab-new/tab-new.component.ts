@@ -45,9 +45,11 @@ export class TabNewComponent {
         return;
       }
 
+      // 4. Create new sheet
       this.statusMessage = `📄 Creating sheet "${sheetNameTrimmed}"...`;
       await this.excelService.createSheet(sheetNameTrimmed);
 
+      // 5. Fetch data from API
       this.statusMessage = `🌐 Fetching data for ${user.name}...`;
       const data = await this.apiService.fetchUserData(user.id);
       if (!data || !Array.isArray(data) || data.length === 0) {
@@ -55,6 +57,7 @@ export class TabNewComponent {
         return;
       }
 
+      // 6. Filter data based on query parameter
       const filtered = this.filterData(data, this.queryParam);
       if (filtered.length === 1) {
         // only headers
@@ -62,10 +65,20 @@ export class TabNewComponent {
         return;
       }
 
+      // 7. Write data to Excel
       this.statusMessage = '📊 Inserting data into Excel...';
       await this.excelService.writeTable(filtered);
 
-      // ✅ Final status
+      // 8. Write metadata
+      this.statusMessage = '📝 Writing metadata...';
+      await this.excelService.writeTable(filtered, {
+        createdBy: 'excel-extension',
+        userId: user.id,
+        query: this.queryParam || '',
+        createdAt: new Date().toISOString(),
+      });
+
+      // 9. Finalize
       this.statusMessage = `✅ Sheet "${sheetNameTrimmed}" populated successfully.`;
     } catch (err: any) {
       console.error('[TabNewComponent] Error:', err);

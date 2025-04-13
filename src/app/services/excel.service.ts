@@ -57,18 +57,33 @@ export class ExcelService {
     });
   }
 
-  async writeTable(data: any[][]): Promise<void> {
+  async writeTable(
+    data: any[][],
+    metadata?: Record<string, any>
+  ): Promise<void> {
     await this.ensureOfficeReady();
     if (typeof Excel === 'undefined') return;
 
-    await Excel.run(async (context: Excel.RequestContext) => {
+    await Excel.run(async (context) => {
       const sheet = context.workbook.worksheets.getActiveWorksheet();
+
+      // Write table data to A5
       const range = sheet
-        .getRange('A1')
+        .getRange('A5') // TODO: make this optional parameter
         .getResizedRange(data.length - 1, data[0].length - 1);
       range.values = data;
-      range.format.autofitColumns();
-      range.format.autofitRows();
+      range.format.autofitColumns(); // TODO: make this optional parameter
+      range.format.autofitRows(); // TODO: make this optional parameter
+
+      // Write metadata to Z1
+      if (metadata) {
+        const marker = '#EXT_META:' + JSON.stringify(metadata);
+        const metaRange = sheet.getRange('A2'); // TODO: find a better place to hold metadata than within z1. I actually prefer it's A2, and table doesn't start until A5 (or something like that). Either way should be a parameter, not hard-coded
+        metaRange.values = [[marker]];
+        //metaRange.format.font.color = '#FFFFFF'; // hide visually (optional) // TODO: Update styling to use args instead of hard-coded
+        //metaRange.format.fill.color = '#FFFFFF'; // hide visually (optional)
+      }
+
       await context.sync();
     });
   }
@@ -104,6 +119,86 @@ export class ExcelService {
 
     return Excel.run(async (context) => {
       context.workbook.worksheets.getItem(name).delete();
+      await context.sync();
+    });
+  }
+
+  async getSheetMetadata(
+    sheetName: string
+  ): Promise<Record<string, any> | null> {
+    await this.ensureOfficeReady();
+    if (typeof Excel === 'undefined') return null;
+
+    return Excel.run(async (context) => {
+      const sheet = context.workbook.worksheets.getItem(sheetName);
+      const metaCell = sheet.getRange('Z1');
+      metaCell.load('values');
+      await context.sync();
+
+      const value = metaCell.values?.[0]?.[0] || '';
+      if (value.startsWith('#EXT_META:')) {
+        const json = value.replace('#EXT_META:', '');
+        return JSON.parse(json);
+      }
+
+      return null;
+    });
+  }
+
+  async refreshSheetWithMetadata(
+    name: string,
+    fetcher: (query: string) => Promise<any[]>
+  ): Promise<void> {
+    await this.ensureOfficeReady();
+    if (typeof Excel === 'undefined') return;
+
+    return Excel.run(async (context) => {
+      const sheet = context.workbook.worksheets.getItem(name);
+      const metaCell = sheet.getRange('Z1');
+      metaCell.load('values');
+      await context.sync();
+
+      const raw = metaCell.values?.[0]?.[0] || '';
+      if (!raw.startsWith('#EXT_META:')) {
+        throw new Error('No metadata found');
+      }
+
+      const meta = JSON.parse(raw.replace('#EXT_META:', ''));
+      const query = meta.query || '';
+
+      // Fetch fresh data
+      const data = await fetcher(query);
+      const headers = Object.keys(data[0] || {});
+      const rows = data.map((row) => headers.map((h) => row[h]));
+      const table = [headers, ...rows];
+
+      // Clear and write
+      const range = sheet
+        .getRange('A5') // TODO: make this optional parameter
+        .getResizedRange(100, 20); // adjust range // TODO: make this optional parameter based on data size
+      range.clear();
+      const target = sheet
+        .getRange('A5') // TODO: make this optional parameter
+        .getResizedRange(table.length - 1, table[0].length - 1);
+      target.values = table;
+
+      await context.sync();
+    });
+  }
+
+  async setSheetMetadata(
+    sheetName: string,
+    metadata: Record<string, any>
+  ): Promise<void> {
+    await this.ensureOfficeReady();
+    if (typeof Excel === 'undefined') return;
+
+    await Excel.run(async (context) => {
+      const sheet = context.workbook.worksheets.getItem(sheetName);
+      const cell = sheet.getRange('Z1');
+      cell.values = [['#EXT_META:' + JSON.stringify(metadata)]];
+      cell.format.font.color = '#FFFFFF';
+      cell.format.font.size = 1;
       await context.sync();
     });
   }

@@ -3,8 +3,19 @@
 
 <ul *ngIf="tabs.length">
   <li *ngFor="let tab of tabs">
-    {{ tab }}
-    <button (click)="refreshSheet(tab)">Refresh</button>
-    <button (click)="deleteSheet(tab)">Delete</button>
+    <div>
+      <strong>{{ tab.name }}</strong>
+      <button (click)="refreshSheet(tab.name)">Refresh</button>
+      <button (click)="deleteSheet(tab.name)">Delete</button>
+    </div>
+
+    <div>
+      <input
+        [(ngModel)]="tab.query"
+        placeholder="Edit query"
+        name="query_{{ tab.name }}"
+      />
+      <button (click)="saveMetadata(tab.name, tab.query)">Save Query</button>
+    </div>
   </li>
 </ul>
