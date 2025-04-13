@@ -1,12 +1,11 @@
 <nav class="navbar">
-  <a routerLink="/home">Home</a>
-  <a routerLink="/tab-new">New Tab</a>
-  <a routerLink="/tab-manage">Manage Tabs</a>
+  <a routerLink="/login" *ngIf="!isLoggedIn">Login</a>
+  <a routerLink="/home" *ngIf="isLoggedIn">Home</a>
+  <a routerLink="/tab-new" *ngIf="isLoggedIn">New Tab</a>
+  <a routerLink="/tab-manage" *ngIf="isLoggedIn">Manage Tabs</a>
   <a routerLink="/settings">Settings</a>
-  <a routerLink="/help">Help</a>
-  <a routerLink="/logout">Logout</a>
+  <a routerLink="/help" *ngIf="isLoggedIn">Help</a>
+  <a routerLink="/logout" *ngIf="isLoggedIn">Logout</a>
 </nav>
 
-<main class="main">
-  <router-outlet></router-outlet>
-</main>
+<router-outlet></router-outlet>

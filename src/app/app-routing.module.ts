@@ -13,8 +13,8 @@ import { AuthGuard } from './services/auth.guard';
 const routes: Routes = [
   { path: 'login', component: LoginComponent },
   { path: 'logout', component: LogoutComponent },
-  { path: 'help', component: HelpComponent },
-  { path: 'settings', component: SettingsComponent, canActivate: [AuthGuard] },
+  { path: 'help', component: HelpComponent, canActivate: [AuthGuard] },
+  { path: 'settings', component: SettingsComponent },
   { path: 'home', component: HomeComponent, canActivate: [AuthGuard] },
   { path: 'tab-new', component: TabNewComponent, canActivate: [AuthGuard] },
   {
@@ -27,7 +27,11 @@ const routes: Routes = [
 ];
 
 @NgModule({
-  imports: [RouterModule.forRoot(routes)],
+  imports: [
+    RouterModule.forRoot(routes, {
+      useHash: true, //useHash: true ensures routes like /tab-new become /#/tab-new, and Angular no longer uses pushState, avoiding your Excel iframe crash.
+    }),
+  ],
   exports: [RouterModule],
 })
 export class AppRoutingModule {}

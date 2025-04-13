@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- TODO: Finalize this XML and switch over from localhost to actual server -->
+<OfficeApp
+  xmlns="http://schemas.microsoft.com/office/appforoffice/1.1"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0"
+  xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides"
+  xsi:type="TaskPaneApp"
+>
+  <!-- === Identity and Metadata === -->
+  <Id>4b234ddf-bfdd-4e21-8c34-EXCEL-EXTENSION-ID</Id>
+  <Version>1.0.0.0</Version>
+  <ProviderName>Your Company Name</ProviderName>
+  <DefaultLocale>en-US</DefaultLocale>
+  <DisplayName DefaultValue="Excel Extension" />
+  <Description DefaultValue="Excel Add-in to manage sheets, load data, and apply business logic." />
+
+  <!-- === Support === -->
+  <IconUrl DefaultValue="https://localhost:4200/assets/icon-32.png" />
+  <HighResolutionIconUrl DefaultValue="https://localhost:4200/assets/icon-64.png" />
+  <SupportUrl DefaultValue="https://yourcompany.com/support" />
+
+  <!-- === Permissions & Hosts === -->
+  <Hosts>
+    <Host Name="Workbook" />
+  </Hosts>
+
+  <Requirements>
+    <Sets DefaultMinVersion="1.1">
+      <Set Name="ExcelApi" />
+    </Sets>
+  </Requirements>
+
+  <!-- === App Capabilities === -->
+  <DefaultSettings>
+    <SourceLocation DefaultValue="https://localhost:4200/#/home" />
+  </DefaultSettings>
+
+  <!-- === Version Overlays for modern Office clients === -->
+  <VersionOverrides xmlns="http://schemas.microsoft.com/office/taskpaneappversionoverrides"
+    xsi:type="VersionOverridesV1_0">
+
+    <Hosts>
+      <Host xsi:type="Workbook">
+        <Runtimes>
+          <Runtime resid="TaskPane.Url" />
+        </Runtimes>
+
+        <DesktopFormFactor>
+          <GetStarted>
+            <Title resid="AppTitle" />
+            <Description resid="AppDescription" />
+            <LearnMoreUrl resid="AppLearnMoreUrl" />
+          </GetStarted>
+
+          <FunctionFile resid="TaskPane.Url" />
+
+          <ExtensionPoint xsi:type="Events">
+            <Event Type="Office.Initialize" Function="initialize" />
+          </ExtensionPoint>
+
+          <TaskpaneId>ButtonId1</TaskpaneId>
+          <SourceLocation resid="TaskPane.Url" />
+          <Title resid="AppTitle" />
+        </DesktopFormFactor>
+      </Host>
+    </Hosts>
+
+    <Resources>
+      <bt:Urls>
+        <bt:Url id="TaskPane.Url" DefaultValue="https://localhost:4200/#/home" />
+      </bt:Urls>
+      <bt:Images>
+        <bt:Image id="Icon32" DefaultValue="https://localhost:4200/assets/icon-32.png" />
+        <bt:Image id="Icon64" DefaultValue="https://localhost:4200/assets/icon-64.png" />
+      </bt:Images>
+      <bt:ShortStrings>
+        <bt:String id="AppTitle" DefaultValue="Excel Extension" />
+        <bt:String id="AppDescription" DefaultValue="Load and manage Excel data dynamically." />
+      </bt:ShortStrings>
+      <bt:LongStrings>
+        <bt:String id="AppLearnMoreUrl" DefaultValue="https://yourcompany.com/docs" />
+      </bt:LongStrings>
+    </Resources>
+  </VersionOverrides>
+</OfficeApp>

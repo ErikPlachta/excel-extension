@@ -1,1 +1,10 @@
-<p>tab-manage works!</p>
+<h2>Manage Extension Tabs</h2>
+<p>{{ statusMessage }}</p>
+
+<ul *ngIf="tabs.length">
+  <li *ngFor="let tab of tabs">
+    {{ tab }}
+    <button (click)="refreshSheet(tab)">Refresh</button>
+    <button (click)="deleteSheet(tab)">Delete</button>
+  </li>
+</ul>

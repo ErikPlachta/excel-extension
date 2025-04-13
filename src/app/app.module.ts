@@ -1,5 +1,6 @@
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
+import { LocationStrategy, HashLocationStrategy } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http'; // Using HttpClientModule because we'I'm using NgModule design. TS warning only relevant If was using standalone components.
 import { AppRoutingModule } from './app-routing.module';
@@ -25,7 +26,7 @@ import { TabManageComponent } from './pages/tab-manage/tab-manage.component';
     TabManageComponent,
   ],
   imports: [BrowserModule, FormsModule, HttpClientModule, AppRoutingModule],
-  providers: [],
+  providers: [{ provide: LocationStrategy, useClass: HashLocationStrategy }],
   bootstrap: [AppComponent],
 })
 export class AppModule {}
