@@ -1,6 +1,8 @@
 {
   "name": "excel-extension",
-  "version": "0.0.0",
+  "version": "0.0.1",
+  "author": "Erik Plachta",
+  "description": "Custom Excel Add-in with Angular.",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
