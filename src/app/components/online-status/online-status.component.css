@@ -1,0 +1,15 @@
+/* TODO: Rebuild this CSS */
+.status {
+  top: 14px;
+  right: 14px;
+  position: absolute;
+  font-size: 14px;
+  font-weight: bold;
+  text-decoration: none;
+}
+.online {
+  color: green;
+}
+.offline {
+  color: red;
+}

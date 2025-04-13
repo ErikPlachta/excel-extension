@@ -13,6 +13,7 @@ import { HelpComponent } from './pages/help/help.component';
 import { SettingsComponent } from './pages/settings/settings.component';
 import { TabNewComponent } from './pages/tab-new/tab-new.component';
 import { TabManageComponent } from './pages/tab-manage/tab-manage.component';
+import { OnlineStatusComponent } from './components/online-status/online-status.component';
 
 @NgModule({
   declarations: [
@@ -24,6 +25,7 @@ import { TabManageComponent } from './pages/tab-manage/tab-manage.component';
     SettingsComponent,
     TabNewComponent,
     TabManageComponent,
+    OnlineStatusComponent,
   ],
   imports: [BrowserModule, FormsModule, HttpClientModule, AppRoutingModule],
   providers: [{ provide: LocationStrategy, useClass: HashLocationStrategy }],

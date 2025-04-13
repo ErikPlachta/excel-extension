@@ -78,7 +78,7 @@ export class ExcelService {
       // Write metadata to Z1
       if (metadata) {
         const marker = '#EXT_META:' + JSON.stringify(metadata);
-        const metaRange = sheet.getRange('A2'); // TODO: find a better place to hold metadata than within z1. I actually prefer it's A2, and table doesn't start until A5 (or something like that). Either way should be a parameter, not hard-coded
+        const metaRange = sheet.getRange('A2'); // TODO: find a better place to hold metadata than within A2. and use args not hard-coded.
         metaRange.values = [[marker]];
         //metaRange.format.font.color = '#FFFFFF'; // hide visually (optional) // TODO: Update styling to use args instead of hard-coded
         //metaRange.format.fill.color = '#FFFFFF'; // hide visually (optional)
@@ -195,7 +195,7 @@ export class ExcelService {
 
     await Excel.run(async (context) => {
       const sheet = context.workbook.worksheets.getItem(sheetName);
-      const cell = sheet.getRange('Z1');
+      const cell = sheet.getRange('A2');
       cell.values = [['#EXT_META:' + JSON.stringify(metadata)]];
       cell.format.font.color = '#FFFFFF';
       cell.format.font.size = 1;

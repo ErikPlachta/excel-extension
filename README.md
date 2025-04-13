@@ -8,8 +8,10 @@
   - SSL:
     - Testing with SSL because extension requires it.
     - `ng serve --ssl true`
-- Add a new component
+- Add a new page of type component
   - `ng g c pages/home --standalone=false`
+- Add a new component of type component
+  - `ng generate component components/online-status --standalone=false`
 
 ---
 

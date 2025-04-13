@@ -1,0 +1,4 @@
+<!-- TODO: Clean this up once ready -->
+<div class="status" [ngClass]="{ online: isOnline, offline: !isOnline }">
+  {{ isOnline ? "🟢 Online" : "🔴 Offline" }}
+</div>
