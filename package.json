@@ -5,7 +5,7 @@
   "description": "Custom Excel Add-in with Angular.",
   "scripts": {
     "ng": "ng",
-    "start": "ng serve",
+    "start": "ng serve --ssl true",
     "build": "ng build",
     "dev": "ng serve --ssl true",
     "watch": "ng build --watch --configuration development",
