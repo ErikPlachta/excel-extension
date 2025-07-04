@@ -3,11 +3,8 @@
 ## Notes
 
 - Start local server
-  - Standard:
-    - `ng serve`
-  - SSL:
-    - Testing with SSL because extension requires it.
-    - `ng serve --ssl true`
+  - The add-in requires HTTPS even in development.
+  - `npm start` (runs `ng serve --ssl true`)
 - Add a new page of type component
   - `ng g c pages/home --standalone=false`
 - Add a new component of type component
@@ -19,13 +16,13 @@ This project was generated using [Angular CLI](https://github.com/angular/angula
 
 ## Development server
 
-To start a local development server, run:
+To start a local development server with HTTPS, run:
 
 ```bash
-ng serve
+npm start
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+Once the server is running, open your browser and navigate to `https://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
 
 ## Code scaffolding
 

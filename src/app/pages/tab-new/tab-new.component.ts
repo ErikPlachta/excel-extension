@@ -3,6 +3,7 @@ import { ExcelService } from '../../services/excel.service';
 import { ApiService } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
 import { PlatformService } from '../../services/platform.service';
+import { ConnectivityService } from '../../services/connectivity.service';
 
 @Component({
   selector: 'app-tab-new',
@@ -20,7 +21,8 @@ export class TabNewComponent {
     private excelService: ExcelService,
     private apiService: ApiService,
     private authService: AuthService,
-    private platformService: PlatformService
+    private platformService: PlatformService,
+    private connectivity: ConnectivityService
   ) {}
 
   async onSubmit(): Promise<void> {
@@ -51,6 +53,9 @@ export class TabNewComponent {
 
       // 5. Fetch data from API
       this.statusMessage = `🌐 Fetching data for ${user.name}...`;
+      if (!this.connectivity.isOnline()) {
+        this.statusMessage += ' (offline mode)';
+      }
       const data = await this.apiService.fetchUserData(user.id);
       if (!data || !Array.isArray(data) || data.length === 0) {
         this.statusMessage = '⚠️ No data returned from API.';

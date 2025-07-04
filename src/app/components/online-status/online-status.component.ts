@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { ConnectivityService } from '../../services/connectivity.service';
 
 @Component({
   selector: 'app-online-status',
@@ -7,10 +8,12 @@ import { Component, OnInit } from '@angular/core';
   styleUrls: ['./online-status.component.css'],
 })
 export class OnlineStatusComponent implements OnInit {
-  isOnline = navigator.onLine;
+  isOnline = true;
+
+  constructor(private connectivity: ConnectivityService) {}
 
   ngOnInit(): void {
-    window.addEventListener('online', () => (this.isOnline = true));
-    window.addEventListener('offline', () => (this.isOnline = false));
+    this.isOnline = this.connectivity.isOnline();
+    this.connectivity.online$.subscribe((status) => (this.isOnline = status));
   }
 }

@@ -1,8 +1,9 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { ExcelService } from '../../services/excel.service';
 import { PlatformService } from '../../services/platform.service';
 import { AuthService } from '../../services/auth.service';
 import { ApiService } from '../../services/api.service';
+import { ConnectivityService } from '../../services/connectivity.service';
 
 @Component({
   selector: 'app-tab-manage',
@@ -19,7 +20,8 @@ export class TabManageComponent implements OnInit {
     private excelService: ExcelService,
     private platformService: PlatformService,
     private authService: AuthService,
-    private apiService: ApiService
+    private apiService: ApiService,
+    private connectivity: ConnectivityService
   ) {}
 
   // async ngOnInit() {
@@ -65,6 +67,9 @@ export class TabManageComponent implements OnInit {
   async refreshSheet(name: string) {
     try {
       this.statusMessage = `🔄 Refreshing ${name}...`;
+      if (!this.connectivity.isOnline()) {
+        this.statusMessage += ' (offline mode)';
+      }
       await this.excelService.refreshSheetWithMetadata(name, (query) => {
         const user = this.authService.getUser();
         return this.apiService.fetchUserData(user?.id || '').then((data) => {
