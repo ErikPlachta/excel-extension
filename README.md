@@ -36,6 +36,12 @@ ng build
 
 This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
 
+## Deployment
+
+This repository includes a GitHub Actions workflow that builds the project and deploys the generated files to **GitHub Pages**. Any push to the `main` branch triggers the workflow. The workflow uses a custom composite action located in `.github/actions/deploy` to install dependencies, build the Angular application, and publish the contents of `dist/excel-extension` to the `gh-pages` branch.
+
+No additional configuration is required; the workflow uses the built-in `GITHUB_TOKEN` to authenticate.
+
 ## Running unit tests
 
 To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
