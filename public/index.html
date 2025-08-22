@@ -1,57 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
-
   <head>
-    <!-- prevents search engine crawling -->
-    <meta name="robots" content="noindex, nofollow">
-    <!-- general -->
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <!-- Prevents local caching -->
-    <meta http-equiv="Cache-Control" max-age="0" content="no-cache, no-store, must-revalidate" />
-    <meta http-equiv="Pragma" content="no-cache" />
-    <meta http-equiv="Expires" content="0" />
     <meta charset="utf-8" />
+    <title>Excel Extension</title>
     <base href="/" />
 
-    <meta name="theme-color" content="#1F3042" />
-    <meta
-    name="description"
-    content="Angular SPA hosted on GitHub Pages"
-    />
+    <!-- Responsive layout and no-caching for add-in environments -->
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
 
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-    <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <link rel="apple-touch-icon" href="apple-touch-icon.svg">
-    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
 
-    <title>Excel Extension</title>
-
-    <!-- Start Single Page Apps for GitHub Pages -->
-    <script type="text/javascript">
-      // Single Page Apps for GitHub Pages
-      // MIT License
-      // https://github.com/rafgraph/spa-github-pages
-      // This script checks to see if a redirect is present in the query string,
-      // converts it back into the correct url and adds it to the
-      // browser's history using window.history.replaceState(...),
-      // which won't cause the browser to attempt to load the new url.
-      // When the single page app is loaded further down in this file,
-      // the correct url will be waiting in the browser's history for
-      // the single page app to route accordingly.
-      (function(l) {
-        if (l.search[1] === '/' ) {
-          var decoded = l.search.slice(1).split('&').map(function(s) {
-            return s.replace(/~and~/g, '&')
-          }).join('?');
-          window.history.replaceState(null, null,
-              l.pathname.slice(0, -1) + decoded + l.hash
-          );
-        }
-      }(window.location))
-    </script>
-    <!-- End Single Page Apps for GitHub Pages -->
+    <!-- Office.js enables integration with Excel -->
+    <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
   </head>
-
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <app-root></app-root>
