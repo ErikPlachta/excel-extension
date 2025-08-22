@@ -1,0 +1,5 @@
+<h1>Excel Extension</h1>
+<p *ngIf="excel.isExcel; else noExcel">Excel detected.</p>
+<ng-template #noExcel>
+  <p>Excel not detected.</p>
+</ng-template>
