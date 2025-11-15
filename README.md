@@ -67,7 +67,9 @@ This template does not include an e2e framework by default. Choose and configure
 
 - Office.js is included via script tag in `src/index.html` and `public/index.html`.
 - The `ExcelService` (`src/app/excel.service.ts`) wraps `Excel.run(...)` and exposes `isExcel` to safely detect the Excel host.
-- The development add-in manifest is `dev-manifest.xml`.
+- Manifests:
+  - `dev-manifest.xml` — local development against `<http://localhost:4200/>`.
+  - `prod-manifest.xml` — production/deployed site at `<https://Erikplachta.github.io/excel-extension/>`.
 
 To sideload against the local dev server, edit `dev-manifest.xml`:
 
@@ -81,13 +83,19 @@ To sideload against the local dev server, edit `dev-manifest.xml`:
 </AppDomains>
 ```
 
-For GitHub Pages deployment, revert `SourceLocation` to:
+For GitHub Pages deployment, use `prod-manifest.xml` which points to the deployed site. If needed, confirm `SourceLocation`:
 
 ```xml
 <SourceLocation DefaultValue="https://Erikplachta.github.io/excel-extension/index.html"/>
 ```
 
 The deploy workflow already sets the required `--base-href /excel-extension/` at build time.
+
+Sideload steps in Excel (Mac/Windows):
+
+1. Start the dev server: `npm start`
+2. Excel → Insert → My Add-ins → Upload My Add-in → select `dev-manifest.xml` (for prod testing, use `prod-manifest.xml`).
+3. The task pane will load from the specified `SourceLocation`.
 
 ## Additional Resources
 

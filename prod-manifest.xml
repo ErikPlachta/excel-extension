@@ -7,19 +7,19 @@
   <ProviderName>Erik Plachta</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="Excel Extension Sample" />
-  <Description DefaultValue="Local development manifest for Angular dev server" />
+  <Description DefaultValue="Sample manifest pointing to GitHub Pages deployment" />
   <SupportUrl DefaultValue="https://github.com/Erikplachta/excel-extension/issues" />
-  <IconUrl DefaultValue="http://localhost:4200/favicon.svg" />
-  <HighResolutionIconUrl DefaultValue="http://localhost:4200/icon-512.svg" />
+  <IconUrl DefaultValue="https://Erikplachta.github.io/excel-extension/favicon.svg" />
+  <HighResolutionIconUrl DefaultValue="https://Erikplachta.github.io/excel-extension/icon-512.svg" />
   <AppDomains>
-    <AppDomain>http://localhost:4200</AppDomain>
-    <AppDomain>http://127.0.0.1:4200</AppDomain>
+    <AppDomain>https://Erikplachta.github.io</AppDomain>
+    <AppDomain>https://Erikplachta.github.io/excel-extension</AppDomain>
   </AppDomains>
   <Hosts>
     <Host Name="Workbook" />
   </Hosts>
   <DefaultSettings>
-    <SourceLocation DefaultValue="http://localhost:4200/index.html" />
+    <SourceLocation DefaultValue="https://Erikplachta.github.io/excel-extension/index.html" />
   </DefaultSettings>
   <Permissions>ReadWriteDocument</Permissions>
 </OfficeApp>

@@ -1,10 +1,12 @@
 import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { AppComponent } from './app.component';
 
 describe('AppComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [AppComponent],
+      providers: [provideRouter([])],
     }).compileComponents();
   });
 
@@ -20,10 +22,12 @@ describe('AppComponent', () => {
     expect(app.title).toEqual('excel-extension');
   });
 
-  it('should render title', () => {
+  it('should render nav status element', () => {
     const fixture = TestBed.createComponent(AppComponent);
     fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('h1')?.textContent).toContain('Hello, excel-extension');
+    const status = compiled.querySelector('.status');
+    expect(status).toBeTruthy();
+    expect(status?.textContent).toMatch(/Excel|No Excel/);
   });
 });

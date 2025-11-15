@@ -17,6 +17,8 @@ runs:
         node-version: 20
     - run: npm ci
       shell: bash
+    - run: npm run lint --if-present
+      shell: bash
     - run: npm run build -- --base-href "${{ inputs.base_href }}"
       shell: bash
     - uses: peaceiris/actions-gh-pages@v4
