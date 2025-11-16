@@ -12,6 +12,8 @@ export default [
       "_TEMPLATES/**",
       "_ARCHIVE/**",
       "public/**",
+      "src/index.html",
+      "**/*.html",
     ],
   },
   {
@@ -31,6 +33,7 @@ export default [
   },
   {
     files: ["src/app/**/*.html"],
+    ignores: [],
     languageOptions: {
       parser: angularTemplatePlugin.parser,
     },
