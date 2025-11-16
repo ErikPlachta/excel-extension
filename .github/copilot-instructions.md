@@ -2,6 +2,15 @@
 
 Purpose: Enable AI coding agents to be productive immediately in this Angular-based Excel task pane app.
 
+## Core Guidelines
+
+1. Understand the app is an Angular 19 task pane for Excel using standalone components and Office.js, with Excel integration wrapped in `ExcelService` and guarded by `isExcel`.
+2. Focus on manifest compliance with the Office Add-ins Development Kit, prioritizing `dev-manifest.xml` for local development and sideloading in Excel.
+3. Use `_TEMPLATES/` Dev Kit sample manifests as canonical references for structure, especially `<Resources>`, icon definitions, and HTTPS requirements.
+4. Ensure any changes to `dev-manifest.xml` maintain localhost for `SourceLocation` to facilitate easy local sideloading.
+5. Keep `CONTEXT-SESSION.md` updated with the current state snapshot, manifest validation findings, and a focused TODO checklist. You should make the changes there as the source of truth for ongoing work. (Don't ask me to do this; just do it.)
+6. You can and should defer to running scripts that require me to provide you the results of the command (e.g., manifest validation) rather than trying to simulate or guess the output yourself.
+
 ## Big Picture
 
 - Framework: Angular 19 with standalone components (no NgModules). Entry at `src/main.ts` bootstraps `AppComponent` with `provideRouter(routes)` in `src/app/app.config.ts`.

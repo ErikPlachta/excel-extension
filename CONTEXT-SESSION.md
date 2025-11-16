@@ -1,142 +1,63 @@
 # Context & Session Plan
 
-Date: 2025-11-15
+Date: 2025-11-16  
 Repository: excel-extension
 
 ## Overview
 
-Angular 19 task-pane app for Excel using standalone components and Office.js. Routing provided in `app.config.ts`; Excel integration wrapped by `ExcelService` with safe `isExcel` gating. Deployed to GitHub Pages; manifests split for dev vs prod.
+Angular 19 task-pane app for Excel using standalone components and Office.js. Excel integration is wrapped by `ExcelService` with an `isExcel` guard. The current focus is making our Office add-in manifest compliant using the Office Add-ins Development Kit and cleanly separating local/dev versus deployed manifests.
 
 ## Current State Snapshot
 
 - Dev server: runs with live reload via `npm start` at <http://localhost:4200/>.
-- Tests: fixed (3/3 passing). Provided router in TestBed and updated expectation to `.status` element.
-- Manifests: `dev-manifest.xml` points to localhost (updated); `prod-manifest.xml` points to GitHub Pages (added).
-- Build: `npm run build` produces `dist/excel-extension/browser`. GH Actions deploys on push to `main` with `--base-href /excel-extension/`.
-- CI: `ci.yml` runs lint → build → test on PRs and pushes to `develop`; deploy composite action also lints before build.
-- Key integration: Office.js script tag in `src/index.html` and `public/index.html`; `ExcelService` uses `Excel.run(...)` + `ctx.sync()` and `isExcel` guard.
-
-## Dependencies Audit
-
-- Angular: `@angular/*` aligned to `^19.2.7`; builder/CLI also `^19.2.7`.
-- TypeScript: `~5.7.2` (compatible with Angular 19).
-- RxJS: `~7.8.0` (OK). zone.js: `~0.15.0` (OK).
-- tslib: `^2.6.2`.
-- Test stack: Karma/Jasmine versions are fine for Angular 19 defaults.
-- Node: Standardized via `.nvmrc` to 20 and `engines` set to `>=20 <23`.
-
-## Integrity Findings
-
-- Working:
-  - Dev server, routing, and standalone components work as expected.
-  - Excel integration follows safe pattern (gate on `isExcel`, `Excel.run`, `ctx.sync()`).
-- Issues:
-  - Unit tests failing (router not provided in TestBed; spec expects `<h1>` that doesn’t exist).
-  - `public/index.html` duplicates the app shell; as an asset it can override the built `index.html` and cause subtle bugs. Risk to correctness.
-  - PWA bits (manifest, `sw.js`) are present but not wired (no `<link rel="manifest">`, no SW registration).
-  - No ESLint configuration; missing static checks.
-  - No test/build CI on PRs/branches (only deploy on `main`).
-
-## Risks & Considerations
-
-- Duplicate `public/index.html` may override Angular’s `index.html` in output, causing broken base href and Office.js load order issues.
-  - Constraint: do not modify `public/` (per project requirement). Accept current setup and monitor; if conflicts appear, prefer build configuration adjustments rather than file removal.
-- Office.js is an external dependency; offline or network-limited environments won’t have Excel APIs—current guards mitigate this.
-
-## TODO Checklist (ordered; completed items first)
-
-- [x] Create `.github/copilot-instructions.md` (accelerates agent productivity).
-  - Completed: Added concise architecture, workflows, Excel patterns, and gotchas.
-- [x] Split manifests: `dev-manifest.xml` (localhost) and `prod-manifest.xml` (GH Pages).
-  - Completed: `dev` points to `http://localhost:4200/`; `prod` points to GitHub Pages.
-- [x] Update `README.md` with real workflows and sideload steps.
-  - Completed: Start, watch, test, build, manifest usage documented.
-- [x] Fix unit tests in `app.component.spec.ts` (restore CI signal).
-  - Completed: Provided router via `provideRouter([])` and asserted `.status` element.
-- [x] Standardize Node via `.nvmrc` and add `engines` in `package.json`.
-  - Completed: `.nvmrc` set to 20; engines `>=20 <23`.
-- [x] Add CI workflow to run `npm ci`, `npm run lint`, `npm run build`, and `npm test`.
-  - Completed: `ci.yml` added; sequence lint → build → test.
-- [x] Add ESLint and `npm run lint`.
-  - Completed: Minimal `@angular-eslint` config and script added.
-- [x] Align Angular packages to `^19.2.7` and bump `tslib` to `^2.6.2`.
-  - Completed: All core/runtime Angular packages updated; build verified earlier.
-- [x] Lint on deploy workflow.
-
-  - Completed: Composite deploy action lints before building.
-
-- [ ] Keep `public/` untouched (project requirement).
-  - Priority: High (ongoing). Address any asset conflicts via build configuration, not file changes.
-- [x] Optional: Wire PWA (link manifest in `src/index.html`, add guarded SW registration) or leave inert.
-  - Completed: Added `<link rel="manifest" href="manifest.json">` and production-only SW registration in `main.ts` (HTTPS, not localhost, and disabled when running inside Excel).
-- [x] Optional: Add `@types/office-js` for dev ergonomics while keeping runtime `any`.
-  - Completed: Added devDependency; retains current `declare const` pattern in `ExcelService`.
-
-## Verification Steps
-
-- Tests fixed:
-  - Run `npm test` → expect all specs passing.
-- Asset behavior:
-  - Build and serve; confirm `src/index.html` shell is preserved and Office.js loads once. Monitor for any duplication due to `public/index.html` (do not modify `public/`).
-- Linting:
-  - Run `npm run lint` → no errors at baseline (or actionable list).
-- CI:
-  - New workflow runs on PR with green checks for lint/build/test.
-- Version pinning:
-  - `nvm use` picks Node 20; `node -v` matches CI.
+- **Primary focus:** `dev-manifest.xml` for local development and sideloading in Excel.
 - Manifests:
-  - Sideload `dev-manifest.xml` → task pane loads from localhost.
-  - Use `prod-manifest.xml` after deploy → loads from GitHub Pages.
-  - Note: Path-based AppDomain in `prod-manifest.xml` retained per user preference; host-only is also valid.
+  - `dev-manifest.xml` points to localhost and is the only manifest that matters until dev sideloading is working reliably.
+  - `prod-manifest.xml` exists but is explicitly out of scope for now; it will be revisited only after the dev manifest is solid.
+- Office Add-ins Dev Kit: installed in VS Code; manifest validation is wired via `office-addin-manifest validate` (e.g., `npm run validate:dev-manifest`).
+- Resources: `resources.md` tracks key Microsoft docs for Office add-in development, sideloading, and the Dev Kit.
+- Templates: `_TEMPLATES/` contains Dev Kit sample manifests (e.g., Taskpane, ManifestOnly) to use as canonical structural references.
+
+## Manifest Validation Findings (from `dev-manifest.xml`)
+
+- **Schema placement**: `IconUrl` and `HighResolutionIconUrl` are defined as top-level children of `OfficeApp`, which is invalid for schema `1.1`. Icons should be declared under a `<Resources>` section and referenced from settings, as in Dev Kit templates.
+- **HTTPS requirement**: Dev Kit requires HTTPS for `SourceLocation` and icon URLs. Our localhost-based dev manifest uses `http://localhost:4200/...` and fails these checks.
+- **Icon format**: Icon URLs currently end in `.svg` (`favicon.svg`, `icon-512.svg`), but Dev Kit requires bitmap formats such as `.png`.
+- **Other checks**: ID, version, support URL, and basic structure validate successfully.
+
+## Focused TODO Checklist (dev manifest first)
+
+- [ ] Inspect Dev Kit template manifests under `_TEMPLATES/Taskpane` (or similar) to confirm the correct manifest structure, including `<Resources>`, icon definitions, and how `SourceLocation` is wired.
+- [ ] Refactor **`dev-manifest.xml`** to:
+  - Use the correct schema structure (no top-level `IconUrl` / `HighResolutionIconUrl`; define icons via `<Resources>`).
+  - Keep pointing to localhost for `SourceLocation` so it remains convenient for dev sideloading.
+  - Use supported icon file formats (e.g., `.png`) even in dev.
+- [ ] Decide how strictly we want `dev-manifest.xml` to satisfy Dev Kit HTTPS checks:
+  - Option A: Serve Angular over HTTPS localhost and make `dev-manifest.xml` fully compliant.
+  - Option B: Accept that HTTP localhost may cause HTTPS-related warnings but is acceptable for local sideload testing, as long as schema errors are resolved.
+- [ ] Update `README.md` and/or `resources.md` with a **dev-first flow**:
+  - How to run `npm run validate:dev-manifest` and interpret results.
+  - How to sideload `dev-manifest.xml` into Excel for testing.
+  - A note that `prod-manifest.xml` is intentionally deferred until dev is solid.
+- [ ] Only after `dev-manifest.xml` is working and reasonably validated, revisit `prod-manifest.xml` to align it with the final dev structure and HTTPS/icon expectations.
+
+## Next Steps (high-level)
+
+1. Use Dev Kit sample manifests in `_TEMPLATES` as the source of truth for structure (especially `<Resources>`, HTTPS rules, and supported icon formats).
+2. Refactor `prod-manifest.xml` into a fully compliant, HTTPS, PNG-based manifest pointing at the GitHub Pages deployment.
+3. Implement the chosen `dev-manifest.xml` strategy so that local sideloading remains simple but structurally aligned with the validated manifest.
+4. Document the manifest flows (dev vs prod) and validation commands in `README.md` / `resources.md` so future work stays aligned with Office add-in best practices.
 
 ## Reference Commands
 
 ```bash
-# Develop
+# Validate manifests via Dev Kit
+npm run validate:dev-manifest
+
+# Develop Angular task pane
 npm ci
 npm start  # http://localhost:4200/
 
-# Watch build (no server)
-npm run watch
-
-# Test
-npm test
-
-# Build
+# Build Angular app
 npm run build  # dist/excel-extension/browser
-```
-
-## Suggested Patch Snippet (Tests)
-
-```ts
-// src/app/app.component.spec.ts
-import { TestBed } from "@angular/core/testing";
-import { provideRouter } from "@angular/router";
-import { AppComponent } from "./app.component";
-
-describe("AppComponent", () => {
-  beforeEach(async () => {
-    await TestBed.configureTestingModule({
-      imports: [AppComponent],
-      providers: [provideRouter([])],
-    }).compileComponents();
-  });
-
-  it("should create the app", () => {
-    const fixture = TestBed.createComponent(AppComponent);
-    expect(fixture.componentInstance).toBeTruthy();
-  });
-
-  it(`should have the 'excel-extension' title`, () => {
-    const fixture = TestBed.createComponent(AppComponent);
-    expect(fixture.componentInstance.title).toEqual("excel-extension");
-  });
-
-  it("should render nav status element", () => {
-    const fixture = TestBed.createComponent(AppComponent);
-    fixture.detectChanges();
-    const el: HTMLElement = fixture.nativeElement;
-    expect(el.querySelector(".status")).toBeTruthy();
-  });
-});
 ```

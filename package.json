@@ -7,7 +7,8 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "lint": "eslint . --ext .ts,.html"
+    "lint": "eslint . --ext .ts,.html",
+    "validate:dev-manifest": "npx --yes office-addin-manifest validate dev-manifest.xml"
   },
   "private": true,
   "dependencies": {
