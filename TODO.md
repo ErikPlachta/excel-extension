@@ -135,61 +135,16 @@ This file tracks the concrete steps for refactoring the add-in to a template-ali
   - Verify:
     - A new contributor can follow README to run the dev server, sideload into Excel, and understand the high-level architecture.
 
-## 9. Testing Strategy & Suite Onboarding
+## 9. Query Domain & Role-aware Features
 
-- [ ] **Clarify test scope and layering**
-  - Define three layers:
-    - Angular **unit/component tests** (Karma/Jasmine).
-    - **Office/command script tests** (functions in `commands.ts`, helpers).
-    - Optional **end-to-end/manual flows** for Excel + taskpane + commands.
-  - Verify:
-    - A short TESTING section in `README.md` lists these layers and how to run them.
+- [x] **Introduce AuthService and role-aware nav**
+  - `AuthService` centralizes auth state (user, `isAuthenticated`, `roles`) using `getSsoAuthResult` from `sso-helper`.
+  - Mock SSO helpers include roles on the user profile; these flow into `AuthService` and SSO UI.
+  - `AppComponent` uses `AuthService` so that worksheets/tables views and nav buttons are only available when authenticated.
 
-- [ ] **Strengthen Angular test coverage**
-  - Add/extend specs for:
-    - Root taskpane shell (AppComponent / future Taskpane shell).
-    - SSO-focused component (mocked SSO user + token).
-    - Any components that interact with `ExcelService` (using `isExcel` guards and mocks).
-  - Verify:
-    - `npm test -- --watch=false --browsers=ChromeHeadless` passes.
-    - New tests do not require Office globals (they use mocks or `isExcel` false).
-
-- [ ] **Add unit tests for commands and helpers**
-  - For `src/commands/commands.ts`:
-    - Extract command handlers into testable functions.
-    - Write Jasmine tests that call handlers with mocked `Office`/`Office.actions` objects.
-  - For `src/helpers` (SSO, middle-tier calls, messaging):
-    - Write tests that assert:
-      - Mocked SSO returns deterministic fake tokens/user.
-      - Middle-tier callers handle success/failure paths correctly (using spies/mocks, not real network).
-  - Verify:
-    - Command/helper tests run under Karma/Jasmine without needing a real Excel host.
-    - Failing tests clearly indicate which script behavior broke.
-
-- [ ] **Introduce lightweight integration checks for Office wiring (optional)**
-  - Add a small suite (or a dedicated spec file) that:
-    - Verifies `Office.onReady` handlers don’t throw when `Office` is mocked.
-    - Confirms `Office.actions.associate` is called with expected IDs.
-  - Verify:
-    - These tests can run in CI (no real Office runtime), using simple JS mocks for `Office`.
-
-- [ ] **Document how to run and interpret tests**
-  - Update `README.md` and/or `CONTEXT-SESSION.md`:
-    - Commands:
-      - `npm test -- --watch=false --browsers=ChromeHeadless`
-      - Any special command/helper test entry points if separated.
-    - What each suite covers (Angular vs Office/commands vs SSO helpers).
-  - Verify:
-    - A new contributor can run tests and understand whether a failure is in Angular UI, Office wiring, or SSO/middle-tier mocks.
-
-## 10. Query Domain & Role-aware Features
-
-- [ ] **Introduce AuthService and role-aware nav**
-  - Add an `AuthService` that holds the current user (from `sso-helper`), an `isAuthenticated` flag, and a `roles: string[]` list.
-  - Update `sso-helper`/middle-tier stubs to include roles on the mock user.
-  - Wire `AppComponent` so that:
-    - When not authenticated, only login/home is available in nav.
-    - When authenticated, sign-out and a user page view become available.
+- [ ] **Review Homepage Signin/sign-out button state awareness**
+  - Ensure the SSO homepage correctly reflects auth state changes (sign-in/sign-out) via `AuthService`.
+  - Verify nav buttons appear/disappear based on authentication.
 
 - [ ] **Add user page component**
   - Create a `UserComponent` that displays the current user profile (name, email, roles, token snippet).

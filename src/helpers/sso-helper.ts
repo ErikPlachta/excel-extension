@@ -5,6 +5,7 @@ export interface SsoUserProfile {
   id: string;
   displayName: string;
   email: string;
+  roles: string[];
 }
 
 export interface SsoAuthResult {
@@ -21,6 +22,7 @@ export async function getSsoAuthResult(): Promise<SsoAuthResult> {
       id: result.user.id,
       displayName: result.user.displayName,
       email: result.user.email,
+      roles: result.user.roles,
     },
     accessToken: result.accessToken,
   };
@@ -40,5 +42,6 @@ export async function getUserProfile(): Promise<SsoUserProfile> {
     id: profile.id,
     displayName: profile.displayName,
     email: profile.mail,
+    roles: [],
   };
 }

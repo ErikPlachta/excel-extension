@@ -1,0 +1,12 @@
+<nav class="mobile-nav">
+  <button type="button" (click)="showSso()">SSO Home</button>
+  <button type="button" (click)="showWorksheets()" *ngIf="auth.isAuthenticated">Worksheets</button>
+  <button type="button" (click)="showTables()" *ngIf="auth.isAuthenticated">Tables</button>
+  <span class="status">{{ excel.isExcel ? "isExcel = true" : "isExcel = false" }}</span>
+</nav>
+
+<section class="content">
+  <app-sso-home *ngIf="currentView === 'sso'"></app-sso-home>
+  <app-worksheets *ngIf="currentView === 'worksheets' && auth.isAuthenticated"></app-worksheets>
+  <app-tables *ngIf="currentView === 'tables' && auth.isAuthenticated"></app-tables>
+</section>

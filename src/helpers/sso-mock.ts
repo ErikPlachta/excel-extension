@@ -6,6 +6,7 @@ export interface MockSsoUser {
   id: string;
   displayName: string;
   email: string;
+  roles: string[];
 }
 
 export interface MockSsoResult {
@@ -19,6 +20,7 @@ export async function getMockSsoResult(): Promise<MockSsoResult> {
       id: "mock-user-id-123",
       displayName: "Mock User",
       email: "mock.user@example.com",
+      roles: ["analyst", "admin"],
     },
     accessToken: "mock-access-token-abc123",
   };

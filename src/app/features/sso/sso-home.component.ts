@@ -1,6 +1,7 @@
 import { CommonModule } from "@angular/common";
 import { Component } from "@angular/core";
-import { getSsoAuthResult } from "../helpers/sso-helper";
+import { AuthService } from "../../core";
+import { truncateToken } from "../../shared/util";
 
 @Component({
   standalone: true,
@@ -16,15 +17,19 @@ export class SsoHomeComponent {
 
   isSignedIn = false;
 
+  constructor(private readonly auth: AuthService) {}
+
   async signIn(): Promise<void> {
-    const result = await getSsoAuthResult();
-    this.isSignedIn = true;
-    this.userName = result.user.displayName;
-    this.userEmail = result.user.email;
-    this.tokenSnippet = result.accessToken.slice(0, 10) + "…";
+    await this.auth.signIn();
+    const state = this.auth.state;
+    this.isSignedIn = state.isAuthenticated;
+    this.userName = state.user?.displayName ?? null;
+    this.userEmail = state.user?.email ?? null;
+    this.tokenSnippet = truncateToken(state.accessToken);
   }
 
   signOut(): void {
+    this.auth.signOut();
     this.isSignedIn = false;
     this.userName = null;
     this.userEmail = null;

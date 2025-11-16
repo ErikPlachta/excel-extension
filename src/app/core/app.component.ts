@@ -1,9 +1,9 @@
 import { CommonModule } from "@angular/common";
 import { Component } from "@angular/core";
-import { ExcelService } from "./excel.service";
-import { SsoHomeComponent } from "./sso-home.component";
-import { WorksheetsComponent } from "./worksheets.component";
-import { TablesComponent } from "./tables.component";
+import { ExcelService, AuthService } from ".";
+import { SsoHomeComponent } from "../features/sso/sso-home.component";
+import { WorksheetsComponent } from "../features/worksheets/worksheets.component";
+import { TablesComponent } from "../features/tables/tables.component";
 
 @Component({
   selector: "app-root",
@@ -15,7 +15,10 @@ import { TablesComponent } from "./tables.component";
 export class AppComponent {
   currentView: "sso" | "worksheets" | "tables" = "sso";
 
-  constructor(public excel: ExcelService) {}
+  constructor(
+    public excel: ExcelService,
+    public auth: AuthService
+  ) {}
 
   showSso(): void {
     this.currentView = "sso";

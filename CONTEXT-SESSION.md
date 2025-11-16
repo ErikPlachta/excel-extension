@@ -3,7 +3,13 @@ Repository: excel-extension
 
 ## Overview
 
-Angular 20 task-pane app for Excel using standalone components and Office.js. Excel integration is wrapped by `ExcelService` with an `isExcel` guard. On top of that, we now have a conceptual design for a role-aware, query-centric extension that will:
+Angular 20 task-pane app for Excel using standalone components and Office.js. Excel integration is wrapped by `ExcelService` with an `isExcel` guard. The app is organized into three main areas:
+
+- `core/` for the root shell, auth/Excel services, and bootstrap config.
+- `features/` for routed/hosted UI (SSO home, home, worksheets, tables).
+- `shared/` for reusable utilities used across features.
+
+On top of that, we now have a conceptual design for a role-aware, query-centric extension that will:
 
 - Provide role-specific app features and navigation based on auth state.
 - Execute remote-style queries and write results into tables on target sheets.
