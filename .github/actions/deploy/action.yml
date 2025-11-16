@@ -28,3 +28,4 @@ runs:
         github_token: ${{ inputs.token }}
         publish_dir: dist/excel-extension/browser
         publish_branch: gh-pages
+
