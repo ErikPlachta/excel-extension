@@ -67,10 +67,10 @@ Angular 19 task-pane app for Excel using standalone components and Office.js. Ro
 
 - [ ] Keep `public/` untouched (project requirement).
   - Priority: High (ongoing). Address any asset conflicts via build configuration, not file changes.
-- [ ] Optional: Wire PWA (link manifest in `src/index.html`, add guarded SW registration) or leave inert.
-  - Priority: Medium. Recommend gating SW registration to production only to avoid Excel add-in caching surprises.
-- [ ] Optional: Add `@types/office-js` for dev ergonomics while keeping runtime `any`.
-  - Priority: Low. Consider only if you want intellisense; avoid enforcing types in service.
+- [x] Optional: Wire PWA (link manifest in `src/index.html`, add guarded SW registration) or leave inert.
+  - Completed: Added `<link rel="manifest" href="manifest.json">` and production-only SW registration in `main.ts` (HTTPS, not localhost, and disabled when running inside Excel).
+- [x] Optional: Add `@types/office-js` for dev ergonomics while keeping runtime `any`.
+  - Completed: Added devDependency; retains current `declare const` pattern in `ExcelService`.
 
 ## Verification Steps
 
@@ -87,6 +87,7 @@ Angular 19 task-pane app for Excel using standalone components and Office.js. Ro
 - Manifests:
   - Sideload `dev-manifest.xml` → task pane loads from localhost.
   - Use `prod-manifest.xml` after deploy → loads from GitHub Pages.
+  - Note: Path-based AppDomain in `prod-manifest.xml` retained per user preference; host-only is also valid.
 
 ## Reference Commands
 
