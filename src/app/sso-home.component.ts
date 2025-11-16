@@ -1,6 +1,6 @@
 import { CommonModule } from "@angular/common";
 import { Component } from "@angular/core";
-import { getMockSsoResult } from "../helpers/sso-mock";
+import { getSsoAuthResult } from "../helpers/sso-helper";
 
 @Component({
   standalone: true,
@@ -17,7 +17,7 @@ export class SsoHomeComponent {
   isSignedIn = false;
 
   async signIn(): Promise<void> {
-    const result = await getMockSsoResult();
+    const result = await getSsoAuthResult();
     this.isSignedIn = true;
     this.userName = result.user.displayName;
     this.userEmail = result.user.email;

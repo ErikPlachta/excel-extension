@@ -99,7 +99,7 @@ This file tracks the concrete steps for refactoring the add-in to a template-ali
     - In Excel Online and desktop, opening the taskpane shows the SSO-like homepage (with fake user data).
     - The SPA navigation buttons switch views via internal state only; the URL never changes.
 
-- [ ] **Wire mocked SSO into helpers**
+- [x] **Wire mocked SSO into helpers**
   - Behavior:
     - For local dev, `getAccessToken`/equivalent returns a static or deterministic fake token.
     - Expose fake user profile data to the Angular taskpane.
