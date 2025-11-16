@@ -17,7 +17,7 @@ The current big-picture focus is: **running and testing the extension locally in
 - **HTTPS dev (optional):**
   - `npm run dev-certs` (calls `scripts/install-dev-certs.mjs` using `office-addin-dev-certs`).
   - `npm run start:dev` → `ng serve --configuration development --ssl true --ssl-cert ~/.office-addin-dev-certs/localhost.crt --ssl-key ~/.office-addin-dev-certs/localhost.key`.
-- **Excel integration:** `ExcelService.isExcel` guards Office JS calls so the app can run outside Excel safely.
+- **Excel integration:** `ExcelService.isExcel` guards Office JS calls so the app can run outside Excel safely. Inside Excel, `AppComponent` bypasses the Angular router and renders `SsoHomeComponent` directly; outside Excel, the router/nav are enabled and `/`, `/worksheets`, `/tables` routes work normally.
 - **Manifests:**
   - `dev-manifest.xml` points to localhost (Angular dev server) and is used for sideloading during development.
   - `prod-manifest.xml` points at the GitHub Pages deployment and is aligned with the Dev Kit structure.
