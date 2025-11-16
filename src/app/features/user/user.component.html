@@ -1,0 +1,15 @@
+<section class="user" *ngIf="isAuthenticated; else notSignedIn">
+  <h2>User Profile</h2>
+  <div *ngIf="user; else noUser">
+    <p><strong>Name:</strong> {{ user.displayName }}</p>
+    <p><strong>Email:</strong> {{ user.email }}</p>
+    <p><strong>Roles:</strong> {{ roles.length ? roles.join(", ") : "(none)" }}</p>
+  </div>
+  <ng-template #noUser>
+    <p>No user profile available.</p>
+  </ng-template>
+</section>
+
+<ng-template #notSignedIn>
+  <p>You are not signed in.</p>
+</ng-template>

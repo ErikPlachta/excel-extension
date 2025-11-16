@@ -142,13 +142,13 @@ This file tracks the concrete steps for refactoring the add-in to a template-ali
   - Mock SSO helpers include roles on the user profile; these flow into `AuthService` and SSO UI.
   - `AppComponent` uses `AuthService` so that worksheets/tables views and nav buttons are only available when authenticated.
 
-- [ ] **Review Homepage Signin/sign-out button state awareness**
-  - Ensure the SSO homepage correctly reflects auth state changes (sign-in/sign-out) via `AuthService`.
-  - Verify nav buttons appear/disappear based on authentication.
+- [x] **Review Homepage Signin/sign-out button state awareness**
+  - SSO homepage now derives all display state (signed-in flag, user name/email, token snippet) directly from `AuthService` getters.
+  - Nav buttons in `AppComponent` already react to `auth.isAuthenticated`, so sign-in/sign-out state is consistently reflected across the shell and homepage.
 
-- [ ] **Add user page component**
-  - Create a `UserComponent` that displays the current user profile (name, email, roles, token snippet).
-  - Integrate it into the SPA shell as a `currentView` option.
+- [x] **Add user page component**
+  - `UserComponent` shows the current user profile (name, email, roles) from `AuthService`.
+  - It is wired into the SPA shell as a `currentView` option with a nav button that appears only when authenticated.
 
 - [ ] **Define core query domain model**
   - Introduce `QueryDefinition`, `QueryParameter`, and `QueryRun` types in a shared file.

@@ -2,6 +2,9 @@
   <button type="button" (click)="showSso()">SSO Home</button>
   <button type="button" (click)="showWorksheets()" *ngIf="auth.isAuthenticated">Worksheets</button>
   <button type="button" (click)="showTables()" *ngIf="auth.isAuthenticated">Tables</button>
+  <button type="button" (click)="showUser()" *ngIf="auth.isAuthenticated">User</button>
+  <button type="button" (click)="signIn()" *ngIf="!auth.isAuthenticated">Sign in (mock)</button>
+  <button type="button" (click)="signOut()" *ngIf="auth.isAuthenticated">Sign out</button>
   <span class="status">{{ excel.isExcel ? "isExcel = true" : "isExcel = false" }}</span>
 </nav>
 
@@ -9,4 +12,5 @@
   <app-sso-home *ngIf="currentView === 'sso'"></app-sso-home>
   <app-worksheets *ngIf="currentView === 'worksheets' && auth.isAuthenticated"></app-worksheets>
   <app-tables *ngIf="currentView === 'tables' && auth.isAuthenticated"></app-tables>
+  <app-user *ngIf="currentView === 'user' && auth.isAuthenticated"></app-user>
 </section>
