@@ -1,14 +1,14 @@
-import { Component } from '@angular/core';
-import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
-import { ExcelService } from './excel.service';
+import { Component } from "@angular/core";
+import { RouterOutlet, RouterLink, RouterLinkActive } from "@angular/router";
+import { ExcelService } from "./excel.service";
 
 @Component({
-  selector: 'app-root',
+  selector: "app-root",
   imports: [RouterOutlet, RouterLink, RouterLinkActive],
-  templateUrl: './app.component.html',
-  styleUrl: './app.component.css'
+  templateUrl: "./app.component.html",
+  styleUrl: "./app.component.css",
 })
 export class AppComponent {
   constructor(public excel: ExcelService) {}
-  title = 'excel-extension';
+  title = "excel-extension";
 }
