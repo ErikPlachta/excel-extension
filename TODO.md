@@ -37,25 +37,22 @@ This file tracks the concrete steps for refactoring the add-in to a template-ali
   - Verify:
     - `npm start` and tests continue to run with the current layout.
 
-- [ ] **Ensure Angular bootstrap matches template expectations**
+- [x] **Ensure Angular bootstrap matches template expectations**
   - Goal:
-    - `src/main.ts` and the root component behave like the templates' `taskpane.ts` (Office `onReady`, initialization) while using Angular.
+    - `src/main.ts` bootstraps Angular first and uses safe Office/host checks (no hard dependency on `Office.onReady`), so it works both inside and outside Excel.
   - Verify:
-    - When run inside Excel, initialization path is correct (no Office.js timing errors).
-    - When run outside Excel, initialization is guarded via `ExcelService.isExcel` and does not crash.
+    - When run inside Excel, initialization path is correct (no Office.js timing errors) thanks to guarded Office access.
+    - When run outside Excel, initialization does not crash and `ExcelService.isExcel` can safely be false.
 
 ## 3. Commands Surface
 
 - [x] **Scaffold `src/commands`**
-  - Create files:
-    - `src/commands/commands.html`
-    - `src/commands/commands.ts`
-  - Use `_TEMPLATES/React_TS/src/commands` or `_TEMPLATES/Taskpane/src/commands` as reference:
-    - Minimal `Office.actions.associate` handlers.
-    - HTML that loads the compiled JS.
+  - Implemented:
+    - `src/commands/commands.html` that loads Office.js and `commands.js` and renders a simple body message.
+    - `src/commands/commands.ts` with a minimal `onShowTaskpane` handler wired via `Office.actions.associate("showTaskpane", onShowTaskpane)`.
   - Verify:
-    - `npm start` still works (Angular CLI serves `commands.html` or static asset depending on setup).
-    - `npm test -- --watch=false --browsers=ChromeHeadless` passes with the new commands spec.
+    - `npm start` continues to work.
+    - `npm test -- --watch=false --browsers=ChromeHeadless` passes.
 
 - [x] **Wire `Commands.Url` in manifests**
   - Update `dev-manifest.xml` (and later `prod-manifest.xml`):
@@ -68,27 +65,25 @@ This file tracks the concrete steps for refactoring the add-in to a template-ali
 
 ## 4. Helpers & Middle-tier (SSO Scaffolding)
 
-- [ ] **Create `src/helpers` based on SSO template**
-  - Add minimal copies/adaptations of:
-    - `sso-helper.ts`
-    - `middle-tier-calls.ts`
-    - `message-helper.ts`
-    - `error-handler.ts`
-    - `fallbackauthdialog.*` (HTML/TS) as needed
-  - Initial behavior:
-    - Implement **mocked auth** (return fake user + token) instead of calling real SSO.
+- [x] **Create `src/helpers` based on SSO template (mocked)**
+  - Implemented:
+    - `src/helpers/sso-helper.ts` exposing `getSsoAuthResult`, `getAccessToken`, and `getUserProfile` over the existing `sso-mock`.
+  - Behavior:
+    - Returns deterministic fake user + token to simulate SSO.
+    - Used by `SsoHomeComponent` so the UI is decoupled from the mock details.
   - Verify:
-    - Helpers compile and can be imported from the taskpane without TypeScript errors.
-    - Running tests still works or is updated to mock any new global interactions.
+    - Helpers compile and are covered by `sso-helper.spec.ts`.
+    - `npm test -- --watch=false --browsers=ChromeHeadless` passes.
 
-- [ ] **Create `src/middle-tier` (placeholder)**
-  - Mirror structure of `_TEMPLATES/SSO/src/middle-tier`:
-    - Add stub `app.ts` and helper files (`msgraph-helper.ts`, etc.) as appropriate.
-  - For now:
-    - Keep the middle-tier logic minimal or mocked (no real network calls).
+- [x] **Create `src/middle-tier` (placeholder)**
+  - Implemented:
+    - `src/middle-tier/app.ts` with stubbed `fetchTokenFromMiddleTier` and `getUserProfileFromGraph` functions.
+    - `app.spec.ts` to verify the stubs return deterministic mock data.
+  - Behavior:
+    - Middle-tier helpers are wired into `sso-helper.ts` so the call pattern mirrors a real backend (token → Graph profile) while still using mocks.
   - Verify:
     - Builds and tests succeed.
-    - Any Node/server-specific code is not accidentally bundled into the browser build.
+    - No real network calls; safe to run in browser/Excel.
 
 ## 5. SSO-first Taskpane Experience (Mocked)
 
@@ -109,50 +104,36 @@ This file tracks the concrete steps for refactoring the add-in to a template-ali
 
 ## 6. Manifest Wiring & Resources Clean-up
 
-- [ ] **Align `Taskpane.Url` with Angular entry**
-  - Decide on final entry:
-    - Keep `index.html` as the taskpane entry; or
-    - Introduce `taskpane.html` that bootstraps Angular and point `Taskpane.Url` there.
+- [x] **Align `Taskpane.Url` with Angular entry**
+  - Current state:
+    - `dev-manifest.xml` uses `Taskpane.Url` pointing at `https://localhost:4200/`, which maps to Angular's `index.html` and works for sideloading.
   - Verify:
-    - Sideloading in Excel opens the correct page.
-    - Refreshing the taskpane does not break routing.
+    - Sideloading in Excel opens the Angular SPA correctly and refresh does not break the state-based routing.
+  - Future option (no action taken yet):
+    - If we ever introduce a dedicated `taskpane.html`, update `Taskpane.Url` accordingly and re-run manifest validation.
 
-- [ ] **Review `<Resources>` and icons**
-  - Ensure `<bt:Images>` and `<bt:Urls>` entries match real files:
-    - Icon PNGs exist and are served by the dev server.
-    - `Taskpane.Url`, `Commands.Url`, and any SSO dialog URLs are correct.
+- [x] **Review `<Resources>` and icons**
+  - Current state:
+    - `<bt:Images>` and `<bt:Urls>` in `dev-manifest.xml` reference existing icon assets under `assets/icon-*.png` and the already-wired `Taskpane.Url` and `Commands.Url`.
   - Verify:
-    - `npm run validate:dev-manifest` clean.
-    - Icons appear properly in the ribbon/taskpane.
-
-## 7. Tooling & Config Adjustments
-
-- [ ] **Update Angular and tooling configs if folders move**
-  - If `src/app` is renamed to `src/taskpane`:
-    - Update `angular.json` paths (`sourceRoot`, test/build options).
-    - Update any path globs in `eslint.config.mjs` and Karma config.
-    - Fix imports in TS/HTML.
-  - Verify:
-    - `npm start`, `npm run build`, `npm run lint`, and `npm test` all succeed.
-
-- [ ] **Keep CI green**
-  - When significant refactors land, ensure:
-    - PR CI (`ci.yml`) passes lint + build + tests.
-    - `deploy.yml` remains compatible (no path changes that break the build output `dist/excel-extension/browser`).
+    - `npm run validate:dev-manifest` passes (confirmed).
+    - Icons appear properly in the ribbon/taskpane when sideloaded.
 
 ## 8. Documentation Updates
 
-- [ ] **Update CONTEXT-SESSION.md**
-  - Reflect the actual structure and decisions as they are implemented (not just planned).
-  - Remove any stale assumptions.
+- [x] **Update CONTEXT-SESSION.md**
+  - Current state:
+    - Documents the SPA shell, Excel integration via `ExcelService.isExcel`, SSO/middle-tier mocks, query-domain concept, and dev/test/sideload flows.
+  - Ongoing action:
+    - Keep this file as the live source of truth as new features (query domain, roles) are implemented.
 
-- [ ] **Update README.md**
-  - Document:
-    - New folder layout: `taskpane`, `commands`, `helpers`, `middle-tier`.
-    - How to run locally and sideload into Excel.
-    - How mocked SSO behaves and where real SSO will plug in.
+- [x] **Update README.md**
+  - Implemented:
+    - Added an Architecture section describing `src/app`, `src/commands`, `src/helpers`, `src/middle-tier`, and the manifests.
+    - Clarified dev commands, testing (`npm test -- --watch=false --browsers=ChromeHeadless`), and linting (`npm run lint`, `npm run lint:office`, `npm run prettier`).
+    - Added a "Excel integration and sideloading" section aligned with `CONTEXT-SESSION.md` (dev-certs, HTTPS dev server, sideload steps, manifest validation).
   - Verify:
-    - A new contributor can follow README to run dev server, sideload, and understand high-level architecture.
+    - A new contributor can follow README to run the dev server, sideload into Excel, and understand the high-level architecture.
 
 ## 9. Testing Strategy & Suite Onboarding
 
@@ -201,7 +182,44 @@ This file tracks the concrete steps for refactoring the add-in to a template-ali
   - Verify:
     - A new contributor can run tests and understand whether a failure is in Angular UI, Office wiring, or SSO/middle-tier mocks.
 
-```
+## 10. Query Domain & Role-aware Features
 
-This `TODO.md` captures the steps plus their verification points. As we implement each chunk of work, we can check items off and refine any remaining gotchas. If you’d like, next I can propose the concrete code changes for the first couple of items (e.g., scaffolding `src/commands` and updating `dev-manifest.xml`).
-```
+- [ ] **Introduce AuthService and role-aware nav**
+  - Add an `AuthService` that holds the current user (from `sso-helper`), an `isAuthenticated` flag, and a `roles: string[]` list.
+  - Update `sso-helper`/middle-tier stubs to include roles on the mock user.
+  - Wire `AppComponent` so that:
+    - When not authenticated, only login/home is available in nav.
+    - When authenticated, sign-out and a user page view become available.
+
+- [ ] **Add user page component**
+  - Create a `UserComponent` that displays the current user profile (name, email, roles, token snippet).
+  - Integrate it into the SPA shell as a `currentView` option.
+
+- [ ] **Define core query domain model**
+  - Introduce `QueryDefinition`, `QueryParameter`, and `QueryRun` types in a shared file.
+  - Capture: query id/name/description, parameter definitions, default sheet/table naming, and last-run metadata.
+
+- [ ] **Implement mock query API service**
+  - Add a `QueryApiMockService` that returns a fixed list of `QueryDefinition`s and simulates `executeQuery(queryId, params)` with deterministic rows.
+  - Keep all behavior in-process (no real HTTP).
+
+- [ ] **Add QueryStateService for parameters and runs**
+  - Track available queries, last-used parameters per query, and last-run info (sheet/table names, timestamps).
+  - Expose helpers like `getQueries()`, `getLastParams(queryId)`, `setLastParams(queryId, params)`, `getLastRun(queryId)`, and `setLastRun(queryId, runInfo)`.
+
+- [ ] **Extend ExcelService for query tables**
+  - Add helpers to create/update tables and sheets for a query run, including default name generation with user overrides.
+  - Ensure everything is guarded by `isExcel` and behaves safely when not in Excel (for unit tests).
+
+- [ ] **Build query UI components**
+  - Home summary component: list queries, last run time, row counts, and table locations.
+  - Global parameters component: define global parameters and provide a "Refresh all" action.
+  - Query management component: show/edit `QueryDefinition`, parameters, last run info, and expose Run/Refresh actions.
+
+- [ ] **Wire navigation to Excel artifacts**
+  - In query-related views, surface "Go to sheet/table" actions that use `ExcelService` to select/activate the corresponding sheet/table when in Excel.
+  - Provide a no-op or helpful message when not running inside Excel.
+
+- [ ] **Apply roles to features**
+  - Use roles from `AuthService` to control which features are visible/editable (e.g., only some roles can modify query definitions; all authenticated users can run/refresh).
+  - Gate navigation links and actions accordingly in the SPA shell and query components.

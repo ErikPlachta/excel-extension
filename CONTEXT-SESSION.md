@@ -3,13 +3,20 @@ Repository: excel-extension
 
 ## Overview
 
-Angular 20 task-pane app for Excel using standalone components and Office.js. Excel integration is wrapped by `ExcelService` with an `isExcel` guard. We now have:
+Angular 20 task-pane app for Excel using standalone components and Office.js. Excel integration is wrapped by `ExcelService` with an `isExcel` guard. On top of that, we now have a conceptual design for a role-aware, query-centric extension that will:
+
+- Provide role-specific app features and navigation based on auth state.
+- Execute remote-style queries and write results into tables on target sheets.
+- Remember user-specific query configurations and parameters for refresh.
+- Create new sheets/tables per query run, with sensible default names that users can override.
+
+We also have:
 
 - A validated `dev-manifest.xml` for local sideloading.
 - A modern lint/test stack (ESLint 9, Angular + Office add-in tooling).
 - CI for all PRs and CD to GitHub Pages from `main`.
 
-The current big-picture focus is: **running and testing the extension locally in Excel** with a predictable dev flow.
+The near-term focus is: **refining the SPA shell, SSO/middle-tier mocks, and query domain so we can plug in real auth and APIs later** while keeping Excel Online/Desktop flows stable.
 
 ## Current State Snapshot
 
@@ -17,7 +24,10 @@ The current big-picture focus is: **running and testing the extension locally in
 - **HTTPS dev (optional):**
   - `npm run dev-certs` (calls `scripts/install-dev-certs.mjs` using `office-addin-dev-certs`).
   - `npm run start:dev` → `ng serve --configuration development --ssl true --ssl-cert ~/.office-addin-dev-certs/localhost.crt --ssl-key ~/.office-addin-dev-certs/localhost.key`.
-- **Excel integration:** `ExcelService.isExcel` guards Office JS calls so the app can run outside Excel safely. The taskpane shell (`AppComponent`) is now a simple SPA-style container that always renders `SsoHomeComponent` on load and uses internal state (not routing) to switch between SSO, Worksheets, and Tables views without changing the URL.
+- **Excel integration:** `ExcelService.isExcel` guards Office JS calls so the app can run outside Excel safely. The SPA shell (`AppComponent`) is currently a simple state-based container that:
+  - Always loads `SsoHomeComponent` first.
+  - Uses an internal `currentView` flag to switch between SSO, Worksheets, and Tables views without changing the URL.
+  - Delegates Excel work (listing worksheets, listing tables, creating tables) to `ExcelService`.
 - **Manifests:**
   - `dev-manifest.xml` points to localhost (Angular dev server) and is used for sideloading during development.
   - `prod-manifest.xml` points at the GitHub Pages deployment and is aligned with the Dev Kit structure.
@@ -94,17 +104,48 @@ npm run prettier
 npm test -- --watch=false --browsers=ChromeHeadless
 ```
 
-## Focused TODO Checklist (testing the extension locally)
+## High-level App Design (long-term concept)
+
+- **Auth & roles:**
+  - Mocked SSO via helpers (`sso-helper.ts`) and middle-tier stubs (`src/middle-tier/app.ts`).
+  - An `AuthService` (planned) will hold the current user, auth state, and roles.
+  - When not authenticated: only login/home is available in the nav.
+  - When authenticated: sign-out appears in the nav, and a user page is visible for viewing the current logged-in user and their roles.
+  - Roles will control which features are visible/editable (for example, only some roles can define queries).
+
+- **Query domain:**
+  - Each query has a definition (id, name, description, parameters, default sheet/table naming rules).
+  - Parameters can be defined per query and saved with last-used values.
+  - Executing a query hits a mock remote API, returns rows, and writes them into an Excel table on a target sheet.
+  - When a new query is executed, a new sheet/tab and table are created for that query with sensible default names that users can change or keep.
+  - For each query, the app remembers the user-specific configuration (parameters, sheet/table names) so a refresh can reuse or modify the last parameters.
+
+- **Remote API (mocked):**
+  - A mock data layer (planned `QueryApiMockService`) will simulate an API that takes arguments and returns results.
+  - Middle-tier stubs (`fetchTokenFromMiddleTier`, `getUserProfileFromGraph`) already mirror a real backend shape for auth; the query mock will follow a similar pattern but remain in-process.
+
+- **Excel integration for queries:**
+  - `ExcelService` will be extended with helpers to create/update tables and sheets for a given query run.
+  - Default sheet/table names will be generated from query metadata, with user overrides allowed.
+  - A state service will track which sheet/table belongs to which query run, enabling "go to sheet/table" actions.
+
+- **Navigation & UX:**
+  - Navigation stays state-based inside `AppComponent` (no route changes) to play nicely with Excel iframes.
+  - View modes will include: home summary (all tables + query metrics), global parameters + "refresh all", per-query management/definition, and a user page.
+  - Navigational links will be connected to the tabs/tables managed by the extension, so users can jump directly to the related sheet/table from the UI.
+
+## Focused TODO Checklist (high level)
 
 - [ ] Refine local testing docs in `README.md`:
   - Add a "Run in Excel (dev)" section that mirrors the steps above.
   - Clarify HTTP vs HTTPS dev options and when to use each.
 - [ ] Add a short "Testing" section to `README.md` documenting `npm run lint`, `npm test`, and `lint:office` commands.
-- [ ] Consider adding a simple e2e-style smoke test (manual or scripted) for "open task pane, read worksheets" to document expected behavior when `ExcelService.isExcel` is true.
+- [ ] Consider adding a simple e2e-style smoke test (manual or scripted) for "open task pane, run a mock query, see data in a table" to document expected behavior when `ExcelService.isExcel` is true.
 - [ ] Keep `CONTEXT-SESSION.md` updated as workflows or manifests change, so it remains the live source of truth for:
   - Dev server behavior
   - Sideloading flows
   - CI/CD expectations
+  - Long-term app design (auth, roles, queries, middle tier).
 
 ## Reference Commands (summary)
 
@@ -113,22 +154,9 @@ npm test -- --watch=false --browsers=ChromeHeadless
 npm ci
 
 # Dev server (HTTP)
-npm run build  # dist/excel-extension/browser
+npm start        # http://localhost:4200/
 
 # Dev server (HTTPS with Office dev certs)
-```
-
-npm run start:dev
-
-# Validate dev manifest
-
-npm run validate:dev-manifest
-
-# Lint & test
-
-npm run lint
-npm test -- --watch=false --browsers=ChromeHeadless
-
-```
-
+npm run dev-certs   # one-time per machine
+npm run start:dev   # https://localhost:4200/
 ```
