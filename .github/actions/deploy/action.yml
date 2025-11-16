@@ -19,7 +19,7 @@ runs:
       shell: bash
     - run: npm run lint --if-present
       shell: bash
-    - run: npm test -- --watch=false --browsers=ChromeHeadless --if-present
+    - run: npm run test -- --watch=false --browsers=ChromeHeadless
       shell: bash
     - run: npm run build -- --base-href "${{ inputs.base_href }}"
       shell: bash
