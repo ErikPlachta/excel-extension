@@ -1,13 +1,13 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { ExcelService } from './excel.service';
+import { Component, OnInit } from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { ExcelService } from "./excel.service";
 
 @Component({
-  selector: 'app-worksheets',
+  selector: "app-worksheets",
   standalone: true,
   imports: [CommonModule],
-  templateUrl: './worksheets.component.html',
-  styleUrl: './worksheets.component.css'
+  templateUrl: "./worksheets.component.html",
+  styleUrl: "./worksheets.component.css",
 })
 export class WorksheetsComponent implements OnInit {
   sheets: string[] = [];

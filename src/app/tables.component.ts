@@ -1,15 +1,19 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { ExcelService } from './excel.service';
+import { Component, OnInit } from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { ExcelService } from "./excel.service";
 
-interface TableInfo { name: string; worksheet: string; rows: number; }
+interface TableInfo {
+  name: string;
+  worksheet: string;
+  rows: number;
+}
 
 @Component({
-  selector: 'app-tables',
+  selector: "app-tables",
   standalone: true,
   imports: [CommonModule],
-  templateUrl: './tables.component.html',
-  styleUrl: './tables.component.css'
+  templateUrl: "./tables.component.html",
+  styleUrl: "./tables.component.css",
 })
 export class TablesComponent implements OnInit {
   tables: TableInfo[] = [];
