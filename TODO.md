@@ -4,27 +4,28 @@ This file tracks the concrete steps for refactoring the add-in to a template-ali
 
 ## 1. Baseline Verification
 
-- [ ] **Run Angular dev server**
+- [x] **Run Angular dev server**
   - Command:
     - `npm ci`
     - `npm start` (or `npm run start:dev` for HTTPS)
   - Verify:
     - `http://localhost:4200/` loads without console errors.
-    - Outside Excel, the UI shows a sensible "not in Excel" or equivalent state when `ExcelService.isExcel` is false (already true for `Home`, `Worksheets`, and `Tables` routes).
+    - Outside Excel, the UI shows a sensible "not in Excel" or equivalent state when `ExcelService.isExcel` is false (now via the SPA shell with SSO/Worksheets/Tables views).
 
-- [ ] **Validate manifest**
+- [x] **Validate manifest**
   - Command:
     - `npm run validate:dev-manifest`
   - Verify:
     - No schema errors.
     - Only expected HTTPS/localhost warnings, if any.
 
-- [ ] **Sideload in Excel**
+- [x] **Sideload in Excel**
   - Steps:
     - Start dev server.
     - Upload `dev-manifest.xml` into Excel (Insert → My Add-ins → Upload).
   - Verify:
-    - Taskpane opens and loads the Angular page.
+    - Taskpane opens and loads the Angular SPA shell.
+    - SSO homepage shows on load and navigation buttons switch views without changing the URL.
     - No runtime errors reported by Excel or in the browser dev tools.
 
 ## 2. Taskpane Architecture Alignment
@@ -91,13 +92,12 @@ This file tracks the concrete steps for refactoring the add-in to a template-ali
 
 ## 5. SSO-first Taskpane Experience (Mocked)
 
-- [x] **Add SSO-focused route/view in Angular**
+- [x] **Add SSO-focused SPA shell**
   - `SsoHomeComponent` shows mocked SSO user info with sign-in/sign-out.
-  - In Excel (`excel.isExcel === true`), `AppComponent` renders `SsoHomeComponent` directly and bypasses the router.
-  - Outside Excel, the router and nav are enabled and `SsoHomeComponent` is the default route.
+  - `AppComponent` acts as a simple SPA shell with internal state (`currentView`) that switches between SSO, Worksheets, and Tables without changing the route.
   - Verify:
-    - In Excel, opening the taskpane shows the SSO-like homepage (with fake user data).
-    - Outside Excel, the app still behaves gracefully and the `/`, `/worksheets`, and `/tables` routes are reachable via nav when `excel.isExcel` is false.
+    - In Excel Online and desktop, opening the taskpane shows the SSO-like homepage (with fake user data).
+    - The SPA navigation buttons switch views via internal state only; the URL never changes.
 
 - [ ] **Wire mocked SSO into helpers**
   - Behavior:
