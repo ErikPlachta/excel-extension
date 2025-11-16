@@ -3,7 +3,9 @@
   "ignorePatterns": [
     "dist/**",
     ".angular/**",
-    "node_modules/**"
+    "node_modules/**",
+    "_TEMPLATES/**",
+    "_ARCHIVE/**"
   ],
   "overrides": [
     {
