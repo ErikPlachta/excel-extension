@@ -20,7 +20,7 @@ export async function getMockSsoResult(): Promise<MockSsoResult> {
       id: "mock-user-id-123",
       displayName: "Mock User",
       email: "mock.user@example.com",
-      roles: ["analyst", "admin"],
+      roles: [],
     },
     accessToken: "mock-access-token-abc123",
   };

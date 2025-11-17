@@ -23,4 +23,12 @@ export class UserComponent {
   get isAuthenticated(): boolean {
     return this.auth.isAuthenticated;
   }
+
+  get isAdmin(): boolean {
+    return this.auth.hasRole("admin");
+  }
+
+  get isAnalyst(): boolean {
+    return this.auth.hasRole("analyst");
+  }
 }

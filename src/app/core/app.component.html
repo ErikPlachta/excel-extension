@@ -3,14 +3,59 @@
   <button type="button" (click)="showWorksheets()" *ngIf="auth.isAuthenticated">Worksheets</button>
   <button type="button" (click)="showTables()" *ngIf="auth.isAuthenticated">Tables</button>
   <button type="button" (click)="showUser()" *ngIf="auth.isAuthenticated">User</button>
-  <button type="button" (click)="signIn()" *ngIf="!auth.isAuthenticated">Sign in (mock)</button>
+  <button
+    type="button"
+    (click)="showQueries()"
+    *ngIf="auth.isAuthenticated && auth.hasAnyRole(['analyst', 'admin'])"
+  >
+    Queries
+  </button>
+  <button type="button" (click)="signInAnalyst()" *ngIf="!auth.isAuthenticated">
+    Sign in as analyst
+  </button>
+  <button type="button" (click)="signInAdmin()" *ngIf="!auth.isAuthenticated">
+    Sign in as admin
+  </button>
   <button type="button" (click)="signOut()" *ngIf="auth.isAuthenticated">Sign out</button>
   <span class="status">{{ excel.isExcel ? "isExcel = true" : "isExcel = false" }}</span>
 </nav>
+
+<section class="user-banner" *ngIf="auth.isAuthenticated && auth.user as u">
+  <span class="user-banner-name">{{ u.displayName }}</span>
+  <span class="user-banner-role">
+    {{ auth.roles.length ? auth.roles.join(", ") : "No roles assigned" }}
+  </span>
+</section>
+
+<section class="host-status" *ngIf="!excel.isExcel || !isOnline">
+  <ng-container *ngIf="!excel.isExcel; else excelOk">
+    <span class="host-status-label">Excel not detected.</span>
+    <span class="host-status-message">
+      Open this add-in inside Excel to enable worksheet and query features.
+    </span>
+  </ng-container>
+  <ng-template #excelOk>
+    <span class="host-status-label">Excel connected.</span>
+  </ng-template>
+
+  <span class="host-status-separator">•</span>
+
+  <span class="host-status-label" [class.host-status-offline]="!isOnline">
+    {{ isOnline ? "Online" : "Offline" }}
+  </span>
+  <span class="host-status-message" *ngIf="!isOnline">
+    Some features may be unavailable until connectivity is restored.
+  </span>
+</section>
 
 <section class="content">
   <app-sso-home *ngIf="currentView === 'sso'"></app-sso-home>
   <app-worksheets *ngIf="currentView === 'worksheets' && auth.isAuthenticated"></app-worksheets>
   <app-tables *ngIf="currentView === 'tables' && auth.isAuthenticated"></app-tables>
   <app-user *ngIf="currentView === 'user' && auth.isAuthenticated"></app-user>
+  <app-query-home
+    *ngIf="
+      currentView === 'queries' && auth.isAuthenticated && auth.hasAnyRole(['analyst', 'admin'])
+    "
+  ></app-query-home>
 </section>

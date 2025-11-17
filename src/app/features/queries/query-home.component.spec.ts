@@ -1,0 +1,55 @@
+import { ComponentFixture, TestBed } from "@angular/core/testing";
+import { QueryHomeComponent } from "./query-home.component";
+import { AuthService } from "../../core";
+import { QueryApiMockService } from "../../shared/query-api-mock.service";
+import { QueryStateService } from "../../shared/query-state.service";
+
+class AuthServiceStub {
+  roles: string[] = [];
+  isAuthenticated = true;
+
+  hasAnyRole(roles: string[]): boolean {
+    return roles.some((r) => this.roles.includes(r));
+  }
+}
+
+describe("QueryHomeComponent role visibility", () => {
+  let fixture: ComponentFixture<QueryHomeComponent>;
+  let component: QueryHomeComponent;
+  let authStub: AuthServiceStub;
+
+  beforeEach(async () => {
+    authStub = new AuthServiceStub();
+
+    await TestBed.configureTestingModule({
+      imports: [QueryHomeComponent],
+      providers: [
+        { provide: AuthService, useValue: authStub },
+        QueryApiMockService,
+        QueryStateService,
+      ],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(QueryHomeComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  it("disallows running queries when user has no analyst/admin role", async () => {
+    authStub.roles = [];
+    const query = { id: "q1", name: "Test", description: "", parameters: [] } as any;
+
+    await component.runQuery(query);
+
+    expect(component["error"]).toContain("do not have permission");
+  });
+
+  it("allows running queries when user is analyst", async () => {
+    authStub.roles = ["analyst"];
+    const query = { id: "sales-summary", name: "Sales", description: "", parameters: [] } as any;
+
+    await component.runQuery(query);
+
+    expect(component["error"]).toBeNull();
+  });
+});

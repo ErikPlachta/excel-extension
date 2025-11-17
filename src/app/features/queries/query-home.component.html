@@ -1,0 +1,38 @@
+<section class="query-home">
+  <h2>Queries</h2>
+
+  <p *ngIf="!queries.length">No queries defined in the mock API.</p>
+
+  <ul *ngIf="queries.length">
+    <li *ngFor="let q of queries">
+      <div class="query-item">
+        <div class="query-main">
+          <strong>{{ q.name }}</strong>
+          <span class="query-id">({{ q.id }})</span>
+        </div>
+        <div class="query-meta">
+          <span *ngIf="q.description">{{ q.description }}</span>
+          <span *ngIf="isAdminOnly(q)" class="query-badge">Admin only</span>
+        </div>
+        <div class="query-actions">
+          <button
+            type="button"
+            (click)="runQuery(q)"
+            [disabled]="isRunning || !canRun(q) || !excel.isExcel"
+          >
+            {{ isRunning ? "Running..." : "Run" }}
+          </button>
+          <button
+            type="button"
+            (click)="goToLastRun(q)"
+            [disabled]="isRunning || !excel.isExcel"
+          >
+            Go to table
+          </button>
+        </div>
+      </div>
+    </li>
+  </ul>
+
+  <p class="error" *ngIf="error">{{ error }}</p>
+</section>

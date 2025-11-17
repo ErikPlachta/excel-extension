@@ -36,4 +36,16 @@ export class SsoHomeComponent {
   get tokenSnippet(): string | null {
     return truncateToken(this.auth.state.accessToken);
   }
+
+  get roleSummary(): string {
+    const roles = this.auth.roles;
+    if (!roles.length) return "No roles assigned (mock user).";
+    if (roles.includes("admin")) {
+      return "Admin role active: full query and settings access.";
+    }
+    if (roles.includes("analyst")) {
+      return "Analyst role active: can run queries and view results.";
+    }
+    return `Roles: ${roles.join(", ")}`;
+  }
 }

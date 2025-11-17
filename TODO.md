@@ -150,31 +150,68 @@ This file tracks the concrete steps for refactoring the add-in to a template-ali
   - `UserComponent` shows the current user profile (name, email, roles) from `AuthService`.
   - It is wired into the SPA shell as a `currentView` option with a nav button that appears only when authenticated.
 
-- [ ] **Define core query domain model**
-  - Introduce `QueryDefinition`, `QueryParameter`, and `QueryRun` types in a shared file.
-  - Capture: query id/name/description, parameter definitions, default sheet/table naming, and last-run metadata.
+- [x] **Define core query domain model**
+  - Introduced `QueryParameter`, `QueryDefinition`, `QueryRunLocation`, and `QueryRun` types in `shared/query-model.ts`.
+  - Captures query id/name/description, parameter definitions, default sheet/table naming, and last-run metadata including Excel location when applicable.
 
-- [ ] **Implement mock query API service**
-  - Add a `QueryApiMockService` that returns a fixed list of `QueryDefinition`s and simulates `executeQuery(queryId, params)` with deterministic rows.
-  - Keep all behavior in-process (no real HTTP).
+- [x] **Implement mock query API service**
+  - Added `QueryApiMockService` in `shared/query-api-mock.service.ts` providing `getQueries`, `getQueryById`, and `executeQuery(queryId, params)`.
+  - Uses a fixed list of `QueryDefinition`s plus deterministic row builders for sales summary, top customers, and inventory status, all in-process with no real HTTP.
 
-- [ ] **Add QueryStateService for parameters and runs**
-  - Track available queries, last-used parameters per query, and last-run info (sheet/table names, timestamps).
-  - Expose helpers like `getQueries()`, `getLastParams(queryId)`, `setLastParams(queryId, params)`, `getLastRun(queryId)`, and `setLastRun(queryId, runInfo)`.
+- [x] **Add QueryStateService for parameters and runs**
+  - Added `QueryStateService` in `shared/query-state.service.ts` using a `BehaviorSubject` to hold queries, last-used params, and last-run info.
+  - Exposes helpers like `getQueries()`, `getLastParams(queryId)`, `setLastParams(queryId, params)`, `getLastRun(queryId)`, and `setLastRun(queryId, runInfo)`.
 
-- [ ] **Extend ExcelService for query tables**
-  - Add helpers to create/update tables and sheets for a query run, including default name generation with user overrides.
-  - Ensure everything is guarded by `isExcel` and behaves safely when not in Excel (for unit tests).
+- [x] **Extend ExcelService for query tables**
+  - Added `upsertQueryTable` to `ExcelService` to create or update tables for query results, using default or hinted sheet/table names and returning a `QueryRunLocation`.
+  - Guarded by `isExcel` so it cleanly no-ops with `null` when not running inside Excel.
 
-- [ ] **Build query UI components**
-  - Home summary component: list queries, last run time, row counts, and table locations.
-  - Global parameters component: define global parameters and provide a "Refresh all" action.
-  - Query management component: show/edit `QueryDefinition`, parameters, last run info, and expose Run/Refresh actions.
+- [x] **Build query UI components**
+  - Added a minimal `QueryHomeComponent` that lists mock queries and provides a "Run" action per query, wiring `QueryApiMockService`, `QueryStateService`, and `ExcelService.upsertQueryTable`.
+  - Integrated it into the SPA shell with a `Queries` nav entry, visible only when authenticated; deeper global-parameters and full query-management UIs can be layered on top later.
 
-- [ ] **Wire navigation to Excel artifacts**
-  - In query-related views, surface "Go to sheet/table" actions that use `ExcelService` to select/activate the corresponding sheet/table when in Excel.
-  - Provide a no-op or helpful message when not running inside Excel.
+- [x] **Wire navigation to Excel artifacts**
+  - Added `activateQueryLocation` to `ExcelService` to activate the worksheet and select the table for a given `QueryRunLocation`, guarded by `isExcel`.
+  - Query UI now exposes a "Go to table" action per query that uses the last recorded run location from `QueryStateService` and navigates there when available.
 
-- [ ] **Apply roles to features**
-  - Use roles from `AuthService` to control which features are visible/editable (e.g., only some roles can modify query definitions; all authenticated users can run/refresh).
-  - Gate navigation links and actions accordingly in the SPA shell and query components.
+- [x] **Apply roles to features**
+  - Added `hasRole`/`hasAnyRole` helpers to `AuthService` and used them to gate the Queries nav/view to `analyst`/`admin` roles.
+  - Query execution in `QueryHomeComponent` now requires `analyst`/`admin`, and navigation to results requires authentication, ensuring feature access respects roles.
+
+- [x] **Add role-specific sign-in buttons**
+  - Updated `AuthService` with `signInAsAnalyst` and `signInAsAdmin` helpers that augment the mock SSO user roles.
+  - Replaced the single "Sign in (mock)" button in `AppComponent` with separate "Sign in as analyst" and "Sign in as admin" buttons so it is easy to test role-gated behavior.
+
+- [x] **Refine per-role visibility for components**
+  - Clarified role capabilities on the user page by surfacing admin vs analyst messages in `UserComponent` using `AuthService` role helpers.
+  - Piped `AuthService` into the SSO home to show a role-specific summary line, making the homescreen clearly reflect the active role.
+  - Added unit tests around `QueryHomeComponent` to verify that users without analyst/admin roles cannot run queries, while analysts can.
+
+- [x] **Require auth for all query features at shell level**
+  - The Queries nav button and content in `AppComponent` are already gated behind `auth.isAuthenticated && auth.hasAnyRole(['analyst', 'admin'])`, so unauthenticated users cannot reach any query UI.
+  - `QueryHomeComponent` also enforces authentication and roles at the method level (e.g., `runQuery`, `goToLastRun`), ensuring that even if shell navigation were bypassed, query operations still require auth.
+
+- [x] **Persist auth session between reloads**
+  - Implemented simple `localStorage` persistence in `AuthService`, hydrating the initial auth state from storage on service construction and writing back on state changes.
+  - This keeps the mock sign-in (including roles) across page reloads during local development, while remaining compatible with future real SSO token caching strategies.
+
+- [x] **Introduce mock admin-only queries and cleanup messaging**
+  - Added a mock `user-audit` query in `QueryApiMockService` that is marked with `allowedRoles: ['admin']` and produces a simple user/role audit table.
+  - Extended the query model with an optional `allowedRoles` field and updated `QueryHomeComponent` to compute `canRun` per query, disabling the Run button and tightening permission checks for admin-only queries.
+  - Updated the query list UI to show an "Admin only" badge next to admin-only queries and clarified role capabilities on the user profile and SSO home so the UX better communicates analyst vs admin responsibilities.
+
+- [x] **Separate analyst vs admin mock roles**
+  - Updated the mock SSO user in `sso-mock.ts` so it has no roles by default, letting the app assign roles explicitly.
+  - Adjusted `AuthService.signInAsAnalyst` and `signInAsAdmin` so that analyst sign-in produces `['analyst']` and admin sign-in produces `['admin']`, keeping role-based behavior distinct in local testing.
+
+- [x] **Disable query actions when not in Excel**
+  - Updated `QueryHomeComponent` to short-circuit `runQuery`/`goToLastRun` with clear messages when `ExcelService.isExcel` is false.
+  - Disabled the "Run" and "Go to table" buttons in the query UI whenever `excel.isExcel` is false so query actions are only available inside Excel.
+
+- [x] **Add user/role banner under navigation**
+  - Added a simple banner directly under the main navigation in `AppComponent` that shows the current user's display name along with their roles via `AuthService`.
+  - The banner is only rendered when authenticated and uses subtle styling in `app.component.css` to stay consistent with the existing shell layout.
+
+- [x] **Add host/status banner for Excel/online state**
+  - Added a status banner under the user banner in `AppComponent` that surfaces `ExcelService.isExcel` and a simple `isOnline` indicator from `navigator.onLine`.
+  - The banner appears only when Excel is not detected or the app is offline, and provides friendly guidance about enabling Excel features or restoring connectivity.
