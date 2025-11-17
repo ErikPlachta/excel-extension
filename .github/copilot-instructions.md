@@ -4,7 +4,7 @@ Purpose: Enable AI coding agents to be productive immediately in this Angular-ba
 
 ## Core Guidelines
 
-1. Understand the app is an Angular 19 task pane for Excel using standalone components and Office.js, with Excel integration wrapped in `ExcelService` and guarded by `isExcel`.
+1. Understand the app is an Angular 20 task pane for Excel using standalone components and Office.js, with Excel integration wrapped in `ExcelService` and guarded by `isExcel`.
 2. Focus on manifest compliance with the Office Add-ins Development Kit, prioritizing `dev-manifest.xml` for local development and sideloading in Excel.
 3. Use `_TEMPLATES/` Dev Kit sample manifests as canonical references for structure, especially `<Resources>`, icon definitions, and HTTPS requirements.
 4. Ensure any changes to `dev-manifest.xml` maintain localhost for `SourceLocation` to facilitate easy local sideloading.
@@ -13,11 +13,11 @@ Purpose: Enable AI coding agents to be productive immediately in this Angular-ba
 
 ## Big Picture
 
-- Framework: Angular 19 with standalone components (no NgModules). Entry at `src/main.ts` bootstraps `AppComponent` with `provideRouter(routes)` in `src/app/app.config.ts`.
-- Excel integration: Office.js is loaded via script tag in `src/index.html` and `public/index.html`. `ExcelService` (`src/app/excel.service.ts`) wraps Office JS (`Excel.run`) and exposes an `isExcel` guard to safely detect host.
-- UI/Routes: Three routed, standalone views — `HomeComponent`, `WorksheetsComponent`, `TablesComponent` — wired in `src/app/app.routes.ts`. Navigation is in `src/app/app.component.html`.
+- Framework: Angular 20 with standalone components (no NgModules). Entry at `src/main.ts` bootstraps `AppComponent` with `provideRouter(routes)` in `src/app/core/app.config.ts`.
+- Excel integration: Office.js is loaded via script tag in `src/index.html` and `public/index.html`. `ExcelService` (`src/app/core/excel.service.ts`) wraps Office JS (`Excel.run`) and exposes an `isExcel` guard to safely detect host.
+- UI/Routes: SPA shell in `AppComponent` under `src/app/core/` with feature views under `src/app/features/` (SSO home, home, worksheets, tables, user, queries). Routes are defined in `src/app/core/app.routes.ts` but in Excel we typically render the shell directly instead of navigating by URL.
 - Deployment: GitHub Pages via workflow `.github/workflows/deploy.yml` and composite action `.github/actions/deploy/action.yml`. Build output published from `dist/excel-extension/browser` with base href `/excel-extension/`.
-- Add-in manifest: `dev-manifest.xml` points the Office task pane to the deployed site on GitHub Pages.
+- Add-in manifest: `dev-manifest.xml` points the Office task pane to the dev server (localhost) during development, and `prod-manifest.xml` points to the deployed site on GitHub Pages.
 
 ## Developer Workflows
 
@@ -59,21 +59,27 @@ To run the task pane against your local dev server:
 ## Conventions & Patterns
 
 - Standalone components import `CommonModule` and use `styleUrl`/`templateUrl` sidecar files.
-- Routing-first structure: define routes in `src/app/app.routes.ts`, provide them in `app.config.ts`, and render via `<router-outlet>`.
+- Core/feature/shared structure:
+  - `src/app/core/` for the root shell, `ExcelService`, `AuthService`, and app bootstrap/config.
+  - `src/app/features/` for views (SSO home, home, worksheets, tables, user, queries).
+  - `src/app/shared/` for query domain models/services, utilities, and shared UI/config that support data-driven design.
+- Routing & shell:
+  - Routes live in `src/app/core/app.routes.ts` and are provided in `app.config.ts`.
+  - Inside Excel the shell uses an internal `currentView` state (no URL changes) to switch between feature views; outside Excel the router can be used as needed.
 - Office JS access pattern (follow this):
   - Always gate logic on `ExcelService.isExcel` before calling Excel APIs.
   - Use `Excel.run(ctx => { ...; return value; })` and `await ctx.sync()` after `load(...)` calls.
   - Keep Office/Excel globals as declared `any` (see `excel.service.ts`). If you add new API calls, follow the same pattern or introduce types intentionally.
-- Data flow: Components call `ExcelService` in `ngOnInit` and bind results to simple tables. No NgRx/HTTP involved.
+- Data flow: Components call `ExcelService` in `ngOnInit` / lifecycle hooks and bind results to simple tables. Auth and roles flow through `AuthService`; query metadata and last runs flow through `QueryStateService`. No NgRx/HTTP involved; query execution is mocked via `QueryApiMockService`.
 
 ## Key Files
 
-- App bootstrap: `src/main.ts`, `src/app/app.config.ts`
-- Routes: `src/app/app.routes.ts`
-- Excel integration: `src/app/excel.service.ts`
-- Views: `src/app/home.component.*`, `src/app/worksheets.component.*`, `src/app/tables.component.*`
-- Shell: `src/app/app.component.*`
-- Add-in manifest: `dev-manifest.xml`
+- App bootstrap: `src/main.ts`, `src/app/core/app.config.ts`
+- Routes: `src/app/core/app.routes.ts`
+- Core services/shell: `src/app/core/app.component.*`, `src/app/core/excel.service.ts`, `src/app/core/auth.service.ts`
+- Feature views: `src/app/features/**` (sso, home, worksheets, tables, user, queries)
+- Query domain: `src/app/shared/query-model.ts`, `src/app/shared/query-api-mock.service.ts`, `src/app/shared/query-state.service.ts`
+- Add-in manifest: `dev-manifest.xml`, `prod-manifest.xml`
 - CI/CD: `.github/workflows/deploy.yml`, `.github/actions/deploy/action.yml`
 
 ## Practical Examples

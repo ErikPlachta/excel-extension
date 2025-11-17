@@ -1,6 +1,6 @@
-# TODO: Excel Extension Refactor (feat/add-logic)
+# TODO: Excel Extension Refactor (feat/data-driven-design)
 
-This file tracks the concrete steps for refactoring the add-in to a template-aligned architecture (taskpane, commands, helpers, middle-tier, SSO) and how to verify each change.
+This file tracks the concrete steps for refactoring the add-in toward a data-driven, Tailwind-styled architecture (taskpane shell, commands, helpers, middle-tier, SSO, queries) and how to verify each change.
 
 ## 1. Baseline Verification
 
@@ -135,7 +135,7 @@ This file tracks the concrete steps for refactoring the add-in to a template-ali
   - Verify:
     - A new contributor can follow README to run the dev server, sideload into Excel, and understand the high-level architecture.
 
-## 9. Query Domain & Role-aware Features
+## 9. Query Domain & Role-aware Features (completed on previous branch)
 
 - [x] **Introduce AuthService and role-aware nav**
   - `AuthService` centralizes auth state (user, `isAuthenticated`, `roles`) using `getSsoAuthResult` from `sso-helper`.
@@ -215,3 +215,34 @@ This file tracks the concrete steps for refactoring the add-in to a template-ali
 - [x] **Add host/status banner for Excel/online state**
   - Added a status banner under the user banner in `AppComponent` that surfaces `ExcelService.isExcel` and a simple `isOnline` indicator from `navigator.onLine`.
   - The banner appears only when Excel is not detected or the app is offline, and provides friendly guidance about enabling Excel features or restoring connectivity.
+
+## 10. Data-driven Shell, Nav, and Roles (this branch)
+
+- [ ] **Introduce central AppConfig model for nav and roles**
+  - Define a typed `AppConfig` (e.g., nav items, views, required roles, feature flags) under `src/app/shared/app-config.ts`.
+  - Include `NavItem` and `RoleDefinition` types so navigation structure and capabilities are described in data rather than hard-coded in components.
+  - Verify that the config compiles and can be imported from `AppComponent` without changing behavior yet.
+
+- [ ] **Add text/message catalog for core UI copy**
+  - Create an `APP_TEXT` object (e.g., `src/app/shared/app-text.ts`) for nav labels, buttons (sign-in/out), and banners (host/status messages).
+  - Refactor `AppComponent` to use `APP_TEXT` via a simple service or direct import instead of hard-coded strings.
+  - Verify that labels and messages render as before, but can be changed from the text catalog.
+
+- [ ] **Refactor AppComponent nav to be data-driven**
+  - Replace the hard-coded nav buttons in `app.component.html` with an `*ngFor` over `AppConfig.navItems`, using `AuthService` and role requirements to filter visibility.
+  - Replace view-specific methods (`showSso`, `showTables`, etc.) with a generic `selectView(viewId)` method keyed by nav config.
+  - Verify that nav behavior and role gating match current behavior for analyst/admin and unauthenticated users.
+
+- [ ] **Introduce shared UI primitives (begin with Button and Banner)**
+  - Create standalone shared components like `ButtonComponent` and `StatusBannerComponent` under `src/app/shared/ui/`.
+  - Move layout/appearance concerns from `app.component.css` into these components using Tailwind utility classes (or prepare them for Tailwind once configured).
+  - Verify that the nav buttons and host/status banner render correctly using the shared components.
+
+- [ ] **Wire host/auth context into shared components**
+  - Refactor the host/status banner to receive its state (Excel detected, online/offline) and text from `AppConfig`/`APP_TEXT` and `ExcelService`, rather than embedding logic in the template.
+  - Consider adding an `AppContextService` that exposes derived state (e.g., current view, host status, auth snapshot) to simplify bindings.
+  - Verify that banners still respond correctly when Excel is not detected and when offline.
+
+- [ ] **Document the data-driven design in CONTEXT-SESSION.md**
+  - Update `CONTEXT-SESSION.md` to describe the new `AppConfig`, text catalog, and shared UI components as the preferred way to add/modify nav items, roles, and core copy.
+  - Include a short example of adding a new nav item via configuration only.

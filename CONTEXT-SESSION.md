@@ -6,15 +6,15 @@ Repository: excel-extension
 Angular 20 task-pane app for Excel using standalone components and Office.js. Excel integration is wrapped by `ExcelService` with an `isExcel` guard. The app is organized into three main areas:
 
 - `core/` for the root shell, auth/Excel services, and bootstrap config.
-- `features/` for routed/hosted UI (SSO home, home, worksheets, tables).
-- `shared/` for reusable utilities used across features.
+- `features/` for routed/hosted UI (SSO home, home, worksheets, tables, queries, user).
+- `shared/` for reusable utilities and cross-cutting concerns (query model/state, config, UI primitives).
 
-On top of that, we now have a conceptual design for a role-aware, query-centric extension that will:
+We now have a role-aware, query-centric extension that:
 
-- Provide role-specific app features and navigation based on auth state.
-- Execute remote-style queries and write results into tables on target sheets.
-- Remember user-specific query configurations and parameters for refresh.
-- Create new sheets/tables per query run, with sensible default names that users can override.
+- Provides role-specific app features and navigation based on auth state (`AuthService`).
+- Executes mock remote-style queries and writes results into tables on target sheets via `ExcelService`.
+- Remembers query configurations and last runs (`QueryStateService`) for refresh/navigation.
+- Creates new sheets/tables per query run, with sensible default names that users can override.
 
 We also have:
 
@@ -22,7 +22,7 @@ We also have:
 - A modern lint/test stack (ESLint 9, Angular + Office add-in tooling).
 - CI for all PRs and CD to GitHub Pages from `main`.
 
-The near-term focus is: **refining the SPA shell, SSO/middle-tier mocks, and query domain so we can plug in real auth and APIs later** while keeping Excel Online/Desktop flows stable.
+The focus of the `feat/data-driven-design` branch is: **evolving the shell, nav, roles, queries, and UI into a data-driven, Tailwind-styled design** where structure, labels, and capabilities are described in configuration rather than hard-coded into components.
 
 ## Current State Snapshot
 
@@ -30,10 +30,11 @@ The near-term focus is: **refining the SPA shell, SSO/middle-tier mocks, and que
 - **HTTPS dev (optional):**
   - `npm run dev-certs` (calls `scripts/install-dev-certs.mjs` using `office-addin-dev-certs`).
   - `npm run start:dev` → `ng serve --configuration development --ssl true --ssl-cert ~/.office-addin-dev-certs/localhost.crt --ssl-key ~/.office-addin-dev-certs/localhost.key`.
-- **Excel integration:** `ExcelService.isExcel` guards Office JS calls so the app can run outside Excel safely. The SPA shell (`AppComponent`) is currently a simple state-based container that:
+- **Excel integration:** `ExcelService.isExcel` guards Office JS calls so the app can run outside Excel safely. The SPA shell (`AppComponent`) is a state-based container that:
   - Always loads `SsoHomeComponent` first.
-  - Uses an internal `currentView` flag to switch between SSO, Worksheets, and Tables views without changing the URL.
-  - Delegates Excel work (listing worksheets, listing tables, creating tables) to `ExcelService`.
+  - Uses an internal `currentView` flag to switch between SSO, Worksheets, Tables, User, and Queries views without changing the URL.
+  - Delegates Excel work (listing worksheets, listing tables, creating/navigating query tables) to `ExcelService`.
+  - Shows a bottom-aligned host/status banner when Excel is not detected or offline.
 - **Manifests:**
   - `dev-manifest.xml` points to localhost (Angular dev server) and is used for sideloading during development.
   - `prod-manifest.xml` points at the GitHub Pages deployment and is aligned with the Dev Kit structure.
@@ -112,33 +113,32 @@ npm test -- --watch=false --browsers=ChromeHeadless
 
 ## High-level App Design (long-term concept)
 
+## High-level App Design (current)
+
 - **Auth & roles:**
   - Mocked SSO via helpers (`sso-helper.ts`) and middle-tier stubs (`src/middle-tier/app.ts`).
-  - An `AuthService` (planned) will hold the current user, auth state, and roles.
-  - When not authenticated: only login/home is available in the nav.
-  - When authenticated: sign-out appears in the nav, and a user page is visible for viewing the current logged-in user and their roles.
-  - Roles will control which features are visible/editable (for example, only some roles can define queries).
+  - `AuthService` holds the current user, auth state, roles, and access token, with simple `localStorage` persistence.
+  - When not authenticated: only SSO home and sign-in buttons are available.
+  - When authenticated: sign-out appears, worksheets/tables/user/views are visible, and queries are available only for `analyst`/`admin` roles.
+  - Roles control which features are visible/editable (queries, admin-only queries, messaging).
 
 - **Query domain:**
-  - Each query has a definition (id, name, description, parameters, default sheet/table naming rules).
-  - Parameters can be defined per query and saved with last-used values.
-  - Executing a query hits a mock remote API, returns rows, and writes them into an Excel table on a target sheet.
-  - When a new query is executed, a new sheet/tab and table are created for that query with sensible default names that users can change or keep.
-  - For each query, the app remembers the user-specific configuration (parameters, sheet/table names) so a refresh can reuse or modify the last parameters.
-
-- **Remote API (mocked):**
-  - A mock data layer (planned `QueryApiMockService`) will simulate an API that takes arguments and returns results.
-  - Middle-tier stubs (`fetchTokenFromMiddleTier`, `getUserProfileFromGraph`) already mirror a real backend shape for auth; the query mock will follow a similar pattern but remain in-process.
+  - Each query has a definition (`QueryDefinition` with id, name, description, parameters, default sheet/table names, optional `allowedRoles`).
+  - `QueryApiMockService` simulates a remote API that returns rows for a small set of predefined queries (sales summary, top customers, inventory status, user audit).
+  - `QueryStateService` tracks available queries, last-used parameters, and last-run metadata including Excel location, enabling refresh and navigation.
+  - An admin-only `user-audit` query is available to illustrate role-gated queries.
 
 - **Excel integration for queries:**
-  - `ExcelService` will be extended with helpers to create/update tables and sheets for a given query run.
-  - Default sheet/table names will be generated from query metadata, with user overrides allowed.
-  - A state service will track which sheet/table belongs to which query run, enabling "go to sheet/table" actions.
+  - `ExcelService` creates/updates tables and sheets for a given query run via `upsertQueryTable` and returns a `QueryRunLocation`.
+  - Default sheet/table names come from query metadata, with hooks for user overrides.
+  - `activateQueryLocation` navigates to the worksheet/table from the query UI.
+  - Query actions and navigation are guarded by `ExcelService.isExcel` so they are disabled and show friendly messaging outside Excel.
 
 - **Navigation & UX:**
-  - Navigation stays state-based inside `AppComponent` (no route changes) to play nicely with Excel iframes.
-  - View modes will include: home summary (all tables + query metrics), global parameters + "refresh all", per-query management/definition, and a user page.
-  - Navigational links will be connected to the tabs/tables managed by the extension, so users can jump directly to the related sheet/table from the UI.
+  - Navigation is state-based inside `AppComponent` (no route changes) to play nicely with Excel iframes.
+  - Views include SSO home, Worksheets, Tables, User, and Queries.
+  - A user/role banner appears under the nav when authenticated; a host/status banner is fixed to the bottom when Excel is not detected or the app is offline.
+  - The `feat/data-driven-design` branch will progressively move nav, roles/capabilities, query visibility, and key copy into central configuration and text catalogs, and switch styling toward Tailwind utilities.
 
 ## Focused TODO Checklist (high level)
 
