@@ -55,6 +55,16 @@ export class QueryApiMockService {
       defaultTableName: "tbl_UserAudit",
       allowedRoles: ["admin"],
     },
+    {
+      id: "jsonapi-example",
+      name: "JSONPlaceholder Users",
+      description:
+        "Fetches user data from jsonplaceholder.typicode.com and flattens it into Excel-friendly rows.",
+      parameters: [],
+      defaultSheetName: "JsonApi_Example",
+      defaultTableName: "tbl_JsonApiExample",
+      allowedRoles: ["admin"],
+    },
   ];
 
   getQueries(): QueryDefinition[] {
@@ -74,8 +84,14 @@ export class QueryApiMockService {
       throw new Error(`Query not found: ${queryId}`);
     }
 
-    // Deterministic mock rows based on query id and simple params.
-    const rows = this.buildRows(query, params);
+    let rows: ExecuteQueryResultRow[];
+
+    if (query.id === "jsonapi-example") {
+      rows = await this.fetchJsonPlaceholderUsers();
+    } else {
+      // Deterministic mock rows based on query id and simple params.
+      rows = this.buildRows(query, params);
+    }
     return { query, rows };
   }
 
@@ -107,6 +123,8 @@ export class QueryApiMockService {
         return this.buildInventoryStatusRows();
       case "user-audit":
         return this.buildUserAuditRows();
+      case "jsonapi-example":
+        return this.buildJsonPlaceholderFallbackRows();
       default:
         return [];
     }
@@ -148,17 +166,107 @@ export class QueryApiMockService {
     }));
   }
 
-   private buildUserAuditRows(): ExecuteQueryResultRow[] {
-     const users = [
-       { name: "Analyst One", email: "analyst@example.com", roles: "analyst" },
-       { name: "Admin One", email: "admin@example.com", roles: "admin" },
-     ];
+  private buildUserAuditRows(): ExecuteQueryResultRow[] {
+    const users = [
+      { name: "Analyst One", email: "analyst@example.com", roles: "analyst" },
+      { name: "Admin One", email: "admin@example.com", roles: "admin" },
+    ];
 
-     return users.map((u, index) => ({
-       Id: index + 1,
-       Name: u.name,
-       Email: u.email,
-       Roles: u.roles,
-     }));
-   }
+    return users.map((u, index) => ({
+      Id: index + 1,
+      Name: u.name,
+      Email: u.email,
+      Roles: u.roles,
+    }));
+  }
+
+  private buildJsonApiExampleRows(params: ExecuteQueryParams): ExecuteQueryResultRow[] {
+    const resourceTypeRaw = params["resourceType"];
+    const resourceType =
+      typeof resourceTypeRaw === "string" && resourceTypeRaw.trim().length
+        ? resourceTypeRaw.trim()
+        : "articles";
+
+    if (resourceType === "people") {
+      return [
+        {
+          Type: "people",
+          Id: "9",
+          Name: "Dan",
+          Twitter: "@dan",
+        },
+        {
+          Type: "people",
+          Id: "2",
+          Name: "John",
+          Twitter: "@john",
+        },
+      ];
+    }
+
+    // Default to an articles-like shape inspired by jsonapi.org examples.
+    return [
+      {
+        Type: "articles",
+        Id: "1",
+        Title: "JSON:API paints my bikeshed!",
+        AuthorId: "9",
+        Created: new Date("2015-05-22T14:56:29.000Z"),
+      },
+      {
+        Type: "articles",
+        Id: "2",
+        Title: "Understanding JSON:API relationships",
+        AuthorId: "2",
+        Created: new Date("2015-05-23T10:12:00.000Z"),
+      },
+    ];
+  }
+
+  private async fetchJsonPlaceholderUsers(): Promise<ExecuteQueryResultRow[]> {
+    const endpoint = "https://jsonplaceholder.typicode.com/users";
+    const response = await fetch(endpoint, { method: "GET" });
+    if (!response.ok) {
+      throw new Error(`JSONPlaceholder request failed: ${response.status}`);
+    }
+
+    type JsonPlaceholderUser = {
+      id: number;
+      name: string;
+      username: string;
+      email: string;
+      phone: string;
+      website: string;
+      address?: {
+        city?: string;
+        street?: string;
+        suite?: string;
+        zipcode?: string;
+      };
+      company?: {
+        name?: string;
+      };
+    };
+
+    const users = (await response.json()) as JsonPlaceholderUser[];
+
+    if (!Array.isArray(users)) {
+      return this.buildJsonPlaceholderFallbackRows();
+    }
+
+    return users.map((u) => ({
+      Id: u.id,
+      Name: u.name,
+      Username: u.username,
+      Email: u.email,
+      Phone: u.phone,
+      Website: u.website,
+      City: u.address?.city ?? "",
+      Company: u.company?.name ?? "",
+    }));
+  }
+
+  private buildJsonPlaceholderFallbackRows(): ExecuteQueryResultRow[] {
+    return this.buildJsonApiExampleRows({});
+  }
 }

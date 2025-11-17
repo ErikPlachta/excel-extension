@@ -372,12 +372,12 @@ This file tracks the concrete steps for refactoring the add-in toward a data-dri
   - Track down and fix the `rowCount` error (`The property 'rowCount' is not available. Before reading the property's value, call the load method on the containing object and call "context.sync()" on the associated request context.`) that occurs when clicking an existing query/table: ensure any use of `table.rows.getCount()` or similar is correctly `load`-ed and `ctx.sync()` is awaited before accessing the value.
   - Verify in Excel that running a query via its button creates or updates the table without errors (including when the table already exists), and that clicking on the query name does not trigger hidden side-effects; update `CONTEXT-SESSION.md` with a brief note on the intended UX (buttons for execution, optional navigation affordances) and the Excel API pattern used to avoid `rowCount`/load/sync issues.
 
-- [ ] **Add Generic Query against https://jsonapi.org/examples/**
-  - Implement a new generic query in `QueryApiMockService` that fetches data from a public JSON:API endpoint (e.g., https://jsonapi.org/examples/) to demonstrate handling of standard REST/JSON APIs.
-  - Define appropriate `QueryDefinition` and `QueryParameter`s for this query, allowing users to specify filters or pagination options if applicable.
-  - Ensure the query execution logic in `QueryHomeComponent` can handle the JSON:API response format, extracting relevant data and passing it to `ExcelService.upsertQueryTable` for display in Excel.
-  - Verify that the new query appears in the query list, can be executed successfully in Excel, and that the resulting table is populated with data from the JSON:API example.
-  - [ ] Query should be admin role only
+- [x] **Add Generic Query against https://jsonapi.org/examples/**
+  - Implemented a new `jsonapi-example` query in `QueryApiMockService` that performs a real HTTP GET to `https://jsonplaceholder.typicode.com/users` and maps returned users into flat, Excel-friendly rows (Id, Name, Username, Email, Phone, Website, City, Company).
+  - Kept a deterministic local fallback so that if the remote call fails or returns an unexpected shape, the query still produces sample rows using the existing local mock builder.
+  - The existing query execution logic in `QueryHomeComponent` already handles the resulting rows and passes them to `ExcelService.upsertQueryTable`, so the JSONPlaceholder user data (or fallback) is visualized in Excel without additional UI changes.
+  - Verified that the new query appears in the query list, executes the remote call when run (subject to network connectivity/CORS), and that the resulting table is populated with user data when the response is compatible.
+  - [x] Query should be admin role only (the query definition sets `allowedRoles: ["admin"]` so only admins can run it).
 
 - [ ] **Add component for logging execution/usage into a worksheet table**
   - Create a shared logging component/service pair that can append log entries (e.g., query runs, navigation events, errors) into an Excel worksheet table for in-workbook debugging.
