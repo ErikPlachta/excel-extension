@@ -1,6 +1,6 @@
 import { CommonModule } from "@angular/common";
 import { Component } from "@angular/core";
-import { ExcelService, AuthService } from ".";
+import { ExcelService, AuthService, AppContextService, AppHostStatus, AppAuthSummary } from ".";
 import { DEFAULT_APP_CONFIG, NavItemConfig, ViewId } from "../shared/app-config";
 import { APP_TEXT } from "../shared/app-text";
 import { SsoHomeComponent } from "../features/sso/sso-home.component";
@@ -27,12 +27,19 @@ export class AppComponent {
   currentView: ViewId = DEFAULT_APP_CONFIG.defaultViewId;
   readonly appConfig = DEFAULT_APP_CONFIG;
   readonly text = APP_TEXT;
-  isOnline = typeof navigator !== "undefined" ? navigator.onLine : true;
+  readonly hostStatus: AppHostStatus;
+
+  get authSummary(): AppAuthSummary {
+    return this.appContext.getAuthSummary();
+  }
 
   constructor(
     public excel: ExcelService,
-    public auth: AuthService
-  ) {}
+    public auth: AuthService,
+    private readonly appContext: AppContextService
+  ) {
+    this.hostStatus = this.appContext.hostStatus;
+  }
 
   selectView(viewId: ViewId): void {
     this.currentView = viewId;

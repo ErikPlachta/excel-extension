@@ -2,18 +2,27 @@ import { Injectable } from "@angular/core";
 import { ExecuteQueryResultRow } from "../shared/query-api-mock.service";
 import { QueryDefinition, QueryRunLocation } from "../shared/query-model";
 
+// TODO: Convert this to a proper Angular service wrapper around Office.js, multiple files, proper types, utilities, etc. to ensure stability and easy supportability. (I think #12 in todo covers this logic.)
+
+// Office.js globals are provided at runtime by Excel; we keep them
+// as any here and rely on isExcel guards to ensure safe access.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare const Office: any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare const Excel: any;
 
 @Injectable({ providedIn: "root" })
 export class ExcelService {
   get isExcel(): boolean {
-    return typeof Office !== "undefined" && Office.context?.host === Office.HostType.Excel;
+    return typeof Office !== "undefined" && Office?.context?.host === Office.HostType.Excel;
   }
 
   async getWorksheets(): Promise<string[]> {
     if (!this.isExcel) return [];
-    return Excel.run(async (ctx: any) => {
+    // Excel.run provides an untyped RequestContext from Office.js; we
+    // treat it as any here but keep the surface area small.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return Excel!.run(async (ctx: any) => {
       const sheets = ctx.workbook.worksheets.load("items/name");
       await ctx.sync();
       return sheets.items.map((s: any) => s.name);
@@ -22,7 +31,8 @@ export class ExcelService {
 
   async getTables(): Promise<{ name: string; worksheet: string; rows: number }[]> {
     if (!this.isExcel) return [];
-    return Excel.run(async (ctx: any) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return Excel!.run(async (ctx: any) => {
       const tables = ctx.workbook.tables.load("items/name");
       await ctx.sync();
       const results: { table: any; rowCount: any }[] = [];
@@ -47,7 +57,8 @@ export class ExcelService {
   ): Promise<QueryRunLocation | null> {
     if (!this.isExcel) return null;
 
-    return Excel.run(async (ctx: any) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return Excel!.run(async (ctx: any) => {
       const sheetName = locationHint?.sheetName ?? query.defaultSheetName;
       const tableName = locationHint?.tableName ?? query.defaultTableName;
 
@@ -100,7 +111,8 @@ export class ExcelService {
   async activateQueryLocation(location: QueryRunLocation | undefined | null): Promise<void> {
     if (!this.isExcel || !location) return;
 
-    await Excel.run(async (ctx: any) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await Excel!.run(async (ctx: any) => {
       const sheet = ctx.workbook.worksheets.getItem(location.sheetName);
       sheet.activate();
 

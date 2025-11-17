@@ -6,7 +6,7 @@ import { onShowTaskpane } from "./commands";
 describe("commands:onShowTaskpane", () => {
   it("should call event.completed without throwing", async () => {
     const completed = jasmine.createSpy("completed");
-    const fakeEvent = { completed } as any;
+    const fakeEvent = { completed } as { completed: () => void };
 
     await onShowTaskpane(fakeEvent);
 

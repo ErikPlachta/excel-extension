@@ -19,11 +19,11 @@ export class TablesComponent implements OnInit {
   tables: TableInfo[] = [];
   constructor(private excel: ExcelService) {}
 
-  get isExcel() {
+  get isExcel(): boolean {
     return this.excel.isExcel;
   }
 
-  async ngOnInit() {
+  async ngOnInit(): Promise<void> {
     this.tables = await this.excel.getTables();
   }
 }

@@ -15,26 +15,29 @@
   <button type="button" (click)="signInAdmin()" *ngIf="!auth.isAuthenticated">
     {{ text.auth.signInAdmin }}
   </button>
-  <button type="button" (click)="signOut()" *ngIf="auth.isAuthenticated">
+  <button type="button" (click)="signOut()" *ngIf="authSummary.isAuthenticated">
     {{ text.auth.signOut }}
   </button>
   <span [class]="appConfig.rootIdsAndClasses.statusClass">
-    {{ excel.isExcel ? "isExcel = true" : "isExcel = false" }}
+    {{ hostStatus.isExcel ? "isExcel = true" : "isExcel = false" }}
   </span>
 </nav>
 
 <section
   [class]="appConfig.rootIdsAndClasses.userBannerClass"
-  *ngIf="auth.isAuthenticated && auth.user as u"
+  *ngIf="authSummary.isAuthenticated && authSummary.displayName as displayName"
 >
-  <span class="user-banner-name">{{ u.displayName }}</span>
+  <span class="user-banner-name">{{ displayName }}</span>
   <span class="user-banner-role">
-    {{ auth.roles.length ? auth.roles.join(", ") : text.userBanner.noRolesAssigned }}
+    {{ authSummary.roles.length ? authSummary.roles.join(", ") : text.userBanner.noRolesAssigned }}
   </span>
 </section>
 
-<section [class]="appConfig.rootIdsAndClasses.hostStatusClass" *ngIf="!excel.isExcel || !isOnline">
-  <ng-container *ngIf="!excel.isExcel; else excelOk">
+<section
+  [class]="appConfig.rootIdsAndClasses.hostStatusClass"
+  *ngIf="!hostStatus.isExcel || !hostStatus.isOnline"
+>
+  <ng-container *ngIf="!hostStatus.isExcel; else excelOk">
     <span class="host-status-label">{{ text.hostStatus.excelNotDetectedLabel }}</span>
     <span class="host-status-message">
       {{ text.hostStatus.excelNotDetectedMessage }}
@@ -46,22 +49,26 @@
 
   <span class="host-status-separator">•</span>
 
-  <span class="host-status-label" [class.host-status-offline]="!isOnline">
-    {{ isOnline ? text.hostStatus.onlineLabel : text.hostStatus.offlineLabel }}
+  <span class="host-status-label" [class.host-status-offline]="!hostStatus.isOnline">
+    {{ hostStatus.isOnline ? text.hostStatus.onlineLabel : text.hostStatus.offlineLabel }}
   </span>
-  <span class="host-status-message" *ngIf="!isOnline">
+  <span class="host-status-message" *ngIf="!hostStatus.isOnline">
     {{ text.hostStatus.offlineMessage }}
   </span>
 </section>
 
 <section class="content">
   <app-sso-home *ngIf="currentView === 'sso'"></app-sso-home>
-  <app-worksheets *ngIf="currentView === 'worksheets' && auth.isAuthenticated"></app-worksheets>
-  <app-tables *ngIf="currentView === 'tables' && auth.isAuthenticated"></app-tables>
-  <app-user *ngIf="currentView === 'user' && auth.isAuthenticated"></app-user>
+  <app-worksheets
+    *ngIf="currentView === 'worksheets' && authSummary.isAuthenticated"
+  ></app-worksheets>
+  <app-tables *ngIf="currentView === 'tables' && authSummary.isAuthenticated"></app-tables>
+  <app-user *ngIf="currentView === 'user' && authSummary.isAuthenticated"></app-user>
   <app-query-home
     *ngIf="
-      currentView === 'queries' && auth.isAuthenticated && auth.hasAnyRole(['analyst', 'admin'])
+      currentView === 'queries' &&
+      authSummary.isAuthenticated &&
+      auth.hasAnyRole(['analyst', 'admin'])
     "
   ></app-query-home>
 </section>

@@ -111,8 +111,6 @@ npm run prettier
 npm test -- --watch=false --browsers=ChromeHeadless
 ```
 
-## High-level App Design (long-term concept)
-
 ## High-level App Design (current)
 
 - **Auth & roles:**
@@ -139,6 +137,37 @@ npm test -- --watch=false --browsers=ChromeHeadless
   - Views include SSO home, Worksheets, Tables, User, and Queries.
   - A user/role banner appears under the nav when authenticated; a host/status banner is fixed to the bottom when Excel is not detected or the app is offline.
   - The `feat/data-driven-design` branch will progressively move nav, roles/capabilities, query visibility, and key copy into central configuration and text catalogs, and switch styling toward Tailwind utilities.
+
+## Data-driven Shell & Type-safe Configuration
+
+- **AppConfig and nav/roles:**
+  - `src/app/shared/app-config.ts` exposes the `AppConfig` model and `DEFAULT_APP_CONFIG` instance that drive the shell.
+  - Types like `ViewId`, `RoleId`, `NavItemConfig`, and `RoleDefinition` now live in `src/app/types/app-config.types.ts` and are barrel-exported from `src/app/types/index.ts`.
+  - The SPA shell (`AppComponent`) binds its nav, root ids/classes, and default view entirely from `DEFAULT_APP_CONFIG`, so adding or changing nav items is a data change, not a template rewrite.
+
+- **Text/message catalog:**
+  - `src/app/shared/app-text.ts` defines `APP_TEXT`, a simple catalog for nav labels, auth buttons, user-banner fallback text, and host/status messages.
+  - Components (starting with `AppComponent`) reference `APP_TEXT` rather than hard-coded strings, which centralizes copy and keeps host/auth banners consistent.
+
+- **Host/auth context helper:**
+  - `src/app/core/app-context.service.ts` provides an `AppContextService` that exposes a `hostStatus` snapshot (`isExcel`, `isOnline`) and a `getAuthSummary()` helper (auth flag, display name, roles).
+  - The shell uses this service to drive the user banner, host/status banner, and view guards, so templates no longer compute host/auth state inline.
+
+- **Shared types and TSDoc:**
+  - Shared domain types live under `src/app/types/` (auth, queries, app config) with TSDoc comments explaining intent and key fields.
+  - `AuthService`, query services, and config files import their models from this central package, reducing duplication and making it easier to evolve the data-driven design.
+  - ESLint is wired with `eslint-plugin-tsdoc` (`tsdoc/syntax`) so invalid/malformed TSDoc is surfaced by `npm run lint`.
+
+### Adding a new nav item (example)
+
+1. **Update config:**
+   - Edit `DEFAULT_APP_CONFIG` in `src/app/shared/app-config.default.ts` and add a new `NavItemConfig` entry with a unique `id`, `labelKey`, `viewId`, and any role/auth requirements.
+2. **Add text:**
+   - Add the corresponding `labelKey` entry to `APP_TEXT.nav` in `src/app/shared/app-text.ts`.
+3. **Add view (if needed):
+   - Implement the new view component under `src/app/features/...` and wire it into `AppComponent`’s template based on the new `ViewId`.
+4. **Result:**
+   - The nav updates automatically based on config and text; role gating and host/auth behavior remain consistent.
 
 ## Focused TODO Checklist (high level)
 

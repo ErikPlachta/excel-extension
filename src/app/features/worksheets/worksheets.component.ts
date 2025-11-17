@@ -13,11 +13,11 @@ export class WorksheetsComponent implements OnInit {
   sheets: string[] = [];
   constructor(private excel: ExcelService) {}
 
-  get isExcel() {
+  get isExcel(): boolean {
     return this.excel.isExcel;
   }
 
-  async ngOnInit() {
+  async ngOnInit(): Promise<void> {
     this.sheets = await this.excel.getWorksheets();
   }
 }

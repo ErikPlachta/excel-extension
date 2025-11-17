@@ -3,6 +3,7 @@ import { QueryHomeComponent } from "./query-home.component";
 import { AuthService } from "../../core";
 import { QueryApiMockService } from "../../shared/query-api-mock.service";
 import { QueryStateService } from "../../shared/query-state.service";
+import { QueryDefinition } from "../../shared/query-model";
 
 class AuthServiceStub {
   roles: string[] = [];
@@ -37,7 +38,14 @@ describe("QueryHomeComponent role visibility", () => {
 
   it("disallows running queries when user has no analyst/admin role", async () => {
     authStub.roles = [];
-    const query = { id: "q1", name: "Test", description: "", parameters: [] } as any;
+    const query: QueryDefinition = {
+      id: "q1",
+      name: "Test",
+      description: "",
+      parameters: [],
+      defaultSheetName: "Sheet1",
+      defaultTableName: "Table1",
+    };
 
     await component.runQuery(query);
 
@@ -46,7 +54,14 @@ describe("QueryHomeComponent role visibility", () => {
 
   it("allows running queries when user is analyst", async () => {
     authStub.roles = ["analyst"];
-    const query = { id: "sales-summary", name: "Sales", description: "", parameters: [] } as any;
+    const query: QueryDefinition = {
+      id: "sales-summary",
+      name: "Sales",
+      description: "",
+      parameters: [],
+      defaultSheetName: "Sales",
+      defaultTableName: "SalesTable",
+    };
 
     await component.runQuery(query);
 

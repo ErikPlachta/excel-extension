@@ -1,12 +1,7 @@
 import { Injectable } from "@angular/core";
 import { BehaviorSubject } from "rxjs";
 import { getSsoAuthResult, SsoUserProfile } from "../../helpers/sso-helper";
-
-export interface AuthState {
-  isAuthenticated: boolean;
-  user: SsoUserProfile | null;
-  accessToken: string | null;
-}
+import { AuthState } from "../types";
 
 @Injectable({ providedIn: "root" })
 export class AuthService {
@@ -45,7 +40,8 @@ export class AuthService {
   }
 
   constructor() {
-    const raw = typeof window !== "undefined" ? window.localStorage.getItem(AuthService.STORAGE_KEY) : null;
+    const raw =
+      typeof window !== "undefined" ? window.localStorage.getItem(AuthService.STORAGE_KEY) : null;
     if (raw) {
       try {
         const parsed = JSON.parse(raw) as AuthState;

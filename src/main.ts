@@ -1,6 +1,9 @@
 import { bootstrapApplication } from "@angular/platform-browser";
 import { AppComponent, appConfig } from "./app/core";
 
+// Office is injected by the Excel/Office runtime; we intentionally
+// keep this as any and guard access via runtime checks.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare const Office: any;
 
 bootstrapApplication(AppComponent, appConfig)
@@ -20,4 +23,5 @@ bootstrapApplication(AppComponent, appConfig)
       // Ignore SW registration failures or missing Office globals.
     }
   })
-  .catch((err) => console.error(err));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  .catch((err: any) => console.error(err));

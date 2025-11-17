@@ -235,29 +235,80 @@ This file tracks the concrete steps for refactoring the add-in toward a data-dri
   - Extended `AppConfig` to include DOM ids and root-level class names for key shell elements (nav, status text, user banner, host-status banner) and per-nav-item ids.
   - Updated `app.component.html` to bind classes and ids from `appConfig.rootIdsAndClasses` and `NavItemConfig.domId` instead of hard-coding them in the template, preserving existing styling and structure.
 
-- [ ] **Introduce shared UI primitives (buttons, banners, tables, lists, sections, cards, dropdowns, icons)**
-  - Create a shared UI library under `src/app/shared/ui/` with standalone components for core primitives such as `ButtonComponent`, `StatusBannerComponent`, `TableComponent`, `ListComponent`, `SectionComponent`, `CardComponent`, `DropdownComponent`, and an `IconComponent` or icon registry.
-  - Ensure each primitive is driven by typed inputs (e.g., strongly-typed row/column configs for tables, item models for lists/dropdowns, layout variants for sections/cards) so view code passes declarative configs instead of hand-written markup.
-  - Move layout/appearance concerns from feature/core CSS files into these shared components, using Tailwind utility classes once configured (or Tailwind-ready class names as a bridge), so styling is consistent and centrally managed.
-  - Update existing views (nav, host/status banner, query list, worksheets/tables views, user page) to use the new primitives incrementally, verifying behavior and accessibility remain correct after each migration.
+- [x] **Wire host/auth context into shared components**
+  - Introduced an `AppContextService` that exposes a snapshot `hostStatus` (Excel detected, online/offline) and a `getAuthSummary()` helper for derived auth state (authenticated flag, display name, roles).
+  - Updated `AppComponent` to consume `AppContextService` instead of embedding host/auth logic directly, and refactored the user banner, host/status banner, and view guards to bind against `hostStatus`/`authSummary` while still using `AppConfig`/`APP_TEXT` for text.
+  - Verify in Excel and the browser that banners still respond correctly when Excel is not detected and when offline, and that authenticated/role-aware behavior remains unchanged.
 
-- [ ] **Wire host/auth context into shared components**
-  - Refactor the host/status banner to receive its state (Excel detected, online/offline) and text from `AppConfig`/`APP_TEXT` and `ExcelService`, rather than embedding logic in the template.
-  - Consider adding an `AppContextService` that exposes derived state (e.g., current view, host status, auth snapshot) to simplify bindings.
-  - Verify that banners still respond correctly when Excel is not detected and when offline.
+- [x] **Extract shared types into a central types package and enforce TSDoc**
+  - Created a `src/app/types/` folder containing shared type definitions for auth state (`AuthState`), query domain (`QueryParameter`, `QueryDefinition`, `QueryRunLocation`, `QueryRun`), and app config/nav/roles (`RoleId`, `ViewId`, `NavItemConfig`, `RoleDefinition`, `AppConfig`), along with a barrel file (`src/app/types/index.ts`).
+  - Refactored existing type declarations embedded in `AuthService`, `query-model`, and `app-config` to import from the central types folder and re-export type aliases where appropriate, minimizing duplication and clarifying ownership of domain models.
+  - Added TSDoc comments to the new shared types to document intent and usage, and kept the structure ready for a future TSDoc-aware lint rule so missing documentation can be surfaced during `npm run lint` as the type surface grows.
 
-- [ ] **Document the data-driven design in CONTEXT-SESSION.md**
-  - Update `CONTEXT-SESSION.md` to describe the new `AppConfig`, text catalog, and shared UI components as the preferred way to add/modify nav items, roles, and core copy.
-  - Include a short example of adding a new nav item via configuration only.
+- [x] **Document the data-driven design in CONTEXT-SESSION.md**
+  - Updated `CONTEXT-SESSION.md` to describe the new `AppConfig`, text catalog, shared types, and `AppContextService` as the preferred way to add/modify nav items, roles, and core host/auth copy.
+  - Included a short example of adding a new nav item via configuration only, highlighting how `AppConfig` and `APP_TEXT` work together.
 
-- [ ] **Extract shared types into a central types package and enforce TSDoc**
-  - Create a `src/types/` (or `src/app/types/`) folder that contains shared type definitions and interfaces used across the app, including (but not limited to) auth-related types, query domain types, app config/nav/role types, and any cross-cutting utility types.
-  - Refactor existing type declarations currently embedded in feature/core/shared files (e.g., `AuthState`, `QueryDefinition`, `QueryRun`, `NavItemConfig`, `RoleDefinition`, `ViewId`, `RoleId`) to import from this central types folder, minimizing duplication and clarifying ownership of domain models.
-  - Introduce barrel files (e.g., `src/types/index.ts` or domain-specific `index.ts` files) to make imports concise and consistent, supporting a highly typed and data-driven design without deep relative import chains.
-  - Add TSDoc comments (`/** ... */`) to all exported types and interfaces under `src` (starting with the new types folder and core/shared services), documenting intent, usage, and important invariants for each model.
-  - Configure and enforce a TSDoc-aware lint rule (via ESLint or a dedicated TSDoc plugin) so that missing or malformed documentation for exported symbols is surfaced during `npm run lint`, keeping type documentation up to date as the design evolves.
+- [ ] **Onboard strict typing and TSDoc enforcement across `src/`**
+  - Extend the shared types strategy so that all cross-cutting models under `src/app` either live in `src/app/types` or are explicitly documented with TSDoc where they are defined (e.g., feature-specific view models).
+  - Introduce an ESLint rule set (via `@typescript-eslint` and/or additional plugins) that requires:
+    - No `any` in `src/app/**` except in clearly documented, intentional escape hatches.
+    - TSDoc (or JSDoc) on all exported types, interfaces, classes, and public functions in `src/app/**`.
+  - Start with high-leverage areas:
+    - `core/` services (`AuthService`, `ExcelService`, `AppContextService`) and shell (`AppComponent`).
+    - `shared/` query domain and config (`QueryApiMockService`, `QueryStateService`, `app-config`, `app-text`).
+    - `types/` package, ensuring every exported symbol has clear, actionable TSDoc.
+  - Gradually tighten rules for `features/` by:
+    - Adding or refining component-level input/output types and view models.
+    - Documenting key components with TSDoc on inputs/outputs and important methods.
+  - Update `CONTEXT-SESSION.md` to include a short "Strict typing & TSDoc" subsection that explains:
+    - Where shared types live.
+    - Which ESLint rules enforce typing and documentation.
+    - How to add new types/components so that they pass lint and provide good IntelliSense.
 
-## 11. Improve Excel Functionality
+## 11. Build UI Primitives Library
+
+- [ ] **Establish shared UI library structure**
+  - Create `src/app/shared/ui/` with a clear folder structure per primitive (e.g., `button/`, `banner/`, `table/`, `list/`, `section/`, `card/`, `dropdown/`, `icon/`), each containing a standalone component and any related models.
+  - Add a simple barrel file (e.g., `src/app/shared/ui/index.ts`) that re-exports the primitives so feature code can import from a single place.
+  - Ensure all primitives follow Angular standalone patterns (no NgModule) and are easy to include in other standalone components' `imports` arrays.
+
+- [ ] **Define strongly-typed models for UI primitives**
+  - Introduce UI-related types under `src/app/types/ui/` (or an equivalent folder), such as `UiButtonVariant`, `UiBannerType`, `UiTableColumnDef`, `UiListItem`, `UiCardVariant`, `UiDropdownItem`, and `UiIconName`.
+  - Keep these types generic and domain-agnostic so they can be reused across features (queries, worksheets, user page) and extend the central types/TSDoc strategy.
+  - Add TSDoc comments explaining how each type is intended to be used and how it maps to visual behavior.
+
+- [ ] **Implement core primitives (Button and Banner)**
+  - Implement `ButtonComponent` with inputs like `label`, `variant`, `size`, `disabled`, `iconName`, and an output `clicked` event; apply Tailwind-ready classes based on variant/size.
+  - Implement `StatusBannerComponent` (or `BannerComponent`) with inputs for `type` (`info`/`warning`/`error`), `title`, `message`, and `iconName`, rendering nothing when `message` is empty.
+  - Wire `AppComponent` to use `ButtonComponent` for nav actions (driven by `AppConfig`/`APP_TEXT`) and `StatusBannerComponent` for the host-status banner, preserving current behavior.
+
+- [ ] **Implement data-driven Table and List primitives**
+  - Create `TableComponent` that accepts `columns: UiTableColumnDef[]` and `rows: T[]` (generic), plus optional `rowKey` and cell template hooks for specialized rendering.
+  - Create `ListComponent` that accepts `items: UiListItem[]` and supports optional selection (`single`/`multi`), icons, badges, and per-item action affordances.
+  - Refactor at least one existing view (e.g., query list or worksheets view) to use `TableComponent` or `ListComponent`, turning its current markup into a config-driven table/list.
+
+- [ ] **Implement Section and Card primitives**
+  - Implement `SectionComponent` that provides a titled, optionally collapsible container with `<ng-content>` for body content and variants for density/spacing.
+  - Implement `CardComponent` that provides a flexible surface for presenting a query, user, or worksheet summary, with inputs for `title`, `subtitle`, `iconName`, and `variant`.
+  - Use `SectionComponent`/`CardComponent` to restructure portions of the SSO home, user page, and query list into consistent, reusable layouts.
+
+- [ ] **Implement Dropdown and Icon primitives**
+  - Implement `DropdownComponent` that accepts `items: UiDropdownItem[]`, `value`, `placeholder`, and emits `valueChange` when selections change; ensure keyboard accessibility and clear focus styles.
+  - Implement `IconComponent` that maps `UiIconName` values to SVGs or CSS classes via a small registry, so icons used by buttons, banners, cards, and lists remain consistent.
+  - Replace ad-hoc icons (or future icons) in features with `IconComponent` usages, driven by config/text where appropriate.
+
+- [ ] **Integrate primitives into existing views incrementally**
+  - Update the nav, host-status banner, query list, worksheets/tables view, and user page to use the new primitives as they become stable, reducing direct use of raw HTML elements.
+  - Ensure all labels still come from `APP_TEXT` and behaviors (visibility, variants, icons) still come from `AppConfig` or feature-level configs.
+  - After each migration, verify behavior, responsiveness, and accessibility (focus order, keyboard interaction) to avoid UX regressions.
+
+- [ ] **Prepare primitives for Tailwind adoption**
+  - As Tailwind is introduced, move styling from existing CSS files into Tailwind utility classes defined directly in primitive templates.
+  - Keep a small mapping layer (e.g., variant → class list) inside each primitive so Tailwind changes can be made in one place while feature code continues to use typed variants.
+  - Remove obsolete CSS from feature/core styles once Tailwind-backed primitives are in place.
+
+## 12. Improve Excel Functionality
 
 - [ ] **Add component for logging execution/usage into a worksheet table**
   - Create a shared logging component/service pair that can append log entries (e.g., query runs, navigation events, errors) into an Excel worksheet table for in-workbook debugging.

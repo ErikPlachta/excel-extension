@@ -64,6 +64,7 @@ export class QueryHomeComponent implements OnInit {
         rowCount: result.rows.length,
         location: location ?? undefined,
       });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       this.error = err?.message ?? String(err);
     } finally {

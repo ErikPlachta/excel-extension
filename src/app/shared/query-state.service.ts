@@ -5,7 +5,7 @@ import { QueryDefinition, QueryRun } from "./query-model";
 
 export interface QueryStateSnapshot {
   queries: QueryDefinition[];
-  lastParams: Record<string, Record<string, any>>;
+  lastParams: Record<string, Record<string, unknown>>;
   lastRuns: Record<string, QueryRun | undefined>;
 }
 
@@ -32,11 +32,11 @@ export class QueryStateService {
     return this.snapshot.queries;
   }
 
-  getLastParams(queryId: string): Record<string, any> | undefined {
+  getLastParams(queryId: string): Record<string, unknown> | undefined {
     return this.snapshot.lastParams[queryId];
   }
 
-  setLastParams(queryId: string, params: Record<string, any>): void {
+  setLastParams(queryId: string, params: Record<string, unknown>): void {
     const { lastParams } = this.snapshot;
     this.stateSubject.next({
       ...this.snapshot,
