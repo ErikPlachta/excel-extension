@@ -1,50 +1,56 @@
-<nav class="mobile-nav">
-  <button type="button" (click)="showSso()">SSO Home</button>
-  <button type="button" (click)="showWorksheets()" *ngIf="auth.isAuthenticated">Worksheets</button>
-  <button type="button" (click)="showTables()" *ngIf="auth.isAuthenticated">Tables</button>
-  <button type="button" (click)="showUser()" *ngIf="auth.isAuthenticated">User</button>
+<nav [class]="appConfig.rootIdsAndClasses.navClass">
   <button
+    *ngFor="let item of appConfig.navItems"
     type="button"
-    (click)="showQueries()"
-    *ngIf="auth.isAuthenticated && auth.hasAnyRole(['analyst', 'admin'])"
+    (click)="selectView(item.viewId)"
+    [disabled]="!canAccessNav(item)"
+    [hidden]="!isNavVisible(item)"
+    [id]="item.domId || null"
   >
-    Queries
+    {{ getNavLabel(item.labelKey) }}
   </button>
   <button type="button" (click)="signInAnalyst()" *ngIf="!auth.isAuthenticated">
-    Sign in as analyst
+    {{ text.auth.signInAnalyst }}
   </button>
   <button type="button" (click)="signInAdmin()" *ngIf="!auth.isAuthenticated">
-    Sign in as admin
+    {{ text.auth.signInAdmin }}
   </button>
-  <button type="button" (click)="signOut()" *ngIf="auth.isAuthenticated">Sign out</button>
-  <span class="status">{{ excel.isExcel ? "isExcel = true" : "isExcel = false" }}</span>
+  <button type="button" (click)="signOut()" *ngIf="auth.isAuthenticated">
+    {{ text.auth.signOut }}
+  </button>
+  <span [class]="appConfig.rootIdsAndClasses.statusClass">
+    {{ excel.isExcel ? "isExcel = true" : "isExcel = false" }}
+  </span>
 </nav>
 
-<section class="user-banner" *ngIf="auth.isAuthenticated && auth.user as u">
+<section
+  [class]="appConfig.rootIdsAndClasses.userBannerClass"
+  *ngIf="auth.isAuthenticated && auth.user as u"
+>
   <span class="user-banner-name">{{ u.displayName }}</span>
   <span class="user-banner-role">
-    {{ auth.roles.length ? auth.roles.join(", ") : "No roles assigned" }}
+    {{ auth.roles.length ? auth.roles.join(", ") : text.userBanner.noRolesAssigned }}
   </span>
 </section>
 
-<section class="host-status" *ngIf="!excel.isExcel || !isOnline">
+<section [class]="appConfig.rootIdsAndClasses.hostStatusClass" *ngIf="!excel.isExcel || !isOnline">
   <ng-container *ngIf="!excel.isExcel; else excelOk">
-    <span class="host-status-label">Excel not detected.</span>
+    <span class="host-status-label">{{ text.hostStatus.excelNotDetectedLabel }}</span>
     <span class="host-status-message">
-      Open this add-in inside Excel to enable worksheet and query features.
+      {{ text.hostStatus.excelNotDetectedMessage }}
     </span>
   </ng-container>
   <ng-template #excelOk>
-    <span class="host-status-label">Excel connected.</span>
+    <span class="host-status-label">{{ text.hostStatus.excelConnectedLabel }}</span>
   </ng-template>
 
   <span class="host-status-separator">•</span>
 
   <span class="host-status-label" [class.host-status-offline]="!isOnline">
-    {{ isOnline ? "Online" : "Offline" }}
+    {{ isOnline ? text.hostStatus.onlineLabel : text.hostStatus.offlineLabel }}
   </span>
   <span class="host-status-message" *ngIf="!isOnline">
-    Some features may be unavailable until connectivity is restored.
+    {{ text.hostStatus.offlineMessage }}
   </span>
 </section>
 

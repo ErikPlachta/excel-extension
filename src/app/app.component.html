@@ -1,0 +1,14 @@
+<nav class="mobile-nav">
+  <app-button [label]="'SSO Home'" [click]="showSso.bind(this)"></app-button>
+  <app-button [label]="'Worksheets'" [click]="showWorksheets.bind(this)"></app-button>
+  <app-button [label]="'Tables'" [click]="showTables.bind(this)"></app-button>
+  <span class="status">{{ excel.isExcel ? "isExcel = true" : "isExcel = false" }}</span>
+</nav>
+
+<section class="content">
+  <app-sso-home *ngIf="currentView === 'sso'"></app-sso-home>
+  <app-worksheets *ngIf="currentView === 'worksheets'"></app-worksheets>
+  <app-tables *ngIf="currentView === 'tables'"></app-tables>
+</section>
+
+<app-status-banner [message]="excel.isExcel ? '' : 'Excel not detected'"></app-status-banner>

@@ -218,25 +218,28 @@ This file tracks the concrete steps for refactoring the add-in toward a data-dri
 
 ## 10. Data-driven Shell, Nav, and Roles (this branch)
 
-- [ ] **Introduce central AppConfig model for nav and roles**
-  - Define a typed `AppConfig` (e.g., nav items, views, required roles, feature flags) under `src/app/shared/app-config.ts`.
-  - Include `NavItem` and `RoleDefinition` types so navigation structure and capabilities are described in data rather than hard-coded in components.
-  - Verify that the config compiles and can be imported from `AppComponent` without changing behavior yet.
+- [x] **Introduce central AppConfig model for nav and roles**
+  - Defined a typed `AppConfig` (nav items, views, required roles, feature flags) under `src/app/shared/app-config.ts`, including `NavItemConfig`, `RoleDefinition`, and `ViewId`/`RoleId` types so navigation structure and capabilities are described in data rather than hard-coded in components.
+  - `AppComponent` now imports `DEFAULT_APP_CONFIG`/`ViewId` and uses the config's `defaultViewId` for its initial `currentView`, while still behaving the same in the UI.
 
-- [ ] **Add text/message catalog for core UI copy**
-  - Create an `APP_TEXT` object (e.g., `src/app/shared/app-text.ts`) for nav labels, buttons (sign-in/out), and banners (host/status messages).
-  - Refactor `AppComponent` to use `APP_TEXT` via a simple service or direct import instead of hard-coded strings.
-  - Verify that labels and messages render as before, but can be changed from the text catalog.
+- [x] **Add text/message catalog for core UI copy**
+  - Created an `APP_TEXT` object in `src/app/shared/app-text.ts` for nav labels, auth buttons, user-banner fallback text, and host/status messages.
+  - Refactored `AppComponent` to expose `text = APP_TEXT` and updated `app.component.html` to use catalog entries instead of hard-coded strings, while preserving existing UX.
 
-- [ ] **Refactor AppComponent nav to be data-driven**
-  - Replace the hard-coded nav buttons in `app.component.html` with an `*ngFor` over `AppConfig.navItems`, using `AuthService` and role requirements to filter visibility.
-  - Replace view-specific methods (`showSso`, `showTables`, etc.) with a generic `selectView(viewId)` method keyed by nav config.
-  - Verify that nav behavior and role gating match current behavior for analyst/admin and unauthenticated users.
+- [x] **Refactor AppComponent nav to be data-driven**
+  - Replaced the hard-coded nav buttons in `app.component.html` with a loop over `AppConfig.navItems`, using helper methods and `AuthService` role checks to control visibility and access.
+  - Replaced view-specific methods (`showSso`, `showTables`, etc.) with a generic `selectView(viewId)` method keyed by nav config, keeping behavior consistent for each view.
+  - Verified that nav behavior and role gating match the previous implementation for unauthenticated users, analysts, and admins.
 
-- [ ] **Introduce shared UI primitives (begin with Button and Banner)**
-  - Create standalone shared components like `ButtonComponent` and `StatusBannerComponent` under `src/app/shared/ui/`.
-  - Move layout/appearance concerns from `app.component.css` into these components using Tailwind utility classes (or prepare them for Tailwind once configured).
-  - Verify that the nav buttons and host/status banner render correctly using the shared components.
+- [x] **Refactor Class and ID Definitions to be fully data-driven**
+  - Extended `AppConfig` to include DOM ids and root-level class names for key shell elements (nav, status text, user banner, host-status banner) and per-nav-item ids.
+  - Updated `app.component.html` to bind classes and ids from `appConfig.rootIdsAndClasses` and `NavItemConfig.domId` instead of hard-coding them in the template, preserving existing styling and structure.
+
+- [ ] **Introduce shared UI primitives (buttons, banners, tables, lists, sections, cards, dropdowns, icons)**
+  - Create a shared UI library under `src/app/shared/ui/` with standalone components for core primitives such as `ButtonComponent`, `StatusBannerComponent`, `TableComponent`, `ListComponent`, `SectionComponent`, `CardComponent`, `DropdownComponent`, and an `IconComponent` or icon registry.
+  - Ensure each primitive is driven by typed inputs (e.g., strongly-typed row/column configs for tables, item models for lists/dropdowns, layout variants for sections/cards) so view code passes declarative configs instead of hand-written markup.
+  - Move layout/appearance concerns from feature/core CSS files into these shared components, using Tailwind utility classes once configured (or Tailwind-ready class names as a bridge), so styling is consistent and centrally managed.
+  - Update existing views (nav, host/status banner, query list, worksheets/tables views, user page) to use the new primitives incrementally, verifying behavior and accessibility remain correct after each migration.
 
 - [ ] **Wire host/auth context into shared components**
   - Refactor the host/status banner to receive its state (Excel detected, online/offline) and text from `AppConfig`/`APP_TEXT` and `ExcelService`, rather than embedding logic in the template.
@@ -246,3 +249,38 @@ This file tracks the concrete steps for refactoring the add-in toward a data-dri
 - [ ] **Document the data-driven design in CONTEXT-SESSION.md**
   - Update `CONTEXT-SESSION.md` to describe the new `AppConfig`, text catalog, and shared UI components as the preferred way to add/modify nav items, roles, and core copy.
   - Include a short example of adding a new nav item via configuration only.
+
+- [ ] **Extract shared types into a central types package and enforce TSDoc**
+  - Create a `src/types/` (or `src/app/types/`) folder that contains shared type definitions and interfaces used across the app, including (but not limited to) auth-related types, query domain types, app config/nav/role types, and any cross-cutting utility types.
+  - Refactor existing type declarations currently embedded in feature/core/shared files (e.g., `AuthState`, `QueryDefinition`, `QueryRun`, `NavItemConfig`, `RoleDefinition`, `ViewId`, `RoleId`) to import from this central types folder, minimizing duplication and clarifying ownership of domain models.
+  - Introduce barrel files (e.g., `src/types/index.ts` or domain-specific `index.ts` files) to make imports concise and consistent, supporting a highly typed and data-driven design without deep relative import chains.
+  - Add TSDoc comments (`/** ... */`) to all exported types and interfaces under `src` (starting with the new types folder and core/shared services), documenting intent, usage, and important invariants for each model.
+  - Configure and enforce a TSDoc-aware lint rule (via ESLint or a dedicated TSDoc plugin) so that missing or malformed documentation for exported symbols is surfaced during `npm run lint`, keeping type documentation up to date as the design evolves.
+
+## 11. Improve Excel Functionality
+
+- [ ] **Add component for logging execution/usage into a worksheet table**
+  - Create a shared logging component/service pair that can append log entries (e.g., query runs, navigation events, errors) into an Excel worksheet table for in-workbook debugging.
+  - Integrate it with `ExcelService` so that, when `isExcel` is true, logs are written to a configurable sheet/table (with sensible defaults) and can be filtered/cleared from the UI.
+  - Verify that logging is no-op outside Excel, and that logs persist within the workbook session for troubleshooting.
+
+- [ ] **Harden query rerun behavior and table data management**
+  - Fix the `rowCount` error by ensuring all table-related properties are properly `load`-ed and `context.sync()` is called before reading them in `ExcelService.upsertQueryTable` and any rerun-related helpers.
+  - Define a clear overwrite vs append strategy at the config level (e.g., per `QueryDefinition` flags like `writeMode: 'overwrite' | 'append' | 'append-or-overwrite'`) and implement it inside `ExcelService` so reruns behave predictably.
+  - Introduce optional key column metadata on `QueryDefinition` (e.g., `primaryKeyColumns: string[]`) to enable smarter upserts (update vs insert) instead of always deleting/rewriting the table when needed.
+  - Surface simple, scalable user options for rerun behavior in the query UI (e.g., “Overwrite existing table”, “Append rows”, “Clear before write”) with sensible defaults driven by configuration.
+  - Ensure the logging component captures rerun decisions and outcomes (rows written, mode used, any conflicts) for later troubleshooting.
+
+- [ ] **Implement robust query parameter management (global + per-query)**
+  - Extend the query domain model to distinguish between global parameters (applied to multiple queries/reports) and query-specific parameters (e.g., date ranges, regions, customer segments) with clear typing and defaults.
+  - Add a parameter management UI that lets users define, edit, and reset global and per-query parameter sets, with validation and descriptions sourced from the query metadata.
+  - Support “Refresh All” and “Refresh Selected” patterns in the query UI, allowing users to rerun multiple queries with a shared/global parameter context or per-query overrides.
+  - Ensure parameter choices are persisted (e.g., via `QueryStateService` and `localStorage`) so that a user’s preferred filters survive reloads and are visible in the UI before refresh.
+  - Wire parameter changes into the logging and host-status UX so users can see which parameter set was used for each run and be warned when parameters are missing or invalid.
+
+- [ ] **Support saving and loading named query configurations**
+  - Design a `QueryConfiguration` model that captures a named set of query selections, parameter values (global + per-query), and rerun behaviors (overwrite/append) so a “report configuration” can be reused.
+  - Implement local storage of configurations keyed by user and workbook context, leveraging the existing auth state to keep configurations scoped to the signed-in user.
+  - Add UI affordances to create, rename, “save as”, delete, and restore configurations (soft-delete), making it easy to manage multiple report presets.
+  - Prepare the configuration layer for a future backend API by isolating storage concerns behind a service (e.g., `QueryConfigurationService`) with a clear interface that can later be backed by HTTP instead of local storage.
+  - Ensure that loading a configuration updates the query list, parameter panels, and any Excel tables in a predictable, observable way, and that failures are logged and surfaced via the host-status/banner UX.

@@ -1,6 +1,8 @@
 import { CommonModule } from "@angular/common";
 import { Component } from "@angular/core";
 import { ExcelService, AuthService } from ".";
+import { DEFAULT_APP_CONFIG, NavItemConfig, ViewId } from "../shared/app-config";
+import { APP_TEXT } from "../shared/app-text";
 import { SsoHomeComponent } from "../features/sso/sso-home.component";
 import { WorksheetsComponent } from "../features/worksheets/worksheets.component";
 import { TablesComponent } from "../features/tables/tables.component";
@@ -22,7 +24,9 @@ import { QueryHomeComponent } from "../features/queries/query-home.component";
   styleUrl: "./app.component.css",
 })
 export class AppComponent {
-  currentView: "sso" | "worksheets" | "tables" | "user" | "queries" = "sso";
+  currentView: ViewId = DEFAULT_APP_CONFIG.defaultViewId;
+  readonly appConfig = DEFAULT_APP_CONFIG;
+  readonly text = APP_TEXT;
   isOnline = typeof navigator !== "undefined" ? navigator.onLine : true;
 
   constructor(
@@ -30,22 +34,41 @@ export class AppComponent {
     public auth: AuthService
   ) {}
 
-  showSso(): void {
-    this.currentView = "sso";
+  selectView(viewId: ViewId): void {
+    this.currentView = viewId;
   }
 
-  showWorksheets(): void {
-    this.currentView = "worksheets";
+  isNavVisible(item: NavItemConfig): boolean {
+    if (item.requiresAuth && !this.auth.isAuthenticated) {
+      return false;
+    }
+    if (item.requiredRoles && item.requiredRoles.length > 0) {
+      return this.auth.hasAnyRole(item.requiredRoles);
+    }
+    return true;
   }
 
-  showTables(): void {
-    this.currentView = "tables";
+  canAccessNav(item: NavItemConfig): boolean {
+    // For now, visibility and access use the same rules; this will allow
+    // future differentiation (e.g., visible but disabled states) if needed.
+    return this.isNavVisible(item);
   }
-  showUser(): void {
-    this.currentView = "user";
-  }
-  showQueries(): void {
-    this.currentView = "queries";
+
+  getNavLabel(labelKey: string): string {
+    switch (labelKey) {
+      case "nav.ssoHome":
+        return this.text.nav.ssoHome;
+      case "nav.worksheets":
+        return this.text.nav.worksheets;
+      case "nav.tables":
+        return this.text.nav.tables;
+      case "nav.user":
+        return this.text.nav.user;
+      case "nav.queries":
+        return this.text.nav.queries;
+      default:
+        return labelKey;
+    }
   }
 
   async signInAnalyst(): Promise<void> {
