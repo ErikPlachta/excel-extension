@@ -2,6 +2,13 @@ import { CommonModule } from "@angular/common";
 import { Component, EventEmitter, Input, Output } from "@angular/core";
 import { UiButtonSize, UiButtonVariant } from "../../types";
 
+/**
+ * Reusable button primitive used throughout the shell and features.
+ *
+ * Consumers provide a text `label` and optional `variant`/`size`
+ * hints that map to CSS/Tailwind classes inside the component,
+ * keeping feature code config-driven and style-agnostic.
+ */
 @Component({
   selector: "app-button",
   standalone: true,
@@ -14,12 +21,18 @@ import { UiButtonSize, UiButtonVariant } from "../../types";
   `,
 })
 export class ButtonComponent {
+  /** Text label rendered inside the button. */
   @Input() label = "";
+  /** Visual variant controlling color and emphasis. */
   @Input() variant: UiButtonVariant = "primary";
+  /** Size affecting padding and font-size. */
   @Input() size: UiButtonSize = "md";
+  /** When true, disables the button and suppresses click events. */
   @Input() disabled = false;
+  /** Optional icon name for a leading icon (rendered via classes/registry). */
   @Input() iconName: string | null = null;
 
+  /** Fired when the button is activated and not disabled. */
   @Output() readonly clicked = new EventEmitter<void>();
 
   get buttonClass(): string {

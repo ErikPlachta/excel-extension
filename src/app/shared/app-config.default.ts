@@ -85,6 +85,8 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
     statusClass: "status",
     userBannerClass: "user-banner",
     hostStatusClass: "host-status",
+    rootClass: "app-shell",
+    extraRootClasses: "",
   },
   roles: [
     {
@@ -102,5 +104,12 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
     navButtonVariant: "primary",
     navButtonSize: "md",
     hostStatusBannerType: "info",
+    viewLayout: {
+      sso: { sectionVariant: "default" },
+      user: { sectionVariant: "default" },
+      worksheets: { sectionVariant: "dense" },
+      tables: { sectionVariant: "dense" },
+      queries: { sectionVariant: "default" },
+    },
   },
 };

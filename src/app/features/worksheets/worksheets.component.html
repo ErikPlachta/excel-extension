@@ -2,7 +2,7 @@
   <ng-container *ngIf="isExcel; else noExcel">
     <app-table
       [columns]="[{ field: 'name', header: 'Name' }]"
-      [rows]="sheets.map((name) => ({ name }))"
+      [rows]="sheetsAsRows"
       emptyMessage="No worksheets found."
     ></app-table>
   </ng-container>

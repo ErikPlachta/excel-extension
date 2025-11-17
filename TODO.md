@@ -318,7 +318,7 @@ This file tracks the concrete steps for refactoring the add-in toward a data-dri
   - Replace any inline or hard-coded icons in the shell (nav, banners, cards) and feature views with `IconComponent`, using `UiIconName` and configuration/text to drive icon choice.
   - Confirm that keyboard navigation, screen-reader labels, and visual affordances meet accessibility expectations after the swap.
 
-- [ ] **Integrate primitives into existing views incrementally**
+- [x] **Integrate primitives into existing views incrementally**
   - [x] Migrate the host-status banner in `AppComponent` to use `StatusBannerComponent` (and `IconComponent` as needed) while keeping text from `APP_TEXT` and visibility from `AppContextService`/`AppConfig`.
   - [x] Use `SectionComponent`/`CardComponent` within the user page to lay out profile info with primitives, keeping copy/auth behavior unchanged and avoiding additional shared wrapper components.
   - [x] Expand the query list view to rely fully on `ListComponent`/`TableComponent` for query items, mapping existing query metadata into `UiListItem`/`UiTableColumnDef[]` while preserving role/Excel guards.
@@ -329,13 +329,28 @@ This file tracks the concrete steps for refactoring the add-in toward a data-dri
   - Implemented a `handleNavClick(item: NavItemConfig)` dispatcher in `AppComponent` that interprets `actionType` and calls `selectView`, `signInAnalyst`, `signInAdmin`, or `signOut` accordingly.
   - Refined visibility rules so sign-in buttons only appear when logged out, sign-out only when logged in, and other items still respect `requiresAuth`/`requiredRoles`, keeping nav fully data-driven.
 
-- [ ] **Prepare primitives for Tailwind adoption**
-  - As Tailwind is introduced, move styling from existing CSS files into Tailwind utility classes defined directly in primitive templates.
-  - Keep a small mapping layer (e.g., variant → class list) inside each primitive so Tailwind changes can be made in one place while feature code continues to use typed variants.
-  - Remove obsolete CSS from feature/core styles once Tailwind-backed primitives are in place.
+- [x] **Extend AppConfig with layout and class hints for primitives**
+  - Add optional per-view/per-section layout hints (e.g., section density, card usage) and class hooks (e.g., `rootClass`, `extraClasses`) to `AppConfig`/UI config types so primitives can consume them without changing feature logic.
+  - Keep these hints generic and variant-driven so they can later map cleanly to Tailwind or other class-driven strategies defined inside primitives, not in feature components.
 
-- [ ] **Verify integrity of Migration Guidelines**
-  - [ ] After each migration, verify behavior, responsiveness, and accessibility (focus order, keyboard interaction) to avoid UX regressions and adjust config/text as needed.
+- [x] **Wire layout hints into shell and primitives**
+  - Bind `rootIdsAndClasses.rootClass`/`extraRootClasses` from `AppConfig` onto the main shell container in the real `AppComponent` template so shell-level classes are fully data-driven.
+  - Feed `AppConfig.ui.viewLayout[viewId].sectionVariant` into `SectionComponent` (and later `CardComponent`) for core views (SSO, user, worksheets, tables, queries) so density/spacing is controlled via configuration instead of hard-coded inputs.
+  - Keep the wiring thin and config-driven so future Tailwind/class-driven strategies only need to touch primitives/templates, not feature components.
+
+- [x] **Remove or archive legacy root and tables components (core vs old app root)**
+  - Identify legacy Angular root components/templates and the older `TablesComponent` under `src/app/` that predate the data-driven shell and `features/` structure.
+  - Confirm they are no longer referenced by routing, bootstrap, or tests, then either delete them or move them under `_ARCHIVE/` with a brief note, to avoid confusion with the new `core/` + `features/` layout.
+  - Re-run build and tests to ensure no references remain and the taskpane still boots correctly in Excel and the browser.
+
+- [x] **Document layout/class hints and primitives wiring in CONTEXT-SESSION.md**
+  - Add a short section describing the new `UiLayoutHints` and `AppConfig.ui.viewLayout` fields, including how they are intended to drive `SectionComponent`/`CardComponent` density and shell-level classes.
+  - Clarify which components currently consume these hints and which are prepared for future Tailwind/class-driven styling, so contributors know where to plug in when migrating styles.
+  - Ensure the documentation matches the actual wiring in `AppComponent`, primitives, and views, updating examples as needed.
+
+- [x] **TSDDocs**
+  - Add full TSDocs to all new types/interfaces in `src/app/types/ui/` and `src/app/shared/ui/` components, explaining their purpose and usage patterns.
+  - Add full TSDocs to all new types/interfaces in `src/app/types/ui/` and `src/app/shared/ui/` components, explaining their purpose and usage patterns.
 
 ## 12. Improve Excel Functionality
 
@@ -364,3 +379,13 @@ This file tracks the concrete steps for refactoring the add-in toward a data-dri
   - Add UI affordances to create, rename, “save as”, delete, and restore configurations (soft-delete), making it easy to manage multiple report presets.
   - Prepare the configuration layer for a future backend API by isolating storage concerns behind a service (e.g., `QueryConfigurationService`) with a clear interface that can later be backed by HTTP instead of local storage.
   - Ensure that loading a configuration updates the query list, parameter panels, and any Excel tables in a predictable, observable way, and that failures are logged and surfaced via the host-status/banner UX.
+
+## 13. Research Class Driven Styles
+
+- [ ] **Prepare primitives for Tailwind adoption**
+  - Research and define a Tailwind (or other class-driven) strategy for the UI primitives that keeps feature code using typed variants while mapping variants to class lists inside the primitives.
+  - Plan how to migrate styling from existing CSS files into class-driven definitions in primitive templates with minimal disruption.
+  - Identify and document any build-time changes needed (e.g., Tailwind config, purge paths) without implementing them on this branch.
+
+- [ ] **Verify integrity of Migration Guidelines**
+  - After each migration of a view to primitives or class-driven styles, verify behavior, responsiveness, and accessibility (focus order, keyboard interaction) to avoid UX regressions and adjust config/text as needed.

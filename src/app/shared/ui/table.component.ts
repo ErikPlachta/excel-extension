@@ -1,6 +1,14 @@
 import { CommonModule } from "@angular/common";
 import { Component, Input } from "@angular/core";
 
+/**
+ * Generic, config-driven table primitive.
+ *
+ * Columns are described by `field`/`header` pairs and rows are
+ * provided as an array of records. The component simply renders
+ * `row[col.field]` for each cell, making it suitable for simple
+ * data tables driven by configuration.
+ */
 @Component({
   selector: "app-table",
   standalone: true,
@@ -24,7 +32,10 @@ import { Component, Input } from "@angular/core";
   `,
 })
 export class TableComponent<T extends Record<string, unknown>> {
+  /** Column metadata describing which fields to render and their headers. */
   @Input() columns: { field: keyof T & string; header: string }[] = [];
+  /** Row data; each row is a record indexed by the configured fields. */
   @Input() rows: T[] = [];
+  /** Message to display when `rows` is empty or undefined. */
   @Input() emptyMessage = "";
 }

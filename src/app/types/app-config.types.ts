@@ -3,6 +3,8 @@
  * used to allow a modular and data-driven design.
  */
 
+import { UiLayoutHints } from "./ui/primitives.types";
+
 /**
  * Known User Role identifiers in the system.
  *
@@ -82,6 +84,10 @@ export interface AppConfig {
     userBannerClass: string;
     /** Class for the host status banner. */
     hostStatusClass: string;
+    /** Optional root class for the main shell container. */
+    rootClass?: string;
+    /** Optional extra classes for the main shell container. */
+    extraRootClasses?: string;
   };
   /** Known roles in the system. */
   roles: RoleDefinition[];
@@ -97,5 +103,7 @@ export interface AppConfig {
     navButtonSize?: import("./ui/primitives.types").UiButtonSize;
     /** Type for host status banner. */
     hostStatusBannerType?: string;
+    /** Optional per-view layout hints consumed by section/card primitives. */
+    viewLayout?: Partial<Record<ViewId, UiLayoutHints>>;
   };
 }

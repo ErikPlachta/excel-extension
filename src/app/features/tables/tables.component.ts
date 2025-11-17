@@ -4,11 +4,11 @@ import { ExcelService } from "../../core";
 import { SectionComponent } from "../../shared/ui/section.component";
 import { TableComponent } from "../../shared/ui/table.component";
 
-interface TableInfo {
+type TableInfo = Record<string, unknown> & {
   name: string;
   worksheet: string;
   rows: number;
-}
+};
 
 @Component({
   selector: "app-tables",

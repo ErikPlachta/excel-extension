@@ -1,41 +1,7 @@
-import { CommonModule } from "@angular/common";
-import { Component } from "@angular/core";
-import { ExcelService } from "./excel.service";
-import { SsoHomeComponent } from "./sso-home.component";
-import { WorksheetsComponent } from "./worksheets.component";
-import { TablesComponent } from "./tables.component";
-import { ButtonComponent } from "./shared/ui/button.component";
-import { StatusBannerComponent } from "./shared/ui/status-banner.component";
+// Legacy top-level AppComponent (pre-core shell) has been archived to
+// `_ARCHIVE/legacy-root/app.component.ts` as part of the
+// feat/add-ui-primitives cleanup. The active shell now lives in
+// `src/app/core/app.component.*`. This placeholder file remains only
+// to avoid accidental recreation and should not export a root component.
 
-@Component({
-  selector: "app-root",
-  standalone: true,
-  imports: [
-    CommonModule,
-    SsoHomeComponent,
-    WorksheetsComponent,
-    TablesComponent,
-    ButtonComponent,
-    StatusBannerComponent,
-  ],
-  templateUrl: "./app.component.html",
-  styleUrl: "./app.component.css",
-})
-export class AppComponent {
-  currentView: "sso" | "worksheets" | "tables" = "sso";
-
-  constructor(public excel: ExcelService) {}
-
-  showSso(): void {
-    this.currentView = "sso";
-  }
-
-  showWorksheets(): void {
-    this.currentView = "worksheets";
-  }
-
-  showTables(): void {
-    this.currentView = "tables";
-  }
-  title = "excel-extension";
-}
+export {}; // intentional no-op module

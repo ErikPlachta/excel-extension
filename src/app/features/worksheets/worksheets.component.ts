@@ -13,6 +13,7 @@ import { TableComponent } from "../../shared/ui/table.component";
 })
 export class WorksheetsComponent implements OnInit {
   sheets: string[] = [];
+  sheetsAsRows: { name: string }[] = [];
   constructor(private excel: ExcelService) {}
 
   get isExcel(): boolean {
@@ -21,5 +22,6 @@ export class WorksheetsComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     this.sheets = await this.excel.getWorksheets();
+    this.sheetsAsRows = this.sheets.map((name) => ({ name }));
   }
 }

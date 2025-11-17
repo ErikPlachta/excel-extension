@@ -1,3 +1,5 @@
+# Context Session
+
 Date: 2025-11-16  
 Repository: excel-extension
 
@@ -157,6 +159,46 @@ npm test -- --watch=false --browsers=ChromeHeadless
   - Shared domain types live under `src/app/types/` (auth, queries, app config) with TSDoc comments explaining intent and key fields.
   - `AuthService`, query services, and config files import their models from this central package, reducing duplication and making it easier to evolve the data-driven design.
   - ESLint is wired with `eslint-plugin-tsdoc` (`tsdoc/syntax`) so invalid/malformed TSDoc is surfaced by `npm run lint`.
+
+### Layout/class hints and UI primitives wiring
+
+- **UiLayoutHints:**
+  - `src/app/types/ui/primitives.types.ts` defines `UiLayoutHints`, a small configuration type used to describe layout and density hints for UI primitives.
+  - Fields include optional `rootClass`, `extraClasses`, `sectionVariant` (e.g., `"default" | "dense"`), and `cardVariant`.
+  - These hints are intentionally generic and variant-driven so they can later map cleanly to Tailwind (or other class-driven strategies) inside primitives rather than in feature components.
+
+- **AppConfig.viewLayout:**
+  - `src/app/types/app-config.types.ts` extends `AppConfig.ui` with an optional `viewLayout?: Partial<Record<ViewId, UiLayoutHints>>`.
+  - The default configuration in `src/app/shared/app-config.default.ts` sets sensible per-view `sectionVariant` values, for example:
+    - `sso`, `user`, `queries` → `sectionVariant: "default"`.
+    - `worksheets`, `tables` → `sectionVariant: "dense"` to tighten spacing for grid-heavy views.
+  - Feature code does **not** read `viewLayout` directly; only the shell/primitives do.
+
+- **Root shell classes:**
+  - `AppConfig.rootIdsAndClasses` now includes optional `rootClass` and `extraRootClasses` fields alongside existing `navClass`, `statusClass`, `userBannerClass`, and `hostStatusClass`.
+  - `src/app/shared/app-config.default.ts` sets `rootClass: "app-shell"` and an empty `extraRootClasses` string; these can be changed in one place to affect global shell styling.
+  - The active shell in `src/app/core/app.component.*` binds these via a computed `rootShellClass` getter and wraps the shell in a root container div using that class string.
+
+- **Shell → Section wiring:**
+  - The core `AppComponent` (under `src/app/core`) is responsible for translating `AppConfig` layout hints into primitive inputs.
+  - For each core view (SSO, user, worksheets, tables, queries), the shell chooses a `SectionComponent` and passes a `variant` computed from `appConfig.ui.viewLayout[viewId].sectionVariant` (defaulting to `"default"` when not specified).
+  - This keeps Section density/spacing driven entirely from configuration, so tightening or relaxing layout is a config-only change.
+
+- **Primitives behavior:**
+  - `SectionComponent` in `src/app/shared/ui/section.component.ts` exposes a `variant: "default" | "dense"` input and derives its CSS class (`section` vs `section section-dense`) from that value.
+  - `CardComponent` in `src/app/shared/ui/card.component.ts` exposes a simple `variant: "default" | "emphasis"` input and applies emphasis styling via classes.
+  - As we move toward Tailwind, these primitives will own the mapping from variants to class names, keeping feature components and configuration strictly typed and style-agnostic.
+
+- **TSDoc expectations for UI primitives:**
+  - New UI-related types under `src/app/types/ui/` (button variants, banners, table column defs, list items, icons, layout hints) should carry TSDoc describing intent, expected values, and relationships to components.
+  - Each primitive component under `src/app/shared/ui/` is expected to document its inputs/outputs with TSDoc or JSDoc, especially when those inputs are config-driven (e.g., `variant`, `size`, `items`, `columns`).
+  - The goal is that contributors can discover how to use primitives and which config fields drive them directly from IntelliSense and TSDoc, without having to read implementation details.
+
+### Legacy vs core shell
+
+- The **active shell** lives in `src/app/core/app.component.*` and is the only `AppComponent` bootstrapped from `src/main.ts`.
+- An older, pre-core `AppComponent` that once lived at `src/app/app.component.*` has been archived under `_ARCHIVE/legacy-root/` as a stub for historical reference.
+- The top-level `src/app/app.component.ts` file is now a no-op module with a header comment pointing at the archived version and the core shell; this avoids confusion and ensures only the core shell participates in the build and tests.
 
 ### Adding a new nav item (example)
 
