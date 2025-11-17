@@ -211,6 +211,23 @@ npm test -- --watch=false --browsers=ChromeHeadless
 4. **Result:**
    - The nav updates automatically based on config and text; role gating and host/auth behavior remain consistent.
 
+### Dev server offline / blank taskpane behavior
+
+- When using `dev-manifest.xml`, the taskpane `SourceLocation`/`Taskpane.Url` points at `https://localhost:4200/`, which is served only while the Angular dev server (`npm start` or `npm run start:dev`) is running.
+- If the dev server is **not** running when Excel tries to show the taskpane, the iframe navigation fails at the network layer and **no HTML is loaded**. In this state:
+  - None of the Angular/Office code runs (`main.ts`, `ExcelService`, host banners, etc.).
+  - There is no way for the add-in to render an in-pane fallback message because the page itself never loads.
+- To make this behavior discoverable, we rely on manifest metadata and docs instead of an in-pane fallback:
+  - `dev-manifest.xml` now:
+    - Sets `<DisplayName>` to `"Excel Extension (Dev – localhost:4200)"` so the dev-only nature is obvious.
+    - Uses a `Description` that explicitly mentions the need to run `npm start` or `npm run start:dev` and explains that a blank taskpane usually means the dev server is not reachable.
+    - Updates `GetStarted.Title` / `GetStarted.Description` to call out the dev server requirement and to suggest starting the dev server if the taskpane is blank after clicking **Show Task Pane**.
+    - Points `GetStarted.LearnMoreUrl` at the GitHub repo for deeper troubleshooting.
+- Expected remediation when Excel shows a blank taskpane in dev:
+  1. In the repo, run `npm start` (HTTP) or `npm run start:dev` (HTTPS dev certs) so `https://localhost:4200/` is reachable.
+  2. Close and reopen the taskpane (or reload the add-in) from Excel.
+  3. Confirm that the SSO home shell loads and that host/auth banners behave as documented above.
+
 ## Focused TODO Checklist (high level)
 
 - [ ] Refine local testing docs in `README.md`:

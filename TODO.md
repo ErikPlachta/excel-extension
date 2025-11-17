@@ -352,7 +352,32 @@ This file tracks the concrete steps for refactoring the add-in toward a data-dri
   - Add full TSDocs to all new types/interfaces in `src/app/types/ui/` and `src/app/shared/ui/` components, explaining their purpose and usage patterns.
   - Add full TSDocs to all new types/interfaces in `src/app/types/ui/` and `src/app/shared/ui/` components, explaining their purpose and usage patterns.
 
-## 12. Improve Excel Functionality
+## 12. Refine & Improve Excel Functionality
+
+- [x] **Handle unreachable dev server / blank taskpane experience**
+  - When the Angular dev server (e.g., `https://localhost:4200/`) is not reachable, Excel currently shows a blank taskpane and console errors like "Could not connect to the server".
+  - Since the taskpane iframe never loads any HTML when `https://localhost:4200/` is down, there is no true in-pane fallback surface; instead, focus on improving manifest metadata and docs so users understand what a blank pane means and how to fix it.
+  - Update `dev-manifest.xml` to better reflect the design intent for this dev-only add-in, for example:
+    - Make `<DisplayName>` clearly indicate this is a **dev** task pane that requires the Angular dev server (e.g., "Excel Extension (Dev – localhost:4200)").
+    - Rewrite `<Description>` to mention that the pane will appear blank if the dev server is not running and to start `npm start` / `npm run start:dev` from the repo.
+    - Adjust `GetStarted.Title` / `GetStarted.Description` strings so the Office UI around the add-in (ribbon/tooltip/get started panel) explicitly tells users to ensure the dev server is running when they observe a blank pane.
+    - Optionally point `SupportUrl` at a help/README page that documents common dev issues, including the "blank taskpane because dev server is offline" scenario.
+  - Update `CONTEXT-SESSION.md` with a short subsection explaining:
+    - Why we cannot show a real fallback surface when `localhost:4200` is unreachable.
+    - Which manifest fields carry the "dev server required" messaging.
+    - The expected remediation steps when Excel shows a blank taskpane (start the dev server, reload the add-in).
+
+- [ ] **Fix query execution UI (buttons + Excel errors)**
+  - Revisit the query list/detail UI to ensure each executable query has an explicit, accessible "Run" button rather than relying on clicking the row/title; make sure the click handler is attached to a `button` element wired through the UI primitives (`ButtonComponent`) instead of generic containers.
+  - Track down and fix the `rowCount` error (`The property 'rowCount' is not available. Before reading the property's value, call the load method on the containing object and call "context.sync()" on the associated request context.`) that occurs when clicking an existing query/table: ensure any use of `table.rows.getCount()` or similar is correctly `load`-ed and `ctx.sync()` is awaited before accessing the value.
+  - Verify in Excel that running a query via its button creates or updates the table without errors (including when the table already exists), and that clicking on the query name does not trigger hidden side-effects; update `CONTEXT-SESSION.md` with a brief note on the intended UX (buttons for execution, optional navigation affordances) and the Excel API pattern used to avoid `rowCount`/load/sync issues.
+
+- [ ] **Add Generic Query against https://jsonapi.org/examples/**
+  - Implement a new generic query in `QueryApiMockService` that fetches data from a public JSON:API endpoint (e.g., https://jsonapi.org/examples/) to demonstrate handling of standard REST/JSON APIs.
+  - Define appropriate `QueryDefinition` and `QueryParameter`s for this query, allowing users to specify filters or pagination options if applicable.
+  - Ensure the query execution logic in `QueryHomeComponent` can handle the JSON:API response format, extracting relevant data and passing it to `ExcelService.upsertQueryTable` for display in Excel.
+  - Verify that the new query appears in the query list, can be executed successfully in Excel, and that the resulting table is populated with data from the JSON:API example.
+  - [ ] Query should be admin role only
 
 - [ ] **Add component for logging execution/usage into a worksheet table**
   - Create a shared logging component/service pair that can append log entries (e.g., query runs, navigation events, errors) into an Excel worksheet table for in-workbook debugging.

@@ -9,13 +9,14 @@
   <Version>1.0.0.0</Version>
   <ProviderName>Contoso</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
-  <DisplayName DefaultValue="Erik Test Pane" />
-  <Description DefaultValue="A template to get started." />
+  <DisplayName DefaultValue="Excel Extension (Dev – localhost:4200)" />
+  <Description
+    DefaultValue="Development task pane for excel-extension. Requires the Angular dev server running at https://localhost:4200 (npm start or npm run start:dev). If the task pane appears blank, ensure the dev server is running and then reload the add-in." />
   <IconUrl DefaultValue="https://localhost:4200/assets/icon-32.png" />
   <HighResolutionIconUrl DefaultValue="https://localhost:4200/assets/icon-64.png" />
-  <SupportUrl DefaultValue="https://localhost:4200/help" />
+  <SupportUrl DefaultValue="https://localhost:4200" />
   <AppDomains>
-    <AppDomain>https://www.contoso.com</AppDomain>
+    <AppDomain>https://localhost:4200</AppDomain>
   </AppDomains>
   <Hosts>
     <Host Name="Workbook" />
@@ -74,19 +75,21 @@
       </bt:Images>
       <bt:Urls>
         <bt:Url id="GetStarted.LearnMoreUrl"
-          DefaultValue="https://go.microsoft.com/fwlink/?LinkId=276812" />
+          DefaultValue="https://github.com/ErikPlachta/excel-extension" />
         <bt:Url id="Commands.Url" DefaultValue="https://localhost:4200/commands.html" />
         <bt:Url id="Taskpane.Url" DefaultValue="https://localhost:4200/" />
       </bt:Urls>
       <bt:ShortStrings>
-        <bt:String id="GetStarted.Title" DefaultValue="Get started with your sample add-in!" />
+        <bt:String id="GetStarted.Title"
+          DefaultValue="Get started with the excel-extension dev pane" />
         <bt:String id="CommandsGroup.Label" DefaultValue="Commands Group" />
         <bt:String id="TaskpaneButton.Label" DefaultValue="Show Task Pane" />
       </bt:ShortStrings>
       <bt:LongStrings>
         <bt:String id="GetStarted.Description"
-          DefaultValue="Your sample add-in loaded successfully. Go to the HOME tab and click the 'Show Task Pane' button to get started." />
-        <bt:String id="TaskpaneButton.Tooltip" DefaultValue="Click to Show a Taskpane" />
+          DefaultValue="This is the development task pane for excel-extension. Before using it in Excel, start the Angular dev server (npm start or npm run start:dev) so https://localhost:4200 is reachable. If you click 'Show Task Pane' and see a blank surface, the dev server is likely not running." />
+        <bt:String id="TaskpaneButton.Tooltip"
+          DefaultValue="Show the excel-extension dev task pane (requires localhost:4200 dev server)" />
       </bt:LongStrings>
     </Resources>
   </VersionOverrides>
