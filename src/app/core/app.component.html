@@ -1,26 +1,14 @@
 <nav [class]="appConfig.rootIdsAndClasses.navClass">
-  <button
+  <app-button
     *ngFor="let item of appConfig.navItems"
-    type="button"
-    (click)="selectView(item.viewId)"
+    [label]="getNavLabel(item.labelKey)"
+    [variant]="item.buttonVariant || appConfig.ui?.navButtonVariant || 'primary'"
+    [size]="item.buttonSize || appConfig.ui?.navButtonSize || 'md'"
     [disabled]="!canAccessNav(item)"
-    [hidden]="!isNavVisible(item)"
-    [id]="item.domId || null"
-  >
-    {{ getNavLabel(item.labelKey) }}
-  </button>
-  <button type="button" (click)="signInAnalyst()" *ngIf="!auth.isAuthenticated">
-    {{ text.auth.signInAnalyst }}
-  </button>
-  <button type="button" (click)="signInAdmin()" *ngIf="!auth.isAuthenticated">
-    {{ text.auth.signInAdmin }}
-  </button>
-  <button type="button" (click)="signOut()" *ngIf="authSummary.isAuthenticated">
-    {{ text.auth.signOut }}
-  </button>
-  <span [class]="appConfig.rootIdsAndClasses.statusClass">
-    {{ hostStatus.isExcel ? "isExcel = true" : "isExcel = false" }}
-  </span>
+    [ngClass]="{ 'is-active': item.viewId && currentView === item.viewId }"
+    [attr.id]="item.domId || null"
+    (clicked)="handleNavClick(item)"
+  ></app-button>
 </nav>
 
 <section

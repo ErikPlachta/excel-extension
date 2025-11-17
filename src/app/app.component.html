@@ -1,8 +1,13 @@
-<nav class="mobile-nav">
-  <app-button [label]="'SSO Home'" [click]="showSso.bind(this)"></app-button>
-  <app-button [label]="'Worksheets'" [click]="showWorksheets.bind(this)"></app-button>
-  <app-button [label]="'Tables'" [click]="showTables.bind(this)"></app-button>
-  <span class="status">{{ excel.isExcel ? "isExcel = true" : "isExcel = false" }}</span>
+<nav [class]="appConfig.rootIdsAndClasses.navClass">
+  <app-button
+    *ngFor="let item of appConfig.navItems"
+    [id]="item.domId"
+    [label]="getNavLabel(item.labelKey)"
+    [variant]="item.buttonVariant ?? appConfig.ui?.navButtonVariant ?? 'primary'"
+    [size]="item.buttonSize ?? appConfig.ui?.navButtonSize ?? 'md'"
+    [disabled]="!canAccessNav(item)"
+    (clicked)="selectView(item.viewId)"
+  ></app-button>
 </nav>
 
 <section class="content">
@@ -11,4 +16,8 @@
   <app-tables *ngIf="currentView === 'tables'"></app-tables>
 </section>
 
-<app-status-banner [message]="excel.isExcel ? '' : 'Excel not detected'"></app-status-banner>
+<app-status-banner
+  [type]="hostStatus.isExcel ? (appConfig.ui?.hostStatusBannerType ?? 'info') : 'warning'"
+  [title]="hostStatus.isExcel ? '' : text.hostStatus.excelNotDetectedLabel"
+  [message]="hostStatus.isExcel ? '' : text.hostStatus.excelNotDetectedMessage"
+></app-status-banner>

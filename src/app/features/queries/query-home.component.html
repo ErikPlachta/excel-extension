@@ -3,36 +3,20 @@
 
   <p *ngIf="!queries.length">No queries defined in the mock API.</p>
 
-  <ul *ngIf="queries.length">
-    <li *ngFor="let q of queries">
-      <div class="query-item">
-        <div class="query-main">
-          <strong>{{ q.name }}</strong>
-          <span class="query-id">({{ q.id }})</span>
-        </div>
-        <div class="query-meta">
-          <span *ngIf="q.description">{{ q.description }}</span>
-          <span *ngIf="isAdminOnly(q)" class="query-badge">Admin only</span>
-        </div>
-        <div class="query-actions">
-          <button
-            type="button"
-            (click)="runQuery(q)"
-            [disabled]="isRunning || !canRun(q) || !excel.isExcel"
-          >
-            {{ isRunning ? "Running..." : "Run" }}
-          </button>
-          <button
-            type="button"
-            (click)="goToLastRun(q)"
-            [disabled]="isRunning || !excel.isExcel"
-          >
-            Go to table
-          </button>
-        </div>
-      </div>
-    </li>
-  </ul>
+  <app-dropdown
+    *ngIf="queries.length"
+    [items]="roleFilterItems"
+    [value]="selectedRoleFilter"
+    placeholder="Filter queries by role"
+    label="Filter"
+    (valueChange)="onRoleFilterChange($event)"
+  ></app-dropdown>
+
+  <app-list
+    [items]="filteredListItems"
+    emptyMessage="No queries defined in the mock API."
+    (itemSelected)="onItemSelected($event)"
+  ></app-list>
 
   <p class="error" *ngIf="error">{{ error }}</p>
 </section>

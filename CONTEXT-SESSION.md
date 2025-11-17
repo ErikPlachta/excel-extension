@@ -164,7 +164,7 @@ npm test -- --watch=false --browsers=ChromeHeadless
    - Edit `DEFAULT_APP_CONFIG` in `src/app/shared/app-config.default.ts` and add a new `NavItemConfig` entry with a unique `id`, `labelKey`, `viewId`, and any role/auth requirements.
 2. **Add text:**
    - Add the corresponding `labelKey` entry to `APP_TEXT.nav` in `src/app/shared/app-text.ts`.
-3. **Add view (if needed):
+3. \*\*Add view (if needed):
    - Implement the new view component under `src/app/features/...` and wire it into `AppComponent`’s template based on the new `ViewId`.
 4. **Result:**
    - The nav updates automatically based on config and text; role gating and host/auth behavior remain consistent.
@@ -176,6 +176,8 @@ npm test -- --watch=false --browsers=ChromeHeadless
   - Clarify HTTP vs HTTPS dev options and when to use each.
 - [ ] Add a short "Testing" section to `README.md` documenting `npm run lint`, `npm test`, and `lint:office` commands.
 - [ ] Consider adding a simple e2e-style smoke test (manual or scripted) for "open task pane, run a mock query, see data in a table" to document expected behavior when `ExcelService.isExcel` is true.
+- [x] Integrate UI primitives into core shell views incrementally (nav/auth now use `app-button`; other views already onboarded).
+- [x] Prepare UI primitives for Tailwind adoption by centralizing variant/size/icon-to-class mappings inside components (`ButtonComponent`, `IconComponent`).
 - [ ] Keep `CONTEXT-SESSION.md` updated as workflows or manifests change, so it remains the live source of truth for:
   - Dev server behavior
   - Sideloading flows

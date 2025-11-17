@@ -1,6 +1,8 @@
 import { Component, OnInit } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { ExcelService } from "../../core";
+import { SectionComponent } from "../../shared/ui/section.component";
+import { TableComponent } from "../../shared/ui/table.component";
 
 interface TableInfo {
   name: string;
@@ -11,7 +13,7 @@ interface TableInfo {
 @Component({
   selector: "app-tables",
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, SectionComponent, TableComponent],
   templateUrl: "./tables.component.html",
   styleUrl: "./tables.component.css",
 })

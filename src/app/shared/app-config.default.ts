@@ -1,15 +1,36 @@
+/**
+ * @packageDocumentation Default application configuration options to be used
+ * when no custom configuration is provided. This configuration was created to
+ * allow for a functional out-of-the-box experience that is data-driven. It can
+ * be overridden by providing a custom configuration via dependency injection.
+ *
+ * @TODO: add more comments here
+ */
+
 import { AppConfig } from "./app-config";
 
+/**
+ * Default application configuration.
+ *
+ * @TODO: add more comments here
+ */
 export const DEFAULT_APP_CONFIG: AppConfig = {
   defaultViewId: "sso",
   navItems: [
-    { id: "nav-sso", labelKey: "nav.ssoHome", viewId: "sso", domId: "nav-sso" },
+    {
+      id: "nav-sso",
+      labelKey: "nav.ssoHome",
+      viewId: "sso",
+      domId: "nav-sso",
+      actionType: "select-view",
+    },
     {
       id: "nav-worksheets",
       labelKey: "nav.worksheets",
       viewId: "worksheets",
       requiresAuth: true,
       domId: "nav-worksheets",
+      actionType: "select-view",
     },
     {
       id: "nav-tables",
@@ -17,6 +38,7 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
       viewId: "tables",
       requiresAuth: true,
       domId: "nav-tables",
+      actionType: "select-view",
     },
     {
       id: "nav-user",
@@ -24,6 +46,7 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
       viewId: "user",
       requiresAuth: true,
       domId: "nav-user",
+      actionType: "select-view",
     },
     {
       id: "nav-queries",
@@ -32,6 +55,29 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
       requiresAuth: true,
       requiredRoles: ["analyst", "admin"],
       domId: "nav-queries",
+      actionType: "select-view",
+    },
+    {
+      id: "nav-signin-analyst",
+      labelKey: "auth.signInAnalyst",
+      actionType: "sign-in-analyst",
+      buttonVariant: "secondary",
+      buttonSize: "sm",
+    },
+    {
+      id: "nav-signin-admin",
+      labelKey: "auth.signInAdmin",
+      actionType: "sign-in-admin",
+      buttonVariant: "secondary",
+      buttonSize: "sm",
+    },
+    {
+      id: "nav-signout",
+      labelKey: "auth.signOut",
+      actionType: "sign-out",
+      buttonVariant: "ghost",
+      buttonSize: "sm",
+      requiresAuth: true,
     },
   ],
   rootIdsAndClasses: {
@@ -52,4 +98,9 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
       descriptionKey: "role.admin.description",
     },
   ],
+  ui: {
+    navButtonVariant: "primary",
+    navButtonSize: "md",
+    hostStatusBannerType: "info",
+  },
 };

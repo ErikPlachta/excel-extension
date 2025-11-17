@@ -1,12 +1,31 @@
 /**
- * Known role identifiers in the system.
+ * @packageDocumentation Type Definitions for the application configuration file,
+ * used to allow a modular and data-driven design.
+ */
+
+/**
+ * Known User Role identifiers in the system.
+ *
+ * These role IDs are used throughout the application to manage
+ * access control and permissions for different features and views.
+ * Each role ID corresponds to a specific set of capabilities within the app.
+ * The roles are designed to be flexible and extensible, allowing for future growth.
  */
 export type RoleId = "analyst" | "admin";
 
 /**
  * View identifiers used by the SPA shell.
+ *
+ * These correspond to the different main views/components rendered in the shell.
+ * Each view is responsible for a specific part of the user interface and user experience.
+ * The views are designed to be modular and reusable across the application.
  */
 export type ViewId = "sso" | "worksheets" | "tables" | "user" | "queries";
+
+/**
+ * Supported navigation action types for shell nav items.
+ */
+export type NavActionType = "select-view" | "sign-in-analyst" | "sign-in-admin" | "sign-out";
 
 /**
  * Configuration for a single navigation item in the shell.
@@ -17,11 +36,17 @@ export interface NavItemConfig {
   /** i18n/text key for the label; actual text comes from a catalog. */
   labelKey: string;
   /** The view this nav item selects in the shell. */
-  viewId: ViewId;
+  viewId?: ViewId;
   /** Optional DOM id for the nav element. */
   domId?: string;
   /** Optional extra CSS class names for the nav element. */
   classNames?: string;
+  /** Optional button variant hint for this nav item. */
+  buttonVariant?: import("./ui/primitives.types").UiButtonVariant;
+  /** Optional button size hint for this nav item. */
+  buttonSize?: import("./ui/primitives.types").UiButtonSize;
+  /** What action this nav item performs when clicked. */
+  actionType: NavActionType;
   /** Whether authentication is required for this nav item. */
   requiresAuth?: boolean;
   /** Optional list of roles required to see/use this nav item. */
@@ -50,11 +75,27 @@ export interface AppConfig {
   navItems: NavItemConfig[];
   /** Root-level DOM ids/classes used by the shell. */
   rootIdsAndClasses: {
+    /** Class for the navigation container. */
     navClass: string;
     statusClass: string;
+    /** Class for the user information banner. */
     userBannerClass: string;
+    /** Class for the host status banner. */
     hostStatusClass: string;
   };
   /** Known roles in the system. */
   roles: RoleDefinition[];
+  /**
+   * Optional UI primitive wiring for the shell so that button/banner variants
+   * can be controlled via configuration while CSS or Tailwind classes are
+   * provided by the templates/styles.
+   */
+  ui?: {
+    /** Variant for navigation buttons. */
+    navButtonVariant?: import("./ui/primitives.types").UiButtonVariant;
+    /** Size for navigation buttons. */
+    navButtonSize?: import("./ui/primitives.types").UiButtonSize;
+    /** Type for host status banner. */
+    hostStatusBannerType?: string;
+  };
 }

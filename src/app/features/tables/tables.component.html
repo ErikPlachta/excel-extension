@@ -1,14 +1,16 @@
-<h2>Tables</h2>
-<div *ngIf="isExcel; else noExcel">
-  <table>
-    <tr><th>Name</th><th>Worksheet</th><th>Rows</th></tr>
-    <tr *ngFor="let t of tables">
-      <td>{{t.name}}</td>
-      <td>{{t.worksheet}}</td>
-      <td>{{t.rows}}</td>
-    </tr>
-  </table>
-</div>
-<ng-template #noExcel>
-  <p>Excel not detected.</p>
-</ng-template>
+<app-section title="Tables">
+  <ng-container *ngIf="isExcel; else noExcel">
+    <app-table
+      [columns]="[
+        { field: 'name', header: 'Name' },
+        { field: 'worksheet', header: 'Worksheet' },
+        { field: 'rows', header: 'Rows' },
+      ]"
+      [rows]="tables"
+      emptyMessage="No tables found."
+    ></app-table>
+  </ng-container>
+  <ng-template #noExcel>
+    <p>Excel not detected.</p>
+  </ng-template>
+</app-section>

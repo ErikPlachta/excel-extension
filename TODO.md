@@ -268,45 +268,74 @@ This file tracks the concrete steps for refactoring the add-in toward a data-dri
 
 ## 11. Build UI Primitives Library
 
-- [ ] **Establish shared UI library structure**
+- [x] **Establish shared UI library structure**
   - Create `src/app/shared/ui/` with a clear folder structure per primitive (e.g., `button/`, `banner/`, `table/`, `list/`, `section/`, `card/`, `dropdown/`, `icon/`), each containing a standalone component and any related models.
   - Add a simple barrel file (e.g., `src/app/shared/ui/index.ts`) that re-exports the primitives so feature code can import from a single place.
   - Ensure all primitives follow Angular standalone patterns (no NgModule) and are easy to include in other standalone components' `imports` arrays.
 
-- [ ] **Define strongly-typed models for UI primitives**
+- [x] **Define strongly-typed models for UI primitives**
   - Introduce UI-related types under `src/app/types/ui/` (or an equivalent folder), such as `UiButtonVariant`, `UiBannerType`, `UiTableColumnDef`, `UiListItem`, `UiCardVariant`, `UiDropdownItem`, and `UiIconName`.
   - Keep these types generic and domain-agnostic so they can be reused across features (queries, worksheets, user page) and extend the central types/TSDoc strategy.
   - Add TSDoc comments explaining how each type is intended to be used and how it maps to visual behavior.
 
-- [ ] **Implement core primitives (Button and Banner)**
+- [x] **Implement core primitives (Button and Banner)**
   - Implement `ButtonComponent` with inputs like `label`, `variant`, `size`, `disabled`, `iconName`, and an output `clicked` event; apply Tailwind-ready classes based on variant/size.
   - Implement `StatusBannerComponent` (or `BannerComponent`) with inputs for `type` (`info`/`warning`/`error`), `title`, `message`, and `iconName`, rendering nothing when `message` is empty.
   - Wire `AppComponent` to use `ButtonComponent` for nav actions (driven by `AppConfig`/`APP_TEXT`) and `StatusBannerComponent` for the host-status banner, preserving current behavior.
 
-- [ ] **Implement data-driven Table and List primitives**
+- [x] **Onboard Button primitive into nav using config-driven variants**
+  - Extend `NavItemConfig` (or a related config type) to optionally carry `UiButtonConfig` or direct `variant`/`size` hints, keeping types aligned with `UiButtonVariant`/`UiButtonSize`.
+  - Replace raw `<button>` elements in the shell nav (`app.component.html`) with `<app-button>` usages driven entirely by `AppConfig`/`APP_TEXT` and the new button config fields.
+  - Verify that role gating, focus/keyboard behavior, and labels remain unchanged while nav buttons now respect `AppConfig.ui.navButtonVariant`/`navButtonSize` defaults.
+
+- [x] **Implement data-driven Table and List primitives**
   - Create `TableComponent` that accepts `columns: UiTableColumnDef[]` and `rows: T[]` (generic), plus optional `rowKey` and cell template hooks for specialized rendering.
   - Create `ListComponent` that accepts `items: UiListItem[]` and supports optional selection (`single`/`multi`), icons, badges, and per-item action affordances.
   - Refactor at least one existing view (e.g., query list or worksheets view) to use `TableComponent` or `ListComponent`, turning its current markup into a config-driven table/list.
 
-- [ ] **Implement Section and Card primitives**
+- [x] **Onboard Table/List primitives into an existing feature**
+  - Choose a candidate view (for example, the query list or worksheets view) and design a minimal `UiTableColumnDef[]`/`UiListItem[]` configuration that reflects its current columns/items.
+  - Replace the view’s hand-written table/list markup with the new `TableComponent` or `ListComponent`, binding all data and labels from existing view models and `APP_TEXT`.
+  - Confirm that sorting/selection (if present), empty states, and role/Excel guards behave exactly as before, with the layout now driven by the shared primitives.
+
+- [x] **Implement Section and Card primitives**
   - Implement `SectionComponent` that provides a titled, optionally collapsible container with `<ng-content>` for body content and variants for density/spacing.
   - Implement `CardComponent` that provides a flexible surface for presenting a query, user, or worksheet summary, with inputs for `title`, `subtitle`, `iconName`, and `variant`.
   - Use `SectionComponent`/`CardComponent` to restructure portions of the SSO home, user page, and query list into consistent, reusable layouts.
 
-- [ ] **Implement Dropdown and Icon primitives**
+- [x] **Onboard Section/Card primitives into core pages**
+  - Identify 1–2 high-traffic pages (such as SSO home and the user page) and sketch how their existing content maps into `SectionComponent`/`CardComponent` without changing copy.
+  - Replace ad-hoc containers in those pages with the new primitives, ensuring titles, subtitles, and body content are still sourced from `APP_TEXT` and existing view models.
+  - Verify that spacing, responsiveness, and role-dependent visibility are preserved or improved, and adjust `AppConfig` layout hints if needed.
+
+- [x] **Implement Dropdown and Icon primitives**
   - Implement `DropdownComponent` that accepts `items: UiDropdownItem[]`, `value`, `placeholder`, and emits `valueChange` when selections change; ensure keyboard accessibility and clear focus styles.
   - Implement `IconComponent` that maps `UiIconName` values to SVGs or CSS classes via a small registry, so icons used by buttons, banners, cards, and lists remain consistent.
   - Replace ad-hoc icons (or future icons) in features with `IconComponent` usages, driven by config/text where appropriate.
 
+- [x] **Onboard Dropdown/Icon primitives into query and shell flows**
+  - Introduce `DropdownComponent` into a targeted area such as query parameter selection or role-specific filters, wiring its `items` and `value` to existing view models and `APP_TEXT` labels.
+  - Replace any inline or hard-coded icons in the shell (nav, banners, cards) and feature views with `IconComponent`, using `UiIconName` and configuration/text to drive icon choice.
+  - Confirm that keyboard navigation, screen-reader labels, and visual affordances meet accessibility expectations after the swap.
+
 - [ ] **Integrate primitives into existing views incrementally**
-  - Update the nav, host-status banner, query list, worksheets/tables view, and user page to use the new primitives as they become stable, reducing direct use of raw HTML elements.
-  - Ensure all labels still come from `APP_TEXT` and behaviors (visibility, variants, icons) still come from `AppConfig` or feature-level configs.
-  - After each migration, verify behavior, responsiveness, and accessibility (focus order, keyboard interaction) to avoid UX regressions.
+  - [x] Migrate the host-status banner in `AppComponent` to use `StatusBannerComponent` (and `IconComponent` as needed) while keeping text from `APP_TEXT` and visibility from `AppContextService`/`AppConfig`.
+  - [x] Use `SectionComponent`/`CardComponent` within the user page to lay out profile info with primitives, keeping copy/auth behavior unchanged and avoiding additional shared wrapper components.
+  - [x] Expand the query list view to rely fully on `ListComponent`/`TableComponent` for query items, mapping existing query metadata into `UiListItem`/`UiTableColumnDef[]` while preserving role/Excel guards.
+  - [x] Refactor worksheets and tables views to use `SectionComponent` plus `ListComponent`/`TableComponent` for Excel artifacts, maintaining existing `ExcelService.isExcel` checks and role gating.
+- [x] **Make navigation behavior fully data-driven**
+  - Extended `NavItemConfig` and `AppConfig` to describe nav behavior via an `actionType` (e.g., `select-view`, `sign-in-analyst`, `sign-in-admin`, `sign-out`) instead of hard-coding click handlers in `AppComponent`.
+  - Added config entries in `DEFAULT_APP_CONFIG.navItems` for the sign-in/sign-out buttons, including their variants/sizes, so all nav buttons (view selection and auth) are created from config.
+  - Implemented a `handleNavClick(item: NavItemConfig)` dispatcher in `AppComponent` that interprets `actionType` and calls `selectView`, `signInAnalyst`, `signInAdmin`, or `signOut` accordingly.
+  - Refined visibility rules so sign-in buttons only appear when logged out, sign-out only when logged in, and other items still respect `requiresAuth`/`requiredRoles`, keeping nav fully data-driven.
 
 - [ ] **Prepare primitives for Tailwind adoption**
   - As Tailwind is introduced, move styling from existing CSS files into Tailwind utility classes defined directly in primitive templates.
   - Keep a small mapping layer (e.g., variant → class list) inside each primitive so Tailwind changes can be made in one place while feature code continues to use typed variants.
   - Remove obsolete CSS from feature/core styles once Tailwind-backed primitives are in place.
+
+- [ ] **Verify integrity of Migration Guidelines**
+  - [ ] After each migration, verify behavior, responsiveness, and accessibility (focus order, keyboard interaction) to avoid UX regressions and adjust config/text as needed.
 
 ## 12. Improve Excel Functionality
 

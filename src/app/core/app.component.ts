@@ -8,12 +8,14 @@ import { WorksheetsComponent } from "../features/worksheets/worksheets.component
 import { TablesComponent } from "../features/tables/tables.component";
 import { UserComponent } from "../features/user/user.component";
 import { QueryHomeComponent } from "../features/queries/query-home.component";
+import { ButtonComponent } from "../shared/ui/button.component";
 
 @Component({
   selector: "app-root",
   standalone: true,
   imports: [
     CommonModule,
+    ButtonComponent,
     SsoHomeComponent,
     WorksheetsComponent,
     TablesComponent,
@@ -45,7 +47,39 @@ export class AppComponent {
     this.currentView = viewId;
   }
 
+  handleNavClick(item: NavItemConfig): void {
+    switch (item.actionType) {
+      case "select-view": {
+        if (item.viewId) {
+          this.selectView(item.viewId);
+        }
+        break;
+      }
+      case "sign-in-analyst": {
+        void this.signInAnalyst();
+        break;
+      }
+      case "sign-in-admin": {
+        void this.signInAdmin();
+        break;
+      }
+      case "sign-out": {
+        this.signOut();
+        break;
+      }
+    }
+  }
+
   isNavVisible(item: NavItemConfig): boolean {
+    if (!this.auth.isAuthenticated) {
+      if (item.actionType === "sign-out") {
+        return false;
+      }
+    } else {
+      if (item.actionType === "sign-in-analyst" || item.actionType === "sign-in-admin") {
+        return false;
+      }
+    }
     if (item.requiresAuth && !this.auth.isAuthenticated) {
       return false;
     }

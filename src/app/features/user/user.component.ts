@@ -1,11 +1,12 @@
 import { CommonModule } from "@angular/common";
 import { Component } from "@angular/core";
 import { AuthService } from "../../core";
+import { SectionComponent } from "../../shared/ui/section.component";
 
 @Component({
   selector: "app-user",
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, SectionComponent],
   templateUrl: "./user.component.html",
   styleUrl: "./user.component.css",
 })

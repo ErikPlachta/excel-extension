@@ -4,16 +4,21 @@ import { ExcelService, AuthService } from "../../core";
 import { QueryApiMockService } from "../../shared/query-api-mock.service";
 import { QueryStateService } from "../../shared/query-state.service";
 import { QueryDefinition } from "../../shared/query-model";
+import { ListComponent, UiListItem } from "../../shared/ui/list.component";
+import { DropdownComponent, UiDropdownItem } from "../../shared/ui/dropdown.component";
 
 @Component({
   selector: "app-query-home",
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, ListComponent, DropdownComponent],
   templateUrl: "./query-home.component.html",
   styleUrl: "./query-home.component.css",
 })
 export class QueryHomeComponent implements OnInit {
   queries: QueryDefinition[] = [];
+  listItems: UiListItem[] = [];
+  roleFilterItems: UiDropdownItem[] = [];
+  selectedRoleFilter: string | null = null;
   isRunning = false;
   error: string | null = null;
 
@@ -26,6 +31,41 @@ export class QueryHomeComponent implements OnInit {
 
   ngOnInit(): void {
     this.queries = this.state.getQueries();
+    this.listItems = this.queries.map((q) => ({
+      id: q.id,
+      label: q.name,
+      description: q.description,
+      badge: this.isAdminOnly(q) ? "Admin only" : undefined,
+    }));
+
+    this.roleFilterItems = [
+      { value: "all", label: "All queries" },
+      { value: "admin", label: "Admin only" },
+      { value: "analyst", label: "Analyst-accessible" },
+    ];
+    this.selectedRoleFilter = "all";
+  }
+
+  get filteredListItems(): UiListItem[] {
+    if (this.selectedRoleFilter === "admin") {
+      return this.listItems.filter((item) => item.badge === "Admin only");
+    }
+    if (this.selectedRoleFilter === "analyst") {
+      return this.listItems.filter((item) => !item.badge);
+    }
+    return this.listItems;
+  }
+
+  onRoleFilterChange(value: string): void {
+    this.selectedRoleFilter = value;
+  }
+
+  onItemSelected(item: UiListItem): void {
+    const query = this.queries.find((q) => q.id === item.id);
+    if (!query) {
+      return;
+    }
+    void this.runQuery(query);
   }
 
   isAdminOnly(query: QueryDefinition): boolean {

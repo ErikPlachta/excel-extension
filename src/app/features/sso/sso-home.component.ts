@@ -2,11 +2,13 @@ import { CommonModule } from "@angular/common";
 import { Component } from "@angular/core";
 import { AuthService } from "../../core";
 import { truncateToken } from "../../shared/util";
+import { SectionComponent } from "../../shared/ui/section.component";
+import { CardComponent } from "../../shared/ui/card.component";
 
 @Component({
   standalone: true,
   selector: "app-sso-home",
-  imports: [CommonModule],
+  imports: [CommonModule, SectionComponent, CardComponent],
   templateUrl: "./sso-home.component.html",
   styleUrls: ["./sso-home.component.css"],
 })
