@@ -249,7 +249,7 @@ This file tracks the concrete steps for refactoring the add-in toward a data-dri
   - Updated `CONTEXT-SESSION.md` to describe the new `AppConfig`, text catalog, shared types, and `AppContextService` as the preferred way to add/modify nav items, roles, and core host/auth copy.
   - Included a short example of adding a new nav item via configuration only, highlighting how `AppConfig` and `APP_TEXT` work together.
 
-- [ ] **Onboard strict typing and TSDoc enforcement across `src/`**
+- [x] **Onboard strict typing and TSDoc enforcement across `src/`**
   - Extend the shared types strategy so that all cross-cutting models under `src/app` either live in `src/app/types` or are explicitly documented with TSDoc where they are defined (e.g., feature-specific view models).
   - Introduce an ESLint rule set (via `@typescript-eslint` and/or additional plugins) that requires:
     - No `any` in `src/app/**` except in clearly documented, intentional escape hatches.

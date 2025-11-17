@@ -55,7 +55,7 @@ export class QueryHomeComponent implements OnInit {
     this.error = null;
     try {
       const lastParams = this.state.getLastParams(query.id) ?? {};
-      const result = await this.api.executeQuery(query.id, lastParams);
+      const result = await this.api.executeQuery(query.id, lastParams as any);
       const location = await this.excel.upsertQueryTable(query, result.rows);
 
       this.state.setLastRun(query.id, {

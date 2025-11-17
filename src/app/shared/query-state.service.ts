@@ -1,11 +1,11 @@
 import { Injectable } from "@angular/core";
 import { BehaviorSubject } from "rxjs";
-import { QueryApiMockService } from "./query-api-mock.service";
+import { ExecuteQueryParams, QueryApiMockService } from "./query-api-mock.service";
 import { QueryDefinition, QueryRun } from "./query-model";
 
 export interface QueryStateSnapshot {
   queries: QueryDefinition[];
-  lastParams: Record<string, Record<string, unknown>>;
+  lastParams: Record<string, ExecuteQueryParams>;
   lastRuns: Record<string, QueryRun | undefined>;
 }
 
@@ -36,7 +36,7 @@ export class QueryStateService {
     return this.snapshot.lastParams[queryId];
   }
 
-  setLastParams(queryId: string, params: Record<string, unknown>): void {
+  setLastParams(queryId: string, params: ExecuteQueryParams): void {
     const { lastParams } = this.snapshot;
     this.stateSubject.next({
       ...this.snapshot,
