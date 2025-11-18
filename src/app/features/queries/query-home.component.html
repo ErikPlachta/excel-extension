@@ -15,8 +15,37 @@
   <app-list
     [items]="filteredListItems"
     emptyMessage="No queries defined in the mock API."
-    (itemSelected)="onItemSelected($event)"
   ></app-list>
+
+  <div class="query-actions" *ngIf="filteredQueries.length">
+    <div class="query-actions__row" *ngFor="let query of filteredQueries">
+      <div class="query-actions__meta">
+        <div class="query-actions__name">{{ query.name }}</div>
+        <div class="query-actions__description">{{ query.description }}</div>
+        <div class="query-actions__badge" *ngIf="isAdminOnly(query)">Admin only</div>
+      </div>
+      <div class="query-actions__buttons">
+        <ng-container *ngFor="let action of query.uiConfig?.actions || []">
+          <app-button
+            [label]="
+              action.labelKey === 'query.action.goToTable'
+                ? 'Go to table'
+                : action.labelKey === 'query.action.details'
+                ? 'Details'
+                : 'Run'
+            "
+            [variant]="action.button?.variant || 'primary'"
+            [size]="action.button?.size || 'sm'"
+            [disabled]="
+              (action.type === 'run-query' && (!canRun(query) || isRunning || !excel.isExcel)) ||
+              (action.type === 'go-to-table' && (isRunning || !excel.isExcel))
+            "
+            (clicked)="onActionClicked(query, action)"
+          ></app-button>
+        </ng-container>
+      </div>
+    </div>
+  </div>
 
   <p class="error" *ngIf="error">{{ error }}</p>
 </section>

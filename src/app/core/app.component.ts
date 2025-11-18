@@ -8,6 +8,7 @@ import { WorksheetsComponent } from "../features/worksheets/worksheets.component
 import { TablesComponent } from "../features/tables/tables.component";
 import { UserComponent } from "../features/user/user.component";
 import { QueryHomeComponent } from "../features/queries/query-home.component";
+import { DebugContextComponent } from "../features/debug/debug-context.component";
 import { ButtonComponent } from "../shared/ui/button.component";
 
 @Component({
@@ -21,6 +22,7 @@ import { ButtonComponent } from "../shared/ui/button.component";
     TablesComponent,
     UserComponent,
     QueryHomeComponent,
+    DebugContextComponent,
   ],
   templateUrl: "./app.component.html",
   styleUrl: "./app.component.css",

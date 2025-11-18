@@ -1,16 +1,20 @@
 import { CommonModule } from "@angular/common";
 import { Component, OnInit } from "@angular/core";
 import { ExcelService, AuthService } from "../../core";
-import { QueryApiMockService } from "../../shared/query-api-mock.service";
+import { ExecuteQueryParams, QueryApiMockService } from "../../shared/query-api-mock.service";
 import { QueryStateService } from "../../shared/query-state.service";
 import { QueryDefinition } from "../../shared/query-model";
 import { ListComponent, UiListItem } from "../../shared/ui/list.component";
 import { DropdownComponent, UiDropdownItem } from "../../shared/ui/dropdown.component";
+import { ButtonComponent } from "../../shared/ui/button.component";
+import { QueryUiActionConfig, QueryUiActionType } from "../../types/ui/primitives.types";
+import { WorkbookService } from "../../core/workbook.service";
+import { WorkbookTableInfo } from "../../types";
 
 @Component({
   selector: "app-query-home",
   standalone: true,
-  imports: [CommonModule, ListComponent, DropdownComponent],
+  imports: [CommonModule, ListComponent, DropdownComponent, ButtonComponent],
   templateUrl: "./query-home.component.html",
   styleUrl: "./query-home.component.css",
 })
@@ -21,9 +25,11 @@ export class QueryHomeComponent implements OnInit {
   selectedRoleFilter: string | null = null;
   isRunning = false;
   error: string | null = null;
+  workbookTables: WorkbookTableInfo[] = [];
 
   constructor(
     public readonly excel: ExcelService,
+    private readonly workbook: WorkbookService,
     private readonly auth: AuthService,
     private readonly api: QueryApiMockService,
     private readonly state: QueryStateService
@@ -35,7 +41,11 @@ export class QueryHomeComponent implements OnInit {
       id: q.id,
       label: q.name,
       description: q.description,
-      badge: this.isAdminOnly(q) ? "Admin only" : undefined,
+      badge: q.uiConfig?.badgeLabelKey
+        ? "Admin only"
+        : this.isAdminOnly(q)
+          ? "Admin only"
+          : undefined,
     }));
 
     this.roleFilterItems = [
@@ -44,6 +54,40 @@ export class QueryHomeComponent implements OnInit {
       { value: "analyst", label: "Analyst-accessible" },
     ];
     this.selectedRoleFilter = "all";
+
+    if (this.workbook.isExcel) {
+      void this.loadWorkbookState();
+    }
+  }
+
+  private async loadWorkbookState(): Promise<void> {
+    try {
+      this.workbookTables = await this.workbook.getTables();
+    } catch {
+      // Swallow errors here; go-to-table remains best-effort.
+      this.workbookTables = [];
+    }
+  }
+
+  onActionClicked(query: QueryDefinition, action: QueryUiActionConfig): void {
+    this.dispatchAction(query, action.type);
+  }
+
+  // TODO: Add TSDOC Comments
+  // TODO: add additional queries here as build out features.
+  private dispatchAction(query: QueryDefinition, type: QueryUiActionType): void {
+    if (type === "run-query") {
+      void this.runQuery(query);
+      return;
+    }
+    if (type === "go-to-table") {
+      void this.goToLastRun(query);
+      return;
+    }
+    if (type === "show-details") {
+      // Example extra action: for now we just expose the query id.
+      this.error = `Details not implemented yet for query '${query.id}'.`;
+    }
   }
 
   get filteredListItems(): UiListItem[] {
@@ -56,15 +100,21 @@ export class QueryHomeComponent implements OnInit {
     return this.listItems;
   }
 
+  get filteredQueries(): QueryDefinition[] {
+    if (this.selectedRoleFilter === "admin") {
+      return this.queries.filter((q) => this.isAdminOnly(q));
+    }
+    if (this.selectedRoleFilter === "analyst") {
+      return this.queries.filter((q) => !this.isAdminOnly(q));
+    }
+    return this.queries;
+  }
+
   onRoleFilterChange(value: string): void {
     this.selectedRoleFilter = value;
   }
 
-  onItemSelected(item: UiListItem): void {
-    const query = this.queries.find((q) => q.id === item.id);
-    if (!query) {
-      return;
-    }
+  onRunClicked(query: QueryDefinition): void {
     void this.runQuery(query);
   }
 
@@ -94,8 +144,8 @@ export class QueryHomeComponent implements OnInit {
     this.isRunning = true;
     this.error = null;
     try {
-      const lastParams = this.state.getLastParams(query.id) ?? {};
-      const result = await this.api.executeQuery(query.id, lastParams as any);
+      const lastParams = (this.state.getLastParams(query.id) ?? {}) as ExecuteQueryParams;
+      const result = await this.api.executeQuery(query.id, lastParams);
       const location = await this.excel.upsertQueryTable(query, result.rows);
 
       this.state.setLastRun(query.id, {
@@ -123,12 +173,40 @@ export class QueryHomeComponent implements OnInit {
     }
 
     const run = this.state.getLastRun(query.id);
-    if (!run || !run.location) {
-      this.error = "No Excel table has been created for this query yet.";
+
+    if (run && run.location) {
+      this.error = null;
+      await this.excel.activateQueryLocation(run.location);
       return;
     }
 
-    this.error = null;
-    await this.excel.activateQueryLocation(run.location);
+    // Prefer an extension-managed table if one exists for this query.
+    const managedTables = await this.workbook.getManagedTablesForQuery(query.id);
+    const targetTable =
+      managedTables[0] ?? this.workbookTables.find((t) => t.name === query.defaultTableName);
+
+    if (targetTable) {
+      this.error = null;
+      const location = {
+        sheetName: targetTable.worksheet,
+        tableName: targetTable.name,
+      };
+
+      await this.excel.activateQueryLocation(location);
+
+      this.state.setLastRun(query.id, {
+        queryId: query.id,
+        completedAt: new Date(),
+        rowCount: targetTable.rows,
+        location,
+      });
+      return;
+    }
+
+    this.error = "No Excel table has been created for this query yet.";
+  }
+
+  onGoToLastRunClicked(query: QueryDefinition): void {
+    void this.goToLastRun(query);
   }
 }

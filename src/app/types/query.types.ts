@@ -14,6 +14,8 @@ export interface QueryParameter {
   defaultValue?: string | number | boolean | Date | null;
 }
 
+import { QueryUiConfig } from "./ui/primitives.types";
+
 /**
  * Definition of a query that can be executed against a data source.
  */
@@ -32,6 +34,8 @@ export interface QueryDefinition {
   defaultSheetName: string;
   /** Base name to use when creating tables for this query. */
   defaultTableName: string;
+  /** Optional, data-driven UI configuration for how this query appears in the UI. */
+  uiConfig?: QueryUiConfig;
 }
 
 /**

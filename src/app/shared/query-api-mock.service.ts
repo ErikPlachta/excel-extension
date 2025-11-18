@@ -1,5 +1,6 @@
 import { Injectable } from "@angular/core";
 import { QueryDefinition, QueryParameter } from "./query-model";
+import { QueryUiConfig } from "../types/ui/primitives.types";
 
 export interface ExecuteQueryParams {
   [key: string]: string | number | boolean | Date | null | undefined;
@@ -18,6 +19,45 @@ export interface ExecuteQueryResult {
 
 @Injectable({ providedIn: "root" })
 export class QueryApiMockService {
+  private createStandardQueryUiConfig(options?: { adminOnly?: boolean }): QueryUiConfig {
+    const isAdminOnly = options?.adminOnly ?? false;
+
+    return {
+      badgeLabelKey: isAdminOnly ? "query.badge.adminOnly" : undefined,
+      actions: [
+        {
+          id: "run",
+          type: "run-query",
+          labelKey: "query.action.run",
+          button: {
+            id: "run",
+            labelKey: "query.action.run",
+          },
+        },
+        {
+          id: "go-to-table",
+          type: "go-to-table",
+          labelKey: "query.action.goToTable",
+          button: {
+            id: "go-to-table",
+            labelKey: "query.action.goToTable",
+          },
+        },
+        {
+          id: "details",
+          type: "show-details",
+          labelKey: "query.action.details",
+          button: {
+            id: "details",
+            labelKey: "query.action.details",
+            variant: "secondary",
+            size: "sm",
+          },
+        },
+      ],
+    };
+  }
+
   private readonly queries: QueryDefinition[] = [
     {
       id: "sales-summary",
@@ -29,6 +69,7 @@ export class QueryApiMockService {
       ],
       defaultSheetName: "Sales_Summary",
       defaultTableName: "tbl_SalesSummary",
+      uiConfig: this.createStandardQueryUiConfig(),
     },
     {
       id: "top-customers",
@@ -37,6 +78,7 @@ export class QueryApiMockService {
       parameters: [this.createNumberParam("topN", "Top N", 10)],
       defaultSheetName: "Top_Customers",
       defaultTableName: "tbl_TopCustomers",
+      uiConfig: this.createStandardQueryUiConfig(),
     },
     {
       id: "inventory-status",
@@ -45,6 +87,7 @@ export class QueryApiMockService {
       parameters: [],
       defaultSheetName: "Inventory_Status",
       defaultTableName: "tbl_InventoryStatus",
+      uiConfig: this.createStandardQueryUiConfig(),
     },
     {
       id: "user-audit",
@@ -54,6 +97,7 @@ export class QueryApiMockService {
       defaultSheetName: "User_Audit",
       defaultTableName: "tbl_UserAudit",
       allowedRoles: ["admin"],
+      uiConfig: this.createStandardQueryUiConfig({ adminOnly: true }),
     },
     {
       id: "jsonapi-example",
@@ -64,6 +108,7 @@ export class QueryApiMockService {
       defaultSheetName: "JsonApi_Example",
       defaultTableName: "tbl_JsonApiExample",
       allowedRoles: ["admin"],
+      uiConfig: this.createStandardQueryUiConfig({ adminOnly: true }),
     },
   ];
 

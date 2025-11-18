@@ -1,6 +1,7 @@
 import { Component, OnInit } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { ExcelService } from "../../core";
+import { WorkbookService } from "../../core/workbook.service";
 import { SectionComponent } from "../../shared/ui/section.component";
 import { TableComponent } from "../../shared/ui/table.component";
 
@@ -14,14 +15,17 @@ import { TableComponent } from "../../shared/ui/table.component";
 export class WorksheetsComponent implements OnInit {
   sheets: string[] = [];
   sheetsAsRows: { name: string }[] = [];
-  constructor(private excel: ExcelService) {}
+  constructor(
+    private readonly excel: ExcelService,
+    private readonly workbook: WorkbookService
+  ) {}
 
   get isExcel(): boolean {
-    return this.excel.isExcel;
+    return this.workbook.isExcel;
   }
 
   async ngOnInit(): Promise<void> {
-    this.sheets = await this.excel.getWorksheets();
+    this.sheets = await this.workbook.getSheets();
     this.sheetsAsRows = this.sheets.map((name) => ({ name }));
   }
 }

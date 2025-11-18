@@ -5,9 +5,9 @@ Repository: excel-extension
 
 ## Overview
 
-Angular 20 task-pane app for Excel using standalone components and Office.js. Excel integration is wrapped by `ExcelService` with an `isExcel` guard. The app is organized into three main areas:
+Angular 20 task-pane app for Excel using standalone components and Office.js. Excel integration is wrapped by `ExcelService` with an `isExcel` guard, and shared workbook state is exposed via a higher-level `WorkbookService`. The app is organized into three main areas:
 
-- `core/` for the root shell, auth/Excel services, and bootstrap config.
+- `core/` for the root shell, auth/Excel/workbook services, and bootstrap config.
 - `features/` for routed/hosted UI (SSO home, home, worksheets, tables, queries, user).
 - `shared/` for reusable utilities and cross-cutting concerns (query model/state, config, UI primitives).
 
@@ -26,16 +26,18 @@ We also have:
 
 The focus of the `feat/data-driven-design` branch is: **evolving the shell, nav, roles, queries, and UI into a data-driven, Tailwind-styled design** where structure, labels, and capabilities are described in configuration rather than hard-coded into components.
 
+When updating planning/checklist docs (like `TODO.md` or this file), treat explicitly mentioned scopes (for example, a whole section) as all-inclusive and prefer a single consistent pass over that scope instead of piecemeal edits. Every discrete actionable bullet should be a checkbox with an accurate `[x]`/`[ ]` state.
+
 ## Current State Snapshot
 
 - **Dev server:** `npm start` → `ng serve` at <http://localhost:4200/>.
 - **HTTPS dev (optional):**
   - `npm run dev-certs` (calls `scripts/install-dev-certs.mjs` using `office-addin-dev-certs`).
   - `npm run start:dev` → `ng serve --configuration development --ssl true --ssl-cert ~/.office-addin-dev-certs/localhost.crt --ssl-key ~/.office-addin-dev-certs/localhost.key`.
-- **Excel integration:** `ExcelService.isExcel` guards Office JS calls so the app can run outside Excel safely. The SPA shell (`AppComponent`) is a state-based container that:
+- **Excel integration:** `ExcelService.isExcel` guards Office JS calls so the app can run outside Excel safely. A higher-level `WorkbookService` provides strongly-typed, shared access to workbook artifacts (tabs/sheets and tables) so all features interact with the workbook through a consistent abstraction. The SPA shell (`AppComponent`) is a state-based container that:
   - Always loads `SsoHomeComponent` first.
   - Uses an internal `currentView` flag to switch between SSO, Worksheets, Tables, User, and Queries views without changing the URL.
-  - Delegates Excel work (listing worksheets, listing tables, creating/navigating query tables) to `ExcelService`.
+  - Delegates Excel work (listing worksheets, listing tables, creating/navigating query tables) to `ExcelService` and `WorkbookService` instead of making ad hoc Office.js calls.
   - Shows a bottom-aligned host/status banner when Excel is not detected or offline.
 - **Manifests:**
   - `dev-manifest.xml` points to localhost (Angular dev server) and is used for sideloading during development.
@@ -49,6 +51,12 @@ The focus of the `feat/data-driven-design` branch is: **evolving the shell, nav,
 - **Testing:**
   - Unit tests via Karma + Jasmine using `ChromeHeadless`.
   - Local: `npm test -- --watch=false --browsers=ChromeHeadless`.
+
+As we evolve the app, a key principle is that **new or modified code ships with TSDoc and tests together**. For any feature work on this branch:
+
+- Public services, components, and exported types/interfaces should have complete TSDoc at the time they are introduced or materially changed.
+- Behavior changes should be accompanied by or reflected in unit tests (service specs, component specs) so regressions are caught early.
+- ESLint’s TSDoc rules and the existing Karma/Jasmine suite are the enforcement backbone; if you touch a file, expect to touch its docs/tests too.
 
 ## CI/CD Snapshot
 
@@ -113,6 +121,13 @@ npm run prettier
 npm test -- --watch=false --browsers=ChromeHeadless
 ```
 
+### Known test issue on this branch
+
+- On branch `feat/improve-excel-functionality`, `npm test -- --watch=false --browsers=ChromeHeadless` currently fails due to a pre-existing SSO spec import problem:
+  - `src/app/features/sso/sso-home.component.spec.ts` imports `../helpers/sso-mock`, which no longer exists now that SSO helpers were refactored into `src/helpers/sso-helper.ts` and related mocks.
+- This failure is **not** related to the workbook ownership work; tests for ownership-related services/components are blocked by this unresolved SSO spec error.
+- Resolution is intentionally deferred to a separate task/branch so the ownership-focused work here stays scoped; once addressed, the full test suite should pass again without changes to the ownership model.
+
 ## High-level App Design (current)
 
 - **Auth & roles:**
@@ -128,11 +143,14 @@ npm test -- --watch=false --browsers=ChromeHeadless
   - `QueryStateService` tracks available queries, last-used parameters, and last-run metadata including Excel location, enabling refresh and navigation.
   - Admin-only queries (such as `user-audit` and the JSON:API-inspired `jsonapi-example`) are available to illustrate role-gated behavior.
 
-- **Excel integration for queries:**
+- **Excel integration for queries and tables:**
   - `ExcelService` creates/updates tables and sheets for a given query run via `upsertQueryTable` and returns a `QueryRunLocation`.
+  - `WorkbookService` exposes shared, strongly-typed helpers for:
+    - Getting workbook tabs/sheets (e.g., `getSheets()` / future `getTab(name)` helpers).
+    - Getting workbook tables (e.g., `getTables()` and `getTableByName(name)`), used by the Tables view and the query Go-to-table behavior.
   - Default sheet/table names come from query metadata, with hooks for user overrides.
   - `activateQueryLocation` navigates to the worksheet/table from the query UI.
-  - Query actions and navigation are guarded by `ExcelService.isExcel` so they are disabled and show friendly messaging outside Excel.
+  - Query and table actions are guarded by `ExcelService.isExcel` so they are disabled and show friendly messaging outside Excel.
 
 - **Navigation & UX:**
   - Navigation is state-based inside `AppComponent` (no route changes) to play nicely with Excel iframes.

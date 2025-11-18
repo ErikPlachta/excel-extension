@@ -58,6 +58,15 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
       actionType: "select-view",
     },
     {
+      id: "nav-debug",
+      labelKey: "nav.debug",
+      viewId: "debug",
+      requiresAuth: true,
+      requiredRoles: ["admin"],
+      domId: "nav-debug",
+      actionType: "select-view",
+    },
+    {
       id: "nav-signin-analyst",
       labelKey: "auth.signInAnalyst",
       actionType: "sign-in-analyst",
