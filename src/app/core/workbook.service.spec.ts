@@ -9,7 +9,7 @@ describe("WorkbookService ownership helpers", () => {
   beforeEach(() => {
     excelSpy = jasmine.createSpyObj<ExcelService>("ExcelService", [
       "getWorkbookOwnership",
-      "getTables",
+      "getWorkbookTables",
     ]);
 
     workbook = new WorkbookService(excelSpy as unknown as ExcelService);

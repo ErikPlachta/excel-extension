@@ -500,13 +500,19 @@ Going forward, **every new feature or meaningful code change must include TSDoc 
   - [x] Surface simple, scalable user options for rerun behavior in the query UI via a per-query "Write mode" dropdown (Overwrite existing table vs Append rows) on `QueryHomeComponent`, wired into `runQuery` so the selected mode is passed into `ExcelService.upsertQueryTable` while still defaulting to config-driven `writeMode`.
 
 - [ ] **Resolve Jasmine/Karma Testing Suite Issues**
-  - [ ] DIAGNOSE: Confirm and document the exact failure mode that previously caused Karma to serve `/_karma_webpack_/main.js` as 404 and execute 0 specs (e.g., missing or misconfigured Angular test bootstrap, incorrect `files`/`frameworks` wiring, or builder mismatch).
-  - [ ] FIX_RUNNER: Adjust the Angular/Karma test configuration (including `angular.json` `test` target, `karma.conf.cjs`, and `src/test.ts`) so that `npm test` / `ng test` builds the webpack bundle, serves `/_karma_webpack_/main.js` correctly, and executes all discovered specs in Chrome/ChromeHeadless.
-  - [ ] VERIFY_BASELINE: Add or update at least one simple, host-agnostic spec (for example in `excel.service.spec.ts`) and run `npm test -- --watch=false --browsers=ChromeHeadless` to confirm that tests start, run, and report pass/fail status as expected.
-  - [ ] VERIFY_EXCEL_GUARDS: Ensure tests that exercise Excel-related behavior (e.g., `WorkbookService` ownership helpers, `ExcelService.upsertQueryTable` when `Office` is undefined) are discovered and executed, relying on stubs/mocks and `ExcelService.isExcel` guards instead of real Office.js.
+  - [x] DIAGNOSE: Confirm and document the exact failure mode that previously caused Karma to serve `/_karma_webpack_/main.js` as 404 and execute 0 specs (e.g., missing or misconfigured Angular test bootstrap, incorrect `files`/`frameworks` wiring, or builder mismatch).
+  - [x] FIX*RUNNER: Adjust the Angular/Karma test configuration (including `angular.json` `test` target, `karma.conf.cjs`, and `src/test.ts`) so that `npm test` / `ng test` builds the webpack bundle, serves `/\_karma_webpack*/main.js` correctly, and executes all discovered specs in Chrome/ChromeHeadless.
+  - [x] VERIFY_BASELINE: Add or update at least one simple, host-agnostic spec (for example in `excel.service.spec.ts`) and run `npm test -- --watch=false --browsers=ChromeHeadless` to confirm that tests start, run, and report pass/fail status as expected.
+    - [x] VERIFY_EXCEL_GUARDS: Ensure tests that exercise Excel-related behavior (e.g., `WorkbookService` ownership helpers, `ExcelService.upsertQueryTable` when `Office` is undefined) are discovered and executed, relying on stubs/mocks and `ExcelService.isExcel` guards instead of real Office.js.
   - [ ] VERIFY_RERUN_BEHAVIOR (manual + automated): Reproduce the reported Excel behavior where rerunning a query (append or overwrite) can cause multiple header blocks and/or invalid/misaligned ranges, using a combination of:
     - [ ] Manual Excel scenarios (run query, rerun in overwrite/append, observe headers and table ranges).
     - [ ] Targeted specs that simulate the decision logic inside `ExcelService.upsertQueryTable` as far as possible without real Excel, verifying that the service chooses append vs overwrite paths correctly based on headers, ownership, and `writeMode`.
+  - [ ] Resolve issues found during verification to ensure that reruns behave as expected without duplicating headers or misaligning table ranges.
+  - [ ] Verify full test coverage for all other things related to excel service.
+
+- [ ] **Improve test-run visibility for CI/headless runs**
+  - [ ] Add a documented `npm run test:ci` script that runs Karma/Jasmine in ChromeHeadless with `--watch=false`.
+  - [ ] Capture and document how to pipe or save full Jasmine failure output so AI-assisted debugging can reliably see all failing specs and stack traces.
 
 - [ ] **Refine and Refactor Office.js Wrapper Logic**
   - [ ] ROLE: Act as an expert in TSDoc, Angular, Excel, Office.js, Excel Extensions, data driven design, modular design, API, and security when working on this section.

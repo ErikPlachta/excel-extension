@@ -40,7 +40,7 @@ export class SsoHomeComponent {
   }
 
   get roleSummary(): string {
-    const roles = this.auth.roles;
+    const roles = this.auth.roles ?? [];
     if (!roles.length) return "No roles assigned (mock user).";
     if (roles.includes("admin")) {
       return "Admin role active: full query and settings access.";
