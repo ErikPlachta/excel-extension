@@ -525,6 +525,10 @@ Going forward, **every new feature or meaningful code change must include TSDoc 
     - [ ] Verify this class is a proper Angular service wrapper around Office.js telemetry functionality.
     - [ ] Look for opportunities to extract logic and functionality that should be moved into helpers, like sorting, filtering, and general helper functions that can/should be used by the application as a whole.
   - [ ] PLAN: Determine how this can be converted to be manage logging for the whole app
+    - [ ] REMEMBER: Data driven design from CONFIG files.
+    - [ ] REMEMBER: TSDoc is critical for all new and existing code.
+    - [ ] What needs to be refactored and why?
+    - [ ] What steps will you take?
 
 - [ ] **Implement robust query parameter management (global + per-query)**
   - [ ] Extend the query domain model to distinguish between global parameters (applied to multiple queries/reports) and query-specific parameters (e.g., date ranges, regions, customer segments) with clear typing and defaults.
