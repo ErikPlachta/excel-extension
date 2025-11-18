@@ -38,7 +38,7 @@ Task Management and Focus is managed by using 3 key files/documents with very pr
   - It's technically not "current" because it's completed, but before it was checked `[x]` it was considered current.
   - So the current focus, then, is the next child-level list within the Session Context (header) that is not yet checked.
   - An active/current Current Focus example at time of writing this: `- [ ] **Improve Office.js Wrapper Logic**`
-    - We know this because it's the next unchecked item in the list underneath the `SESSION-CONTEXT` H2 `## 11. Refine & Improve Excel Functionality`.
+    - We know this because it's the next unchecked item in the list underneath the `SESSION-CONTEXT` H3 `### 11. Refine & Improve Excel Functionality`.
 
 ### 3. `ACTIONABLE-TASKS` = [TODO.md](TODO.md)
 
@@ -55,19 +55,33 @@ Task Management and Focus is managed by using 3 key files/documents with very pr
 
 ## Current Focus
 
+- [ ] **Resolve Jasmine/Karma Testing Suite Issues** (subset of [11. Refine & Improve Excel Functionality](TODO.md#11-refine--improve-excel-functionality))
 - [ ] **Refine and Refactor Office.js Wrapper Logic** (subset of [11. Refine & Improve Excel Functionality](TODO.md#11-refine--improve-excel-functionality))
 
 ### Goals
 
-- Ensure query reruns (overwrite and append) behave predictably:
+- Restore and harden the Jasmine/Karma test runner so that `npm test` / `ng test` builds the bundle, serves `/_karma_webpack_/main.js` correctly, and executes all specs (including Excel/workbook-related ones) in Chrome/ChromeHeadless.
+- Exercise Excel-related behavior in a host-agnostic way via specs (e.g., Excel guards, ownership helpers, `upsertQueryTable` when `Office` is undefined) while leaving real Office.js interaction to manual Excel validation.
+- Ensure query reruns (overwrite and append) behave predictably and are verifiable:
   - Header rows are written exactly once (initial creation or full overwrite) and never duplicated by append.
   - Overwrite mode replaces table data body rows without moving headers or causing range-alignment errors.
   - Append mode appends data rows only, after verifying header compatibility, and falls back to safe overwrite behavior when headers differ.
 - Keep all Excel interactions ownership-aware and safe for user tables by routing decisions through `WorkbookService` helpers.
-- Maintain strong typing and TSDoc across `ExcelService`, workbook models, and telemetry helpers.
-- Centralize success/error reporting for Excel operations via `ExcelTelemetryService` and `ExcelOperationResult`.
+- Maintain strong typing and TSDoc across `ExcelService`, workbook models, telemetry helpers, and their accompanying specs.
+- Centralize success/error reporting for Excel operations via `ExcelTelemetryService` and `ExcelOperationResult`, and reflect this behavior in tests.
 
 ### Current implementation snapshot (what already exists)
+
+- **Test runner wiring**
+  - Angular 20 test target is configured in `angular.json` to use `@angular-devkit/build-angular:karma` with `tsconfig.spec.json` and polyfills (`zone.js`, `zone.js/testing`).
+  - `karma.conf.cjs` is wired with the Angular Karma plugin, Jasmine, and Chrome/ChromeHeadless.
+  - `src/test.ts` bootstraps Angular testing via `getTestBed().initTestEnvironment(...)` and imports the correct Zone.js testing patches.
+  - `npm test` / `ng test` was recently observed to start Karma/Chrome but previously served `/_karma_webpack_/main.js` as 404 and ran 0 specs; this needs to be revalidated and fixed.
+
+- **Existing Excel-related specs**
+  - `src/app/core/workbook.service.spec.ts` tests workbook ownership helpers using spies/stubs over `ExcelService` to avoid real Office.js calls.
+  - `src/app/core/excel.service.spec.ts` (new) verifies that `ExcelService.upsertQueryTable` returns a failure result and does not log success when `Office` is undefined (host-agnostic guard behavior).
+  - Other feature specs (e.g., `QueryHomeComponent`) rely on stubbing `ExcelService.isExcel` and `AuthService` to exercise guard paths.
 
 - **Workbook ownership model**
   - Ownership metadata is stored in a dedicated hidden worksheet (e.g., `_Extension_Ownership`) with rows keyed by `sheetName`, `tableName`, and `queryId`, plus flags like `isManaged` and `lastTouchedUtc`.
@@ -94,6 +108,16 @@ Task Management and Focus is managed by using 3 key files/documents with very pr
   - Logs include operation name, query id, sheet/table names, row counts, and normalized error details.
 
 ### Active refinement work (what this focus will change)
+
+- **Karma/Angular runner diagnosis and fix**
+  - Reproduce the previous failure where `npm test` started Karma/Chrome but reported `404: /_karma_webpack_/main.js` and executed 0 specs, capturing logs and exact configuration state.
+  - Inspect and, if necessary, adjust the `angular.json` `test` target, `karma.conf.cjs`, and `src/test.ts` wiring so that the webpack bundle is built and served correctly for tests.
+  - Ensure at least one trivial spec (for example in `excel.service.spec.ts`) runs and reports pass/fail to confirm the pipeline is healthy before relying on more complex specs.
+
+- **Stubbing and guard patterns for Excel-related specs**
+  - Standardize on host-agnostic patterns in unit tests: always rely on `ExcelService.isExcel` and stubs/mocks instead of real Office.js or a browser `Office` global.
+  - Tighten `WorkbookService` and `ExcelService` specs so they exercise ownership and rerun decision logic through plain TypeScript types, avoiding `Excel.run` calls in tests.
+  - Use these patterns to validate rerun decision logic (append vs overwrite, header match vs mismatch) even though actual header duplication/misaligned ranges are still verified manually in Excel.
 
 - **Office.js usage review**
   - Audit all `ExcelService` methods that use `Excel.run` / `context.sync` to ensure:
@@ -141,14 +165,22 @@ Task Management and Focus is managed by using 3 key files/documents with very pr
 
 ### Manual validation scenarios (for this focus)
 
-- **Header duplication check**
+- **Baseline Karma/Chrome run**
+  - Run `npm test -- --watch=false --browsers=ChromeHeadless`.
+  - Confirm that Karma serves `/_karma_webpack_/main.js` without 404, Chrome launches, and at least one spec executes and reports.
+
+- **Excel guard specs**
+  - In `excel.service.spec.ts`, keep `Office` undefined and verify that `upsertQueryTable` returns a failure result and that `ExcelTelemetryService.logSuccess` is not called.
+  - In `workbook.service.spec.ts`, verify that ownership helpers and table selection logic work correctly using stubs/mocks for `ExcelService` and workbook data.
+
+- **Header duplication check (manual Excel)**
   - Run a query in overwrite mode; observe that a table with a single header row and data is created.
   - Rerun the same query in overwrite mode and verify that:
     - The header row remains in the same position.
     - Data rows are replaced but not duplicated.
     - No Excel errors about invalid ranges appear.
 
-- **Append behavior check**
+- **Append behavior check (manual Excel)**
   - Run a query in overwrite mode once to create the table.
   - Switch the query to append mode and run it again.
   - Verify that:
@@ -156,14 +188,14 @@ Task Management and Focus is managed by using 3 key files/documents with very pr
     - Data rows are appended to the existing table body.
     - Ownership metadata still points to the same managed table.
 
-- **Header mismatch safety**
+- **Header mismatch safety (manual Excel)**
   - Modify a query definition so the output schema changes (e.g., add/remove/rename a column) and run it against a workbook where a previous schema exists.
   - Verify that append mode:
     - Detects header mismatch.
     - Does not force a dangerous resize on the existing table.
     - Chooses a safe strategy (new suffixed table) and records ownership appropriately.
 
-- **Purge and rerun**
+- **Purge and rerun (manual Excel)**
   - Use the dev-only purge action wired to `ExcelService.purgeExtensionManagedContent` to clear extension-managed tables and ownership metadata.
   - Rerun queries and confirm that tables and ownership records are recreated from a clean state with no stale geometry.
 

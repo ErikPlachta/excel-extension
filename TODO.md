@@ -2,7 +2,9 @@
 
 <!-- BEGIN:COPILOT-INSTRUCTIONS -->
 
-## How to use this file
+## Copilot Instructions
+
+### How to use this file
 
 - This file is the single source of truth for **actionable tasks and subtasks** across the project. Every concrete piece of work should be represented here as a checkbox (`- [ ]` or `- [x]`).
 - When you pick up work, first locate the relevant section (for example, `11. Refine & Improve Excel Functionality`) and make sure **all items in that scope** are represented as checkboxes and accurately reflect the current implementation.
@@ -23,7 +25,7 @@ Going forward, **every new feature or meaningful code change must include TSDoc 
 - Behavior changes should be covered by unit tests (service specs, component specs) so they fail fast in CI.
 - When you pick up any item in this TODO, assume that part of “done” is: implementation + docs + tests.
 
-## 1. Baseline Verification
+### 1. Baseline Verification
 
 - [x] **Run Angular dev server**
   - Command:
@@ -49,7 +51,7 @@ Going forward, **every new feature or meaningful code change must include TSDoc 
     - [x] SSO homepage shows on load and navigation buttons switch views without changing the URL.
     - [x] No runtime errors reported by Excel or in the browser dev tools.
 
-## 2. Taskpane Architecture Alignment
+### 2. Taskpane Architecture Alignment
 
 - [x] **Clarify/decide folder layout for taskpane**
   - Decision:
@@ -65,7 +67,7 @@ Going forward, **every new feature or meaningful code change must include TSDoc 
     - [x] When run inside Excel, initialization path is correct (no Office.js timing errors) thanks to guarded Office access.
     - [x] When run outside Excel, initialization does not crash and `ExcelService.isExcel` can safely be false.
 
-## 3. Commands Surface
+### 3. Commands Surface
 
 - [x] **Scaffold `src/commands`**
   - Implemented:
@@ -84,7 +86,7 @@ Going forward, **every new feature or meaningful code change must include TSDoc 
     - [x] In Excel, the commands appear in the ribbon and invoking them triggers the handlers in `commands.ts` (check via console log or a simple alert for now).
     - [x] Unit tests for `onShowTaskpane` continue to pass.
 
-## 4. Helpers & Middle-tier (SSO Scaffolding)
+### 4. Helpers & Middle-tier (SSO Scaffolding)
 
 - [x] **Create `src/helpers` based on SSO template (mocked)**
   - Implemented:
@@ -106,7 +108,7 @@ Going forward, **every new feature or meaningful code change must include TSDoc 
     - [x] Builds and tests succeed.
     - [x] No real network calls; safe to run in browser/Excel.
 
-## 5. SSO-first Taskpane Experience (Mocked)
+### 5. SSO-first Taskpane Experience (Mocked)
 
 - [x] **Add SSO-focused SPA shell**
   - [x] `SsoHomeComponent` shows mocked SSO user info with sign-in/sign-out.
@@ -123,7 +125,7 @@ Going forward, **every new feature or meaningful code change must include TSDoc 
     - [x] Taskpane can render the mock SSO user with no network dependency.
     - [x] There is a clear TODO comment or mechanism indicating where real SSO will plug in later.
 
-## 6. Manifest Wiring & Resources Clean-up
+### 6. Manifest Wiring & Resources Clean-up
 
 - [x] **Align `Taskpane.Url` with Angular entry**
   - Current state:
@@ -140,7 +142,7 @@ Going forward, **every new feature or meaningful code change must include TSDoc 
     - [x] `npm run validate:dev-manifest` passes (confirmed).
     - [x] Icons appear properly in the ribbon/taskpane when sideloaded.
 
-## 7. Documentation Updates
+### 7. Documentation Updates
 
 - [x] **Update CONTEXT-SESSION.md**
   - Current state:
@@ -156,7 +158,7 @@ Going forward, **every new feature or meaningful code change must include TSDoc 
   - Verify:
     - [x] A new contributor can follow README to run the dev server, sideload into Excel, and understand the high-level architecture.
 
-## 8. Query Domain & Role-aware Features (completed on previous branch)
+### 8. Query Domain & Role-aware Features (completed on previous branch)
 
 - [x] **Introduce AuthService and role-aware nav**
   - [x] `AuthService` centralizes auth state (user, `isAuthenticated`, `roles`) using `getSsoAuthResult` from `sso-helper`.
@@ -237,7 +239,7 @@ Going forward, **every new feature or meaningful code change must include TSDoc 
   - [x] Added a status banner under the user banner in `AppComponent` that surfaces `ExcelService.isExcel` and a simple `isOnline` indicator from `navigator.onLine`.
   - [x] The banner appears only when Excel is not detected or the app is offline, and provides friendly guidance about enabling Excel features or restoring connectivity.
 
-## 9. Data-driven Shell, Nav, and Roles (this branch)
+### 9. Data-driven Shell, Nav, and Roles (this branch)
 
 - [x] **Introduce central AppConfig model for nav and roles**
   - [x] Defined a typed `AppConfig` (nav items, views, required roles, feature flags) under `src/app/shared/app-config.ts`, including `NavItemConfig`, `RoleDefinition`, and `ViewId`/`RoleId` types so navigation structure and capabilities are described in data rather than hard-coded in components.
@@ -287,7 +289,7 @@ Going forward, **every new feature or meaningful code change must include TSDoc 
     - [x] Which ESLint rules enforce typing and documentation.
     - [x] How to add new types/components so that they pass lint and provide good IntelliSense.
 
-## 10. Build UI Primitives Library
+### 10. Build UI Primitives Library
 
 - [x] **Establish shared UI library structure**
   - [x] Create `src/app/shared/ui/` with a clear folder structure per primitive (e.g., `button/`, `banner/`, `table/`, `list/`, `section/`, `card/`, `dropdown/`, `icon/`), each containing a standalone component and any related models.
@@ -373,7 +375,7 @@ Going forward, **every new feature or meaningful code change must include TSDoc 
   - [x] Add full TSDocs to all new types/interfaces in `src/app/types/ui/` and `src/app/shared/ui/` components, explaining their purpose and usage patterns.
   - [x] Add full TSDocs to all new types/interfaces in `src/app/types/ui/` and `src/app/shared/ui/` components, explaining their purpose and usage patterns.
 
-## 11. Refine & Improve Excel Functionality
+### 11. Refine & Improve Excel Functionality
 
 - [x] **Handle unreachable dev server / blank taskpane experience**
   - [x] When the Angular dev server (e.g., `https://localhost:4200/`) is not reachable, Excel currently shows a blank taskpane and console errors like "Could not connect to the server".
@@ -497,10 +499,18 @@ Going forward, **every new feature or meaningful code change must include TSDoc 
   - [x] Define a clear overwrite vs append strategy at the config level (per-query `writeMode: 'overwrite' | 'append'`) and implement it in `ExcelService.upsertQueryTable` so reruns either rewrite the table region (`overwrite`, the default) or append rows to an existing table when headers match, falling back to overwrite on schema mismatch.
   - [x] Surface simple, scalable user options for rerun behavior in the query UI via a per-query "Write mode" dropdown (Overwrite existing table vs Append rows) on `QueryHomeComponent`, wired into `runQuery` so the selected mode is passed into `ExcelService.upsertQueryTable` while still defaulting to config-driven `writeMode`.
 
+- [ ] **Resolve Jasmine/Karma Testing Suite Issues**
+  - [ ] DIAGNOSE: Confirm and document the exact failure mode that previously caused Karma to serve `/_karma_webpack_/main.js` as 404 and execute 0 specs (e.g., missing or misconfigured Angular test bootstrap, incorrect `files`/`frameworks` wiring, or builder mismatch).
+  - [ ] FIX_RUNNER: Adjust the Angular/Karma test configuration (including `angular.json` `test` target, `karma.conf.cjs`, and `src/test.ts`) so that `npm test` / `ng test` builds the webpack bundle, serves `/_karma_webpack_/main.js` correctly, and executes all discovered specs in Chrome/ChromeHeadless.
+  - [ ] VERIFY_BASELINE: Add or update at least one simple, host-agnostic spec (for example in `excel.service.spec.ts`) and run `npm test -- --watch=false --browsers=ChromeHeadless` to confirm that tests start, run, and report pass/fail status as expected.
+  - [ ] VERIFY_EXCEL_GUARDS: Ensure tests that exercise Excel-related behavior (e.g., `WorkbookService` ownership helpers, `ExcelService.upsertQueryTable` when `Office` is undefined) are discovered and executed, relying on stubs/mocks and `ExcelService.isExcel` guards instead of real Office.js.
+  - [ ] VERIFY_RERUN_BEHAVIOR (manual + automated): Reproduce the reported Excel behavior where rerunning a query (append or overwrite) can cause multiple header blocks and/or invalid/misaligned ranges, using a combination of:
+    - [ ] Manual Excel scenarios (run query, rerun in overwrite/append, observe headers and table ranges).
+    - [ ] Targeted specs that simulate the decision logic inside `ExcelService.upsertQueryTable` as far as possible without real Excel, verifying that the service chooses append vs overwrite paths correctly based on headers, ownership, and `writeMode`.
+
 - [ ] **Refine and Refactor Office.js Wrapper Logic**
   - [ ] ROLE: Act as an expert in TSDoc, Angular, Excel, Office.js, Excel Extensions, data driven design, modular design, API, and security when working on this section.
   - [ ] KEY_PROBLEM_TO_SOLVE: Query runs can duplicate headers and misalign table ranges.
-    - [ ] VERIFY: Reproduce the reported issue in Excel where rerunning a query (append or overwrite) causes multiple header blocks and/or Excel errors about invalid/misaligned ranges.
     - [ ] EXPECTED: Header row is written exactly once (on initial creation or on full overwrite) and never duplicated by reruns.
     - [ ] EXPECTED: Append mode only appends data rows to the existing table body and does not touch the header row or resize the table around new header+data blocks.
     - [ ] EXPECTED: Overwrite mode replaces the existing table body rows in-place (or recreates the table in the same header row position) without moving the header or colliding with other content.
@@ -575,11 +585,11 @@ Going forward, **every new feature or meaningful code change must include TSDoc 
   - [ ] Content more organized and easier to work with.
   - [ ] Expand on this concept before you get started (just rough draft notes).
 
-## 12. Resolve NPM I Issues
+### 12. Resolve NPM I Issues
 
 - [ ] **Run NPM I, Verify Issue, and Help Resolve**
 
-## 13. Refine UI and UX
+### 13. Refine UI and UX
 
 This section needs to be built out more. The goal is to start polishing and solidifying the design so we can continue with the concept.
 
@@ -650,7 +660,7 @@ This section needs to be built out more. The goal is to start polishing and soli
   - [ ] Add breadcrumbs or indicators to help users understand their location within the app.
   - [ ] Ensure smooth transitions between views.
 
-## 13. Building out Authentication
+### 14. Building out Authentication
 
 - [ ] **Update UI for Authentication**
   - [ ] Refine homepage
@@ -665,7 +675,7 @@ This section needs to be built out more. The goal is to start polishing and soli
     - [ ] Identify how it can be integrated into the existing `AuthService`.
     - [ ] Determine how we could
 
-## 14. Review and Finalize Jasmine/Karma Testing
+## 15. Review and Finalize Jasmine/Karma Testing
 
 - [ ] **Confirm baseline test runner behavior is stable**
   - [x] Fix the Angular/Karma wiring so `npm test` (via `ng test`) builds the webpack bundle (no more `404: /_karma_webpack_/main.js`) and actually executes specs in Chrome/ChromeHeadless.
