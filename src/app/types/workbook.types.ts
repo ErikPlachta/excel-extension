@@ -1,5 +1,10 @@
 /**
  * Lightweight description of an Excel worksheet/tab in the workbook.
+ *
+ * This model is intentionally minimal so that features which
+ * enumerate or display tabs do not depend on the underlying
+ * Office.js worksheet shape. Any additional fields should be
+ * added behind explicit feature needs and documented here.
  */
 export interface WorkbookTabInfo {
   /** Display name of the worksheet as shown in Excel. */
@@ -9,6 +14,12 @@ export interface WorkbookTabInfo {
 /**
  * Lightweight description of an Excel table used by workbook helpers
  * and features when reasoning about query outputs.
+ *
+ * Instances of this interface are produced by `ExcelService`
+ * and consumed by `WorkbookService` and feature components. The
+ * goal is to avoid leaking raw Office.js table objects into the
+ * rest of the app while still exposing enough metadata to drive
+ * navigation and ownership decisions.
  */
 export interface WorkbookTableInfo {
   /** Display name of the table inside the workbook. */
@@ -21,8 +32,13 @@ export interface WorkbookTableInfo {
 
 /**
  * Ownership metadata describing how a given table relates to the
- * extension. Ownership is tracked at the workbook level so the
- * add-in can avoid overwriting user-managed tables.
+ * extension.
+ *
+ * Ownership is tracked at the workbook level (via a hidden
+ * worksheet) so the add-in can safely distinguish between
+ * extension-managed tables and user-managed content. This allows
+ * features such as query reruns and reset helpers to avoid
+ * destructive operations on user data.
  */
 export interface WorkbookOwnershipInfo {
   /** Name of the Excel table. */

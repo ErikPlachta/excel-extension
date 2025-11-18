@@ -146,13 +146,18 @@ export class QueryHomeComponent implements OnInit {
     try {
       const lastParams = (this.state.getLastParams(query.id) ?? {}) as ExecuteQueryParams;
       const result = await this.api.executeQuery(query.id, lastParams);
-      const location = await this.excel.upsertQueryTable(query, result.rows);
+      const excelResult = await this.excel.upsertQueryTable(query, result.rows);
+
+      if (!excelResult.ok) {
+        this.error = excelResult.error?.message ?? "Failed to write results into Excel.";
+        return;
+      }
 
       this.state.setLastRun(query.id, {
         queryId: query.id,
         completedAt: new Date(),
         rowCount: result.rows.length,
-        location: location ?? undefined,
+        location: excelResult.value,
       });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
@@ -187,18 +192,19 @@ export class QueryHomeComponent implements OnInit {
 
     if (targetTable) {
       this.error = null;
-      const location = {
+
+      const inferredLocation = {
         sheetName: targetTable.worksheet,
         tableName: targetTable.name,
       };
 
-      await this.excel.activateQueryLocation(location);
+      await this.excel.activateQueryLocation(inferredLocation);
 
       this.state.setLastRun(query.id, {
         queryId: query.id,
         completedAt: new Date(),
         rowCount: targetTable.rows,
-        location,
+        location: inferredLocation,
       });
       return;
     }

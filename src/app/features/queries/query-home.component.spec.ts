@@ -12,6 +12,10 @@ class AuthServiceStub {
   hasAnyRole(roles: string[]): boolean {
     return roles.some((r) => this.roles.includes(r));
   }
+
+  hasRole(role: string): boolean {
+    return this.roles.includes(role);
+  }
 }
 
 describe("QueryHomeComponent role visibility", () => {
@@ -49,7 +53,7 @@ describe("QueryHomeComponent role visibility", () => {
 
     await component.runQuery(query);
 
-    expect(component["error"]).toContain("do not have permission");
+    expect(component["error"]).toContain("Queries can only be run inside Excel.");
   });
 
   it("allows running queries when user is analyst", async () => {

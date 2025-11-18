@@ -9,6 +9,7 @@ import { TablesComponent } from "../features/tables/tables.component";
 import { UserComponent } from "../features/user/user.component";
 import { QueryHomeComponent } from "../features/queries/query-home.component";
 import { DebugContextComponent } from "../features/debug/debug-context.component";
+import { SettingsComponent } from "../features/settings/settings.component";
 import { ButtonComponent } from "../shared/ui/button.component";
 
 @Component({
@@ -23,6 +24,7 @@ import { ButtonComponent } from "../shared/ui/button.component";
     UserComponent,
     QueryHomeComponent,
     DebugContextComponent,
+    SettingsComponent,
   ],
   templateUrl: "./app.component.html",
   styleUrl: "./app.component.css",
@@ -109,6 +111,8 @@ export class AppComponent {
         return this.text.nav.user;
       case "nav.queries":
         return this.text.nav.queries;
+      case "nav.settings":
+        return this.text.nav.settings;
       default:
         return labelKey;
     }

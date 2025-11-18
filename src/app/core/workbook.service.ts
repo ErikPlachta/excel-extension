@@ -4,9 +4,13 @@ import { QueryDefinition } from "../shared/query-model";
 import { WorkbookOwnershipInfo, WorkbookTableInfo } from "../types";
 
 /**
- * Provides a typed, feature-friendly abstraction over workbook state
- * (sheets, tables, and extension ownership), delegating low-level
- * operations to `ExcelService`.
+ * Provides a typed, feature-friendly abstraction over workbook state.
+ *
+ * `WorkbookService` is the preferred entry point for code that needs
+ * to reason about worksheets, tables, or extension ownership. It
+ * delegates all Office.js calls to `ExcelService` and exposes
+ * strongly-typed models (`WorkbookTableInfo`, `WorkbookOwnershipInfo`)
+ * so features never have to deal with raw Excel objects.
  */
 @Injectable({ providedIn: "root" })
 export class WorkbookService {
@@ -16,14 +20,27 @@ export class WorkbookService {
     return this.excel.isExcel;
   }
 
+  /**
+   * Returns the list of worksheet names in the current workbook.
+   *
+   * Outside Excel this resolves to an empty array, mirroring the
+   * behavior of `ExcelService.getWorksheets`.
+   */
   async getSheets(): Promise<string[]> {
     return this.excel.getWorksheets();
   }
 
+  /**
+   * Returns a lightweight description of all tables in the workbook.
+   */
   async getTables(): Promise<WorkbookTableInfo[]> {
     return this.excel.getWorkbookTables();
   }
 
+  /**
+   * Looks up a table by name, returning undefined when the table
+   * cannot be found in the workbook.
+   */
   async getTableByName(name: string): Promise<WorkbookTableInfo | undefined> {
     const tables = await this.getTables();
     return tables.find((t) => t.name === name);
@@ -67,6 +84,9 @@ export class WorkbookService {
   /**
    * Returns true if any ownership record marks the given table as
    * extension-managed for the provided query.
+   *
+   * This helper is kept private to centralize the matching logic
+   * while leaving a simpler public API on the service.
    */
   private isManagedForQuery(
     ownership: WorkbookOwnershipInfo[],

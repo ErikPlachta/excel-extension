@@ -1,7 +1,6 @@
 import { Component, OnInit } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { WorkbookService } from "../../core/workbook.service";
-import { ExcelService } from "../../core/excel.service";
 import { SectionComponent } from "../../shared/ui/section.component";
 import { TableComponent } from "../../shared/ui/table.component";
 
@@ -15,10 +14,7 @@ import { TableComponent } from "../../shared/ui/table.component";
 export class TablesComponent implements OnInit {
   tables: Record<string, unknown>[] = [];
 
-  constructor(
-    private readonly workbook: WorkbookService,
-    private readonly excel: ExcelService
-  ) {}
+  constructor(private readonly workbook: WorkbookService) {}
 
   get isExcel(): boolean {
     return this.workbook.isExcel;
@@ -37,11 +33,5 @@ export class TablesComponent implements OnInit {
       rows: t.rows,
       isManaged: managedKeys.has(`${t.worksheet}::${t.name}`),
     }));
-  }
-
-  async resetManagedTables(): Promise<void> {
-    if (!this.isExcel) return;
-    await this.excel.purgeExtensionManagedContent();
-    await this.ngOnInit();
   }
 }

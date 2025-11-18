@@ -67,6 +67,14 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
       actionType: "select-view",
     },
     {
+      id: "nav-settings",
+      labelKey: "nav.settings",
+      viewId: "settings",
+      requiresAuth: true,
+      domId: "nav-settings",
+      actionType: "select-view",
+    },
+    {
       id: "nav-signin-analyst",
       labelKey: "auth.signInAnalyst",
       actionType: "sign-in-analyst",

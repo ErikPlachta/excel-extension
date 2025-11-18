@@ -5,6 +5,7 @@ export const APP_TEXT = {
     tables: "Tables",
     user: "User",
     queries: "Queries",
+    settings: "Settings",
   },
   auth: {
     signInAnalyst: "Sign in as analyst",

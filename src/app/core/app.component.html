@@ -62,4 +62,5 @@
   <app-debug-context
     *ngIf="currentView === 'debug' && authSummary.isAuthenticated && auth.hasRole('admin')"
   ></app-debug-context>
+  <app-settings *ngIf="currentView === 'settings' && authSummary.isAuthenticated"></app-settings>
 </section>

@@ -1,6 +1,191 @@
-import { TestBed } from "@angular/core/testing";
 import { WorkbookService } from "./workbook.service";
 import { ExcelService } from "./excel.service";
+import { WorkbookOwnershipInfo, WorkbookTableInfo, QueryDefinition } from "../types";
+
+describe("WorkbookService ownership helpers", () => {
+  let workbook: WorkbookService;
+  let excelSpy: jasmine.SpyObj<ExcelService>;
+
+  beforeEach(() => {
+    excelSpy = jasmine.createSpyObj<ExcelService>("ExcelService", [
+      "getWorkbookOwnership",
+      "getTables",
+    ]);
+
+    workbook = new WorkbookService(excelSpy as unknown as ExcelService);
+  });
+
+  describe("getOwnership", () => {
+    it("maps ExcelService ownership rows into WorkbookOwnershipInfo[]", async () => {
+      const ownershipRows: WorkbookOwnershipInfo[] = [
+        {
+          sheetName: "Sheet1",
+          tableName: "tbl_Sales",
+          queryId: "sales-summary",
+          isManaged: true,
+          lastTouchedUtc: "2025-11-17T12:00:00Z",
+        },
+        {
+          sheetName: "Sheet2",
+          tableName: "tbl_Inventory",
+          queryId: "inventory",
+          isManaged: false,
+          lastTouchedUtc: "2025-11-17T13:00:00Z",
+        },
+      ];
+
+      excelSpy.getWorkbookOwnership.and.resolveTo(ownershipRows);
+
+      const result = await workbook.getOwnership();
+
+      expect(result.length).toBe(2);
+      expect(result[0].sheetName).toBe("Sheet1");
+      expect(result[0].isManaged).toBeTrue();
+      expect(result[1].isManaged).toBeFalse();
+      expect(excelSpy.getWorkbookOwnership).toHaveBeenCalled();
+    });
+  });
+
+  describe("isExtensionManagedTable", () => {
+    it("returns true only when ownership marks the table as managed", async () => {
+      const ownershipRows: WorkbookOwnershipInfo[] = [
+        {
+          sheetName: "Sheet1",
+          tableName: "tbl_Q1Sales",
+          queryId: "q1-sales",
+          isManaged: true,
+          lastTouchedUtc: "2025-11-17T12:00:00Z",
+        },
+      ];
+
+      excelSpy.getWorkbookOwnership.and.resolveTo(ownershipRows);
+
+      const tables: WorkbookTableInfo[] = [
+        {
+          name: "tbl_Q1Sales",
+          worksheet: "Sheet1",
+          rows: 10,
+        },
+        {
+          name: "tbl_Other",
+          worksheet: "Sheet1",
+          rows: 5,
+        },
+      ];
+
+      excelSpy.getTables.and.resolveTo(tables);
+
+      const managed = await workbook.isExtensionManagedTable(tables[0]);
+      const unmanaged = await workbook.isExtensionManagedTable(tables[1]);
+
+      expect(managed).toBeTrue();
+      expect(unmanaged).toBeFalse();
+    });
+  });
+
+  describe("getManagedTablesForQuery", () => {
+    it("filters tables by queryId and isManaged flag", async () => {
+      const ownershipRows: WorkbookOwnershipInfo[] = [
+        {
+          sheetName: "Sheet1",
+          tableName: "tbl_Q1Sales",
+          queryId: "q1-sales",
+          isManaged: true,
+          lastTouchedUtc: "2025-11-17T12:00:00Z",
+        },
+        {
+          sheetName: "Sheet2",
+          tableName: "tbl_Q2Sales",
+          queryId: "q2-sales",
+          isManaged: true,
+          lastTouchedUtc: "2025-11-17T12:30:00Z",
+        },
+        {
+          sheetName: "Sheet3",
+          tableName: "tbl_Q1Sales_Manual",
+          queryId: "q1-sales",
+          isManaged: false,
+          lastTouchedUtc: "2025-11-17T13:00:00Z",
+        },
+      ];
+
+      const tables: WorkbookTableInfo[] = [
+        { name: "tbl_Q1Sales", worksheet: "Sheet1", rows: 10 },
+        { name: "tbl_Q2Sales", worksheet: "Sheet2", rows: 8 },
+        { name: "tbl_Q1Sales_Manual", worksheet: "Sheet3", rows: 3 },
+      ];
+
+      excelSpy.getWorkbookOwnership.and.resolveTo(ownershipRows);
+      excelSpy.getTables.and.resolveTo(tables);
+
+      const result = await workbook.getManagedTablesForQuery("q1-sales");
+
+      expect(result.length).toBe(1);
+      expect(result[0].name).toBe("tbl_Q1Sales");
+      expect(result[0].worksheet).toBe("Sheet1");
+    });
+  });
+
+  describe("getOrCreateManagedTableTarget", () => {
+    const baseQuery: QueryDefinition = {
+      id: "q1-sales",
+      name: "Q1 Sales",
+      description: "Test query",
+      defaultSheetName: "Sheet1",
+      defaultTableName: "tbl_Q1Sales",
+      parameters: [],
+    } as QueryDefinition;
+
+    it("returns existing managed table as target when available", async () => {
+      const ownershipRows: WorkbookOwnershipInfo[] = [
+        {
+          sheetName: "Sheet1",
+          tableName: "tbl_Q1Sales",
+          queryId: "q1-sales",
+          isManaged: true,
+          lastTouchedUtc: "2025-11-17T12:00:00Z",
+        },
+      ];
+
+      const tables: WorkbookTableInfo[] = [{ name: "tbl_Q1Sales", worksheet: "Sheet1", rows: 10 }];
+
+      excelSpy.getWorkbookOwnership.and.resolveTo(ownershipRows);
+      excelSpy.getTables.and.resolveTo(tables);
+
+      const target = await workbook.getOrCreateManagedTableTarget(baseQuery);
+
+      expect(target).toBeTruthy();
+      if (!target) return;
+
+      expect(target.sheetName).toBe("Sheet1");
+      expect(target.tableName).toBe("tbl_Q1Sales");
+    });
+
+    it("returns a safe new table name when default conflicts with unmanaged user table", async () => {
+      const ownershipRows: WorkbookOwnershipInfo[] = [];
+
+      const tables: WorkbookTableInfo[] = [
+        {
+          name: "tbl_Q1Sales",
+          worksheet: "Sheet1",
+          rows: 3,
+        },
+      ];
+
+      excelSpy.getWorkbookOwnership.and.resolveTo(ownershipRows);
+      excelSpy.getTables.and.resolveTo(tables);
+
+      const target = await workbook.getOrCreateManagedTableTarget(baseQuery);
+
+      expect(target).toBeTruthy();
+      if (!target) return;
+
+      expect(target.sheetName).toBe("Sheet1");
+      expect(target.tableName).not.toBe("tbl_Q1Sales");
+    });
+  });
+});
+import { TestBed } from "@angular/core/testing";
 
 // TODO: Add TSDocs for WorkbookService and its methods.
 class ExcelServiceStub {

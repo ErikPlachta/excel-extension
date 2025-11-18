@@ -151,6 +151,9 @@ npm test -- --watch=false --browsers=ChromeHeadless
   - Default sheet/table names come from query metadata, with hooks for user overrides.
   - `activateQueryLocation` navigates to the worksheet/table from the query UI.
   - Query and table actions are guarded by `ExcelService.isExcel` so they are disabled and show friendly messaging outside Excel.
+  - Telemetry for Excel operations (such as `upsertQueryTable`) flows through `ExcelTelemetryService`, which normalizes successes and failures into a typed `ExcelOperationResult`/`ExcelErrorInfo` and logs them to the console for debugging.
+  - A `SettingsService` manages persisted app-wide settings (currently under `AppSettings.telemetry`), including a `enableWorkbookLogging` flag that controls whether telemetry entries are also written into a dedicated `_Extension_Log` worksheet via `ExcelService.appendLogEntry` when running inside Excel.
+  - The `SettingsComponent` (reachable via a new "Settings" nav item) exposes a simple checkbox labeled "Enable in-workbook telemetry log table" that toggles this behavior, letting developers opt into an in-workbook audit trail of Excel operations without affecting default behavior.
 
 - **Navigation & UX:**
   - Navigation is state-based inside `AppComponent` (no route changes) to play nicely with Excel iframes.
@@ -274,3 +277,29 @@ npm start        # http://localhost:4200/
 npm run dev-certs   # one-time per machine
 npm run start:dev   # https://localhost:4200/
 ```
+
+## Excel ownership testing
+
+When validating the workbook ownership model and safe table management, use this matrix as the baseline:
+
+- **Scenario A – First run creates managed table + ownership**
+  - Start from a blank workbook, sideload the dev add-in, sign in, and run a query (for example the sales summary query) once.
+  - Verify a new table is created with the expected default (or suffixed) name, that a `_Extension_Ownership` sheet exists, and that it contains a single data row with `sheetName`, `tableName`, `queryId`, `isManaged = "true"`, and a non-empty `lastTouchedUtc`.
+
+- **Scenario B – Rerun uses the same managed table**
+  - In the same workbook, run the same query again.
+  - Verify there are no Excel/Office errors, the table name is unchanged, the data is updated according to the current semantics (today this still means header + rows are re-written/append on each run), and the ownership row for that `(sheetName, tableName, queryId)` is still present with an updated `lastTouchedUtc`.
+
+- **Scenario C – User table name conflict is safe**
+  - In a new workbook, manually create a table named with the query’s `defaultTableName` (for example `tbl_SalesSummary`) and populate a few rows.
+  - Sideload the add-in, sign in, and run the matching query.
+  - Verify the user table’s data is not overwritten or deleted and that the extension either creates a new, suffixed table (or otherwise safe alternative) and records only that table as managed in `_Extension_Ownership`.
+
+- **Scenario D – Go-to-table honors ownership**
+  - Use a workbook where Scenario A has been run so that ownership metadata exists.
+  - Reload the taskpane, sign in, and click "Go to table" for that query before re-running it.
+  - Verify Excel activates the correct worksheet and selects the managed table without `rowCount`/`load`/`values` errors.
+
+- **Scenario E – Purge + clean rerun**
+  - In a workbook with multiple extension-managed tables, use the dev-only "Reset extension-managed tables" entry point wired to `ExcelService.purgeExtensionManagedContent`.
+  - Verify all extension-managed tables and any now-empty sheets are removed, `_Extension_Ownership` is deleted, user tables remain intact, and that running a query again recreates tables and ownership rows on a clean slate.

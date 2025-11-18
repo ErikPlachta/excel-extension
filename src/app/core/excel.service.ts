@@ -1,7 +1,8 @@
 import { Injectable } from "@angular/core";
 import { ExecuteQueryResultRow } from "../shared/query-api-mock.service";
 import { QueryDefinition, QueryRunLocation } from "../shared/query-model";
-import { WorkbookOwnershipInfo, WorkbookTableInfo } from "../types";
+import { ExcelOperationResult, WorkbookOwnershipInfo, WorkbookTableInfo } from "../types";
+import { ExcelTelemetryService } from "./excel-telemetry.service";
 
 // TODO: Convert this to a proper Angular service wrapper around Office.js, multiple files, proper types, utilities, etc. to ensure stability and easy supportability. (I think #12 in todo covers this logic.)
 
@@ -14,6 +15,8 @@ declare const Excel: any;
 
 @Injectable({ providedIn: "root" })
 export class ExcelService {
+  constructor(private readonly telemetry: ExcelTelemetryService) {}
+
   private officeReadyPromise: Promise<void> | null = null;
 
   get isExcel(): boolean {
@@ -153,8 +156,16 @@ export class ExcelService {
     query: QueryDefinition,
     rows: ExecuteQueryResultRow[],
     locationHint?: Partial<QueryRunLocation>
-  ): Promise<QueryRunLocation | null> {
-    if (!this.isExcel) return null;
+  ): Promise<ExcelOperationResult<QueryRunLocation>> {
+    if (!this.isExcel) {
+      return {
+        ok: false,
+        error: {
+          operation: "upsertQueryTable",
+          message: "Excel is not available in the current host.",
+        },
+      };
+    }
     await this.ensureOfficeReady();
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -227,9 +238,18 @@ export class ExcelService {
         }
 
         await ctx.sync();
+        this.telemetry.logSuccess("upsertQueryTable", {
+          queryId: query.id,
+          sheetName,
+          tableName,
+          rowCount: rows.length,
+        });
       } catch (err) {
-        // Re-throw so callers can surface a clean message.
-        throw err;
+        return this.telemetry.normalizeError<QueryRunLocation>(
+          "upsertQueryTable",
+          err,
+          "Failed to write query results into Excel."
+        );
       }
 
       // Track ownership for the table we just touched so that
@@ -241,9 +261,48 @@ export class ExcelService {
       await this.recordOwnership({ tableName, sheetName, queryId: query.id });
 
       return {
-        sheetName,
-        tableName,
-      } as QueryRunLocation;
+        ok: true,
+        value: {
+          sheetName,
+          tableName,
+        },
+      };
+    });
+  }
+
+  async appendLogEntry(entry: {
+    level: "info" | "error";
+    operation: string;
+    message?: string;
+    info?: Record<string, unknown>;
+  }): Promise<void> {
+    if (!this.isExcel) return;
+    await this.ensureOfficeReady();
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await Excel!.run(async (ctx: any) => {
+      const sheets = ctx.workbook.worksheets;
+      let sheet = sheets.getItemOrNullObject("_Extension_Log");
+      sheet.load("name");
+      await ctx.sync();
+
+      if (sheet.isNullObject) {
+        sheet = sheets.add("_Extension_Log");
+        const header = [["timestamp", "level", "operation", "message"]];
+        const headerRange = sheet.getRange("A1:D1");
+        headerRange.values = header;
+      }
+
+      const usedRange = sheet.getUsedRangeOrNullObject();
+      await ctx.sync();
+
+      const nextRowIndex = usedRange.isNullObject ? 1 : usedRange.getLastRow().rowIndex + 1;
+      const range = sheet.getRange(`A${nextRowIndex + 1}:D${nextRowIndex + 1}`);
+      range.values = [
+        [new Date().toISOString(), entry.level, entry.operation, entry.message ?? ""],
+      ];
+
+      await ctx.sync();
     });
   }
 
