@@ -8,7 +8,11 @@ Purpose: Enable AI coding agents to be productive immediately in this Angular-ba
 2. Focus on manifest compliance with the Office Add-ins Development Kit, prioritizing `dev-manifest.xml` for local development and sideloading in Excel.
 3. Use `_TEMPLATES/` Dev Kit sample manifests as canonical references for structure, especially `<Resources>`, icon definitions, and HTTPS requirements.
 4. Ensure any changes to `dev-manifest.xml` maintain localhost for `SourceLocation` to facilitate easy local sideloading.
-5. Keep `CONTEXT-SESSION.md` updated with the current state snapshot, manifest validation findings, and a focused TODO checklist. You should make the changes there as the source of truth for ongoing work. (Don't ask me to do this; just do it.) When asked to update planning/checklist docs (like `TODO.md` or `CONTEXT-SESSION.md`), prefer a single comprehensive pass over the requested scope (e.g., an entire section) rather than touching only the immediately-adjacent bullets.
+5. Treat the three planning files as follows, and keep them in sync:
+   - `TODO.md` → the single source of truth for **actionable tasks and subtasks** (every concrete piece of work is a checkbox, and completed work is marked `[x]` with wording updated to reflect reality).
+   - `CONTEXT-SESSION.md` → the **branch/session-level narrative**, describing overall goals, architecture, and how major features fit together; no granular task tracking here.
+   - `CONTEXT-CURRENT.md` → the **current-focus sandbox**, a zoomed-in view for the active subset of work (goals, snapshot, active refinement notes, manual validation scenarios) tied to one or more unchecked TODOs.
+   - When asked to update planning/checklist docs (like `TODO.md`, `CONTEXT-SESSION.md`, or `CONTEXT-CURRENT.md`), prefer a single comprehensive pass over the requested scope (e.g., an entire section) rather than touching only the immediately-adjacent bullets.
 6. You can and should defer to running scripts that require me to provide you the results of the command (e.g., manifest validation) rather than trying to simulate or guess the output yourself.
 7. Do not re-explain or re-summarize content that was already clearly stated in the immediately preceding turn unless the user explicitly asks for a recap or clarification.
 

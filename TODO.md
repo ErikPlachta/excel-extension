@@ -1,12 +1,17 @@
-> Copilot TODO Management for this file
->
-> - Treat any explicitly mentioned scope (for example, a whole section like "Refine & Improve Excel Functionality") as **all-inclusive** when asked to update it. Make one coherent pass over that scope instead of piecemeal edits.
-> - Every discrete actionable bullet under this file should be a checkbox (`- [ ]` or `- [x]`). Do **not** leave plain `-` bullets for tasks; convert them to checkboxes or fold them into nearby descriptions.
-> - When work has actually been done in the codebase, update the corresponding checkboxes here to reflect reality. Do **not** leave items unchecked once the implementation is clearly complete.
-> - Prefer **summarizing what really happened** over preserving old wording. If a TODO’s description no longer matches the implemented design, rewrite it into a concise summary of the final behavior and mark it `[x]`.
-> - When a parent item is effectively finished but still contains leftover sub-bullets that you are not going to execute (e.g., speculative testing/doc tasks), either remove those sub-bullets or collapse them into a short, factual summary before marking the parent `[x]`.
-> - Keep this file aligned with `CONTEXT-SESSION.md`: when you introduce or complete notable behaviors (Excel ownership model, Go-to-Table behavior, test runner wiring, purge/reset helpers), ensure both this TODO and `CONTEXT-SESSION.md` tell the same story at a high level.
-> - Avoid repeating long status recaps in chat. When changing this file, just **make the edits** and give a short delta-style note (what changed, in a sentence or two).
+# TODO
+
+<!-- BEGIN:COPILOT-INSTRUCTIONS -->
+
+## How to use this file
+
+- This file is the single source of truth for **actionable tasks and subtasks** across the project. Every concrete piece of work should be represented here as a checkbox (`- [ ]` or `- [x]`).
+- When you pick up work, first locate the relevant section (for example, `11. Refine & Improve Excel Functionality`) and make sure **all items in that scope** are represented as checkboxes and accurately reflect the current implementation.
+- When a task is actually completed in the codebase, update its checkbox to `[x]` and, if needed, adjust its wording so it concisely describes what was truly implemented rather than the original intent.
+- Avoid leaving plain `-` bullets for tasks; convert them into checkboxes or fold non-actionable commentary into nearby descriptions. Parent items may summarize, but any real work should be trackable as a checkbox.
+- Keep this file aligned with `CONTEXT-SESSION.md` and `CONTEXT-CURRENT.md`: high-level narrative and current-focus details live there, while this file stays focused on "what needs to be done" and "what is done".
+- When asked to update a section, operate on the **entire explicitly mentioned scope** in one coherent pass instead of piecemeal edits, and then provide a short delta-style summary in chat rather than repeating the whole section.
+
+<!-- END:COPILOT-INSTRUCTIONS -->
 
 ## TODOs
 
@@ -493,27 +498,48 @@ Going forward, **every new feature or meaningful code change must include TSDoc 
   - [x] Surface simple, scalable user options for rerun behavior in the query UI via a per-query "Write mode" dropdown (Overwrite existing table vs Append rows) on `QueryHomeComponent`, wired into `runQuery` so the selected mode is passed into `ExcelService.upsertQueryTable` while still defaulting to config-driven `writeMode`.
 
 - [ ] **Refine and Refactor Office.js Wrapper Logic**
-  - [ ] Act as an expert in TSDoc, Angular, Excel, Office.js, Excel Extensions, data driven design, modular design, API, and security
-  - [ ] KEY_PROBLEM_TO_SOLVE: Running a query always appends and includes header to the table.
-    - [ ] VERIFY: Understand user reported issue related to query RUN behavior:
-      - [ ] Should only include header on initial creation.
-      - [ ] Should use use new and existing header to verify nothing's changed, and if so handle accordingly.
-      - [ ] This will require some decent amount of logic to know what to do, so make sure we think it through fully
-      - [ ] Append or Overwrite behavior should work but it's not
-  - [ ] REVIEW_CODE: Examine all methods in `ExcelService` for proper Office.js usage.
-    - [ ] Ensure each method correctly initializes and syncs the Office.js context.
-    - [ ] Validate that error handling is robust and provides meaningful feedback.
-  - [ ] UPDATE_TSDOC: Ensure all methods in `ExcelService` have comprehensive TSDoc comments.
-    - [ ] Review `/Users/erikplachta/repo/excel-extension/src/app/core/excel.service.ts`, and update with complete TSDoc comments at the File, Class, and Method levels. Complete documentation, no exception.
-    - [ ] Verify this class is a proper Angular service wrapper around Office.js
-    - [ ] Look for opportunities to extract logic and functionality that should be moved into helpers, like sorting, filtering, and general helper funcitons that can/should be used by the application as a whole.
-  - [ ] Review `@types/office-runtime`
-    - [ ] What is this designed to do?
-    - [ ] How is used in `/Users/erikplachta/repo/excel-extension/_ARCHIVE/_TEMPLATES/React_TS`
-    - [ ] Can we take advantage of it or should we remove the dependency?
-  - [ ] PLAN: After you've reviewed, append this list below with a plan breaking down the next steps
-    - [ ] What needs to be refactored and why?
-    - [ ] What steps will you take?
+  - [ ] ROLE: Act as an expert in TSDoc, Angular, Excel, Office.js, Excel Extensions, data driven design, modular design, API, and security when working on this section.
+  - [ ] KEY_PROBLEM_TO_SOLVE: Query runs can duplicate headers and misalign table ranges.
+    - [ ] VERIFY: Reproduce the reported issue in Excel where rerunning a query (append or overwrite) causes multiple header blocks and/or Excel errors about invalid/misaligned ranges.
+    - [ ] EXPECTED: Header row is written exactly once (on initial creation or on full overwrite) and never duplicated by reruns.
+    - [ ] EXPECTED: Append mode only appends data rows to the existing table body and does not touch the header row or resize the table around new header+data blocks.
+    - [ ] EXPECTED: Overwrite mode replaces the existing table body rows in-place (or recreates the table in the same header row position) without moving the header or colliding with other content.
+  - [ ] REVIEW_CODE: Audit `ExcelService` for correct Office.js usage, context handling, and error/telemetry integration.
+    - [ ] Identify all entry points that call into Office.js (`Excel.run`, `context.sync`, `getWorksheets`, `getTables`, `upsertQueryTable`, `activateQueryLocation`, ownership helpers, purge helpers, telemetry writes).
+    - [ ] Ensure each method correctly scopes its `Excel.run` call, loads the fields it reads (`load`), and calls `context.sync()` before accessing loaded properties.
+    - [ ] Verify all public methods return typed results (`ExcelOperationResult<...>`, `WorkbookTabInfo[]`, etc.) instead of throwing raw errors, and that failures flow through `ExcelTelemetryService`.
+    - [ ] Confirm all methods honor `ExcelService.isExcel` and fail fast with a clear, typed result when not running inside Excel.
+  - [ ] FIX_GEOMETRY: Refactor `upsertQueryTable` to separate header and data behavior and to respect existing table geometry.
+    - [ ] Implement a clear internal model for header vs data ranges (e.g., `headerRange`, `dataBodyRange`) and ensure overwrite/append operations manipulate only the appropriate part of the table.
+    - [ ] Overwrite mode:
+      - [ ] When no existing managed table: create a new sheet/table using the workbook ownership helper (`WorkbookService.getOrCreateManagedTableTarget`), write header + data, and record ownership.
+      - [ ] When an existing managed table is found: anchor on the existing header row, clear or replace the data body range, and then write the new data rows without duplicating headers or moving the table.
+      - [ ] Ensure the table’s header row stays in the same row and column, and that any resizing respects Excel’s requirement that the new range aligns with the existing header row.
+    - [ ] Append mode:
+      - [ ] Require an existing managed table; if none exists, fall back to the overwrite path (create table with header + data) instead of attempting to append to a non-table range.
+      - [ ] Load and compare the existing header row values vs the new header; when they match, call `table.rows.add` with only the data rows.
+      - [ ] If headers differ, route through a safe overwrite strategy (e.g., create a new suffixed table via ownership helpers) rather than forcing a resize that misaligns headers.
+    - [ ] Use workbook ownership helpers (`WorkbookService.getManagedTablesForQuery`, `getOrCreateManagedTableTarget`) consistently so geometry decisions are centralized and user tables are never overwritten.
+    - [ ] Update telemetry emitted from `upsertQueryTable` to include the chosen mode, header match/mismatch flag, and any geometry decisions (new table vs reuse vs new suffixed table).
+  - [ ] VERIFY_BEHAVIOR: Add or update tests and manual validation scenarios for `upsertQueryTable`.
+    - [ ] Extend unit tests (or integration-style tests, as feasible) around `ExcelService.upsertQueryTable` to cover:
+      - [ ] First run creates a managed table with a single header row and data body.
+      - [ ] Rerun in overwrite mode keeps header fixed and replaces data rows without geometry errors.
+      - [ ] Rerun in append mode appends data rows only and never duplicates headers when schemas match.
+      - [ ] Append with header mismatch safely falls back to overwrite logic (e.g., new suffixed table) and logs the decision.
+    - [ ] Document manual Excel testing scenarios (in `CONTEXT-SESSION.md` under "Excel ownership testing" or a new "Office.js wrapper behavior" subsection) that verify header stability, overwrite behavior, append behavior, and error handling for misaligned ranges.
+  - [ ] UPDATE_TSDOC: Ensure all methods in `ExcelService` have comprehensive TSDoc comments and reflect the new behavior.
+    - [ ] Add or update file-level and class-level TSDoc for `ExcelService` describing its role as the low-level Office.js wrapper and how it relates to `WorkbookService` and `ExcelTelemetryService`.
+    - [ ] Add method-level TSDoc for all public methods (`upsertQueryTable`, `activateQueryLocation`, ownership helpers, purge helpers, telemetry helpers) documenting parameters, return types, Office.js side effects, and error/telemetry behavior.
+    - [ ] Explicitly document where Office.js types remain `any` and where they are mapped into strongly typed models (e.g., `WorkbookTabInfo`, `WorkbookTableInfo`, `WorkbookOwnershipInfo`).
+    - [ ] Look for opportunities to extract reusable helpers (e.g., header comparison, data row projection, safe resize operations, ownership-aware target selection) into private methods with clear TSDoc so they can be reused across query flows and future Excel features.
+  - [ ] REVIEW_DEPENDENCIES: Evaluate `@types/office-runtime` and related Office typings.
+    - [ ] Confirm what `@types/office-runtime` is designed to cover (Office.js runtime host APIs) and how it is used (if at all) in the current codebase.
+    - [ ] Inspect `/Users/erikplachta/repo/excel-extension/_ARCHIVE/_TEMPLATES/React_TS` to see how these types were used in the original template.
+    - [ ] Decide whether to keep, upgrade, or remove `@types/office-runtime` in this Angular app; if kept, document where and how it should be used in `ExcelService` and related wrappers.
+  - [ ] PLAN: Once the above review and refactor are complete, extend this checklist with any follow-on tasks.
+    - [ ] Capture any additional refactors needed (e.g., splitting `ExcelService` into smaller, focused services or modules) and explain why they are needed.
+    - [ ] Outline incremental steps for future improvements that depend on this work (for example, more advanced query/table operations, pivot-table helpers, or richer telemetry).
 
 - [ ] **Refactor excel-telemetry.service.ts and Update to application-telemetry**
   - [ ] Act as an expert in TSDoc, Angular, Excel, Office.js, Excel Extensions, data driven design, modular design, API, and security
