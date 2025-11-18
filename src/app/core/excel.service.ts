@@ -206,35 +206,68 @@ export class ExcelService {
           sheet = worksheets.add(sheetName);
         }
 
-        const usedRange = sheet.getUsedRangeOrNullObject();
-        await ctx.sync();
-
-        const hasExisting = !usedRange.isNullObject;
-        const startCell = hasExisting ? usedRange.getLastRow().getCell(1, 0) : sheet.getRange("A1");
-
         const header = rows.length ? Object.keys(rows[0]) : [];
         const values = rows.map((r) => header.map((h) => r[h] ?? null));
+        const effectiveHeader = header.length ? header : ["Value"];
+        const effectiveValues = values.length ? values : [[null]];
 
-        const totalRowCount = 1 + values.length;
-        const totalColumnCount = header.length || 1;
-        const dataRange = startCell.getResizedRange(totalRowCount - 1, totalColumnCount - 1);
-
-        const allValues = [
-          header.length ? header : ["Value"],
-          ...(values.length ? values : [[null]]),
-        ];
-
-        dataRange.values = allValues;
+        const writeMode = query.writeMode ?? "overwrite";
 
         let table = ctx.workbook.tables.getItemOrNullObject(tableName);
-        table.load("name");
+        table.load("name,worksheet,rows");
         await ctx.sync();
 
-        if (table.isNullObject) {
-          table = ctx.workbook.tables.add(dataRange, true /* hasHeaders */);
-          table.name = tableName;
-        } else {
-          table.resize(dataRange);
+        if (table.isNullObject || writeMode === "overwrite") {
+          const usedRange = sheet.getUsedRangeOrNullObject();
+          await ctx.sync();
+
+          const startCell = usedRange.isNullObject
+            ? sheet.getRange("A1")
+            : usedRange.getLastRow().getCell(1, 0);
+
+          const totalRowCount = 1 + effectiveValues.length;
+          const totalColumnCount = effectiveHeader.length;
+          const dataRange = startCell.getResizedRange(totalRowCount - 1, totalColumnCount - 1);
+
+          dataRange.values = [effectiveHeader, ...effectiveValues];
+
+          if (table.isNullObject) {
+            table = ctx.workbook.tables.add(dataRange, true /* hasHeaders */);
+            table.name = tableName;
+          } else {
+            table.resize(dataRange);
+          }
+        } else if (writeMode === "append") {
+          // Ensure the table exists and has a header row; append new
+          // rows to the bottom, preserving existing content.
+          const headerRange = table.getHeaderRowRange();
+          headerRange.load("values");
+          await ctx.sync();
+
+          const tableHeaderValues = (headerRange.values as unknown[][])[0] as string[];
+          const headerMatches =
+            tableHeaderValues.length === effectiveHeader.length &&
+            tableHeaderValues.every((h, idx) => String(h) === String(effectiveHeader[idx]));
+
+          if (!headerMatches) {
+            // Fallback: rewrite the table (safer than appending with
+            // mismatched schema).
+            const usedRange = sheet.getUsedRangeOrNullObject();
+            await ctx.sync();
+
+            const startCell = usedRange.isNullObject
+              ? sheet.getRange("A1")
+              : usedRange.getLastRow().getCell(1, 0);
+
+            const totalRowCount = 1 + effectiveValues.length;
+            const totalColumnCount = effectiveHeader.length;
+            const dataRange = startCell.getResizedRange(totalRowCount - 1, totalColumnCount - 1);
+
+            dataRange.values = [effectiveHeader, ...effectiveValues];
+            table.resize(dataRange);
+          } else {
+            table.rows.add(null, effectiveValues);
+          }
         }
 
         await ctx.sync();

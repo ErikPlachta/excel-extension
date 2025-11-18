@@ -69,6 +69,7 @@ export class QueryApiMockService {
       ],
       defaultSheetName: "Sales_Summary",
       defaultTableName: "tbl_SalesSummary",
+      writeMode: "overwrite",
       uiConfig: this.createStandardQueryUiConfig(),
     },
     {
@@ -78,6 +79,7 @@ export class QueryApiMockService {
       parameters: [this.createNumberParam("topN", "Top N", 10)],
       defaultSheetName: "Top_Customers",
       defaultTableName: "tbl_TopCustomers",
+      writeMode: "append",
       uiConfig: this.createStandardQueryUiConfig(),
     },
     {
@@ -87,6 +89,7 @@ export class QueryApiMockService {
       parameters: [],
       defaultSheetName: "Inventory_Status",
       defaultTableName: "tbl_InventoryStatus",
+      writeMode: "overwrite",
       uiConfig: this.createStandardQueryUiConfig(),
     },
     {
@@ -96,6 +99,7 @@ export class QueryApiMockService {
       parameters: [],
       defaultSheetName: "User_Audit",
       defaultTableName: "tbl_UserAudit",
+      writeMode: "overwrite",
       allowedRoles: ["admin"],
       uiConfig: this.createStandardQueryUiConfig({ adminOnly: true }),
     },
@@ -107,6 +111,7 @@ export class QueryApiMockService {
       parameters: [],
       defaultSheetName: "JsonApi_Example",
       defaultTableName: "tbl_JsonApiExample",
+      writeMode: "overwrite",
       allowedRoles: ["admin"],
       uiConfig: this.createStandardQueryUiConfig({ adminOnly: true }),
     },

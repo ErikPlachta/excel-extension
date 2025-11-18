@@ -4,6 +4,7 @@ import { ExcelService, AuthService } from "../../core";
 import { ExecuteQueryParams, QueryApiMockService } from "../../shared/query-api-mock.service";
 import { QueryStateService } from "../../shared/query-state.service";
 import { QueryDefinition } from "../../shared/query-model";
+import { QueryWriteMode } from "../../types";
 import { ListComponent, UiListItem } from "../../shared/ui/list.component";
 import { DropdownComponent, UiDropdownItem } from "../../shared/ui/dropdown.component";
 import { ButtonComponent } from "../../shared/ui/button.component";
@@ -23,6 +24,8 @@ export class QueryHomeComponent implements OnInit {
   listItems: UiListItem[] = [];
   roleFilterItems: UiDropdownItem[] = [];
   selectedRoleFilter: string | null = null;
+  writeModeItems: UiDropdownItem[] = [];
+  selectedWriteModes = new Map<string, QueryWriteMode>();
   isRunning = false;
   error: string | null = null;
   workbookTables: WorkbookTableInfo[] = [];
@@ -54,6 +57,16 @@ export class QueryHomeComponent implements OnInit {
       { value: "analyst", label: "Analyst-accessible" },
     ];
     this.selectedRoleFilter = "all";
+
+    this.writeModeItems = [
+      { value: "overwrite", label: "Overwrite existing table" },
+      { value: "append", label: "Append rows" },
+    ];
+
+    for (const query of this.queries) {
+      const initial: QueryWriteMode = query.writeMode ?? "overwrite";
+      this.selectedWriteModes.set(query.id, initial);
+    }
 
     if (this.workbook.isExcel) {
       void this.loadWorkbookState();
@@ -114,6 +127,11 @@ export class QueryHomeComponent implements OnInit {
     this.selectedRoleFilter = value;
   }
 
+  onWriteModeChange(query: QueryDefinition, value: string): void {
+    const mode: QueryWriteMode = value === "append" ? "append" : "overwrite";
+    this.selectedWriteModes.set(query.id, mode);
+  }
+
   onRunClicked(query: QueryDefinition): void {
     void this.runQuery(query);
   }
@@ -146,7 +164,12 @@ export class QueryHomeComponent implements OnInit {
     try {
       const lastParams = (this.state.getLastParams(query.id) ?? {}) as ExecuteQueryParams;
       const result = await this.api.executeQuery(query.id, lastParams);
-      const excelResult = await this.excel.upsertQueryTable(query, result.rows);
+
+      const writeMode: QueryWriteMode =
+        this.selectedWriteModes.get(query.id) ?? query.writeMode ?? "overwrite";
+      const effectiveQuery: QueryDefinition = { ...query, writeMode };
+
+      const excelResult = await this.excel.upsertQueryTable(effectiveQuery, result.rows);
 
       if (!excelResult.ok) {
         this.error = excelResult.error?.message ?? "Failed to write results into Excel.";

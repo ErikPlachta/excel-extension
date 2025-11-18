@@ -17,6 +17,12 @@ export interface QueryParameter {
 import { QueryUiConfig } from "./ui/primitives.types";
 
 /**
+ * Controls how a query rerun should write rows into its
+ * target Excel table.
+ */
+export type QueryWriteMode = "overwrite" | "append";
+
+/**
  * Definition of a query that can be executed against a data source.
  */
 export interface QueryDefinition {
@@ -34,6 +40,14 @@ export interface QueryDefinition {
   defaultSheetName: string;
   /** Base name to use when creating tables for this query. */
   defaultTableName: string;
+  /**
+   * Strategy for writing rows on rerun.
+   * - "overwrite" (default): rewrites the table region
+   *   for each run.
+   * - "append": preserves existing rows and appends new
+   *   ones to the bottom of the table.
+   */
+  writeMode?: QueryWriteMode;
   /** Optional, data-driven UI configuration for how this query appears in the UI. */
   uiConfig?: QueryUiConfig;
 }

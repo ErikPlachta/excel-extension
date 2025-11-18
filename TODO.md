@@ -481,17 +481,31 @@ Going forward, **every new feature or meaningful code change must include TSDoc 
   - [x] Ensured the query list UI uses explicit `ButtonComponent` actions ("Run" and "Go to table") instead of row clicks for execution, so errors and disabled states are visible and accessible; navigation is separated from execution and guarded by host/auth/ownership state.
   - [x] Documented the new Excel error/telemetry handling and in-workbook log table behavior in `CONTEXT-SESSION.md`, including the role of `ExcelOperationResult`, `ExcelTelemetryService`, and the Settings toggle for workbook logging.
 
-- [ ] **Add component for logging execution/usage into a worksheet table**
-  - [ ] Create a shared logging component/service pair that can append log entries (e.g., query runs, navigation events, errors) into an Excel worksheet table for in-workbook debugging.
-  - [ ] Integrate it with `WorkbookService`/`ExcelService` so that, when `isExcel` is true, logs are written to a configurable sheet/table (with sensible defaults) and can be filtered/cleared from the UI.
-  - [ ] Verify that logging is no-op outside Excel, and that logs persist within the workbook session for troubleshooting.
+- [x] **Add component for logging execution/usage into a worksheet table**
+  - [x] Implemented `ExcelTelemetryService` as the shared logging component/service responsible for capturing Excel operation successes and failures (including query runs) and emitting structured log entries.
+  - [x] Integrated telemetry with workbook logging so that, when `isExcel` is true and workbook logging is enabled in `Settings`, log entries are appended into a configurable Excel table on a dedicated worksheet (with sensible defaults driven by `TelemetrySettings`).
+  - [x] Ensured logging is a no-op outside Excel and that in-workbook logs persist within the workbook for troubleshooting, with a Settings toggle controlling whether workbook-side logging is active.
 
-- [ ] **Harden query rerun behavior and table data management**
-  - [ ] Fix the `rowCount` error by ensuring all table-related properties are properly `load`-ed and `context.sync()` is called before reading them in `ExcelService.upsertQueryTable` and any rerun-related helpers.
-  - [ ] Define a clear overwrite vs append strategy at the config level (e.g., per `QueryDefinition` flags like `writeMode: 'overwrite' | 'append' | 'append-or-overwrite'`) and implement it inside ownership-aware helpers so reruns behave predictably.
-  - [ ] Introduce optional key column metadata on `QueryDefinition` (e.g., `primaryKeyColumns: string[]`) to enable smarter upserts (update vs insert) instead of always deleting/rewriting the table when needed.
-  - [ ] Surface simple, scalable user options for rerun behavior in the query UI (e.g., “Overwrite existing table”, “Append rows”, “Clear before write”) with sensible defaults driven by configuration.
-  - [ ] Ensure the logging component captures rerun decisions and outcomes (rows written, mode used, any conflicts) for later troubleshooting.
+- [x] **Harden query rerun behavior and table data management**
+  - [x] Ensure the logging component captures rerun decisions and outcomes (rows written, mode used, any conflicts) for later troubleshooting (telemetry now logs operation name, query id, table and sheet, and row counts into the workbook log table when enabled).
+  - [x] Fix the `rowCount` error by ensuring all table-related properties are properly `load`-ed and `context.sync()` is called before reading them in `ExcelService.upsertQueryTable` and any rerun-related helpers (current implementation uses `getUsedRangeOrNullObject`, explicit `load`, and a sync before computing row counts and resizing tables).
+  - [x] Define a clear overwrite vs append strategy at the config level (per-query `writeMode: 'overwrite' | 'append'`) and implement it in `ExcelService.upsertQueryTable` so reruns either rewrite the table region (`overwrite`, the default) or append rows to an existing table when headers match, falling back to overwrite on schema mismatch.
+  - [x] Surface simple, scalable user options for rerun behavior in the query UI via a per-query "Write mode" dropdown (Overwrite existing table vs Append rows) on `QueryHomeComponent`, wired into `runQuery` so the selected mode is passed into `ExcelService.upsertQueryTable` while still defaulting to config-driven `writeMode`.
+
+- [ ] **Refine and Refactor Office.js Wrapper Logic**
+  - [ ] KEY_PROBLEM_TO_SOLVE: Running a query always appends and includes header to the table.
+    - [ ] VERIFY: Understand user reported issue related to query RUN behavior:
+      - [ ] Should only include header on initial creation.
+      - [ ] Should use use new and existing header to verify nothing's changed, and if so handle accordingly.
+      - [ ] This will require some decent amount of logic to know what to do, so make sure we think it through fully
+      - [ ] Append or Overwrite behavior should work but it's not
+  - [ ] REVIEW_CODE: Examine all methods in `ExcelService` for proper Office.js usage.
+    - [ ] Ensure each method correctly initializes and syncs the Office.js context.
+    - [ ] Validate that error handling is robust and provides meaningful feedback.
+  - [ ] UPDATE_TSDOC: Ensure all methods in `ExcelService` have comprehensive TSDoc comments.
+    - [ ] Review `/Users/erikplachta/repo/excel-extension/src/app/core/excel.service.ts`, and update with complete TSDoc comments at the File, Class, and Method levels.
+    - [ ] Verify this class is a proper Angular service wrapper around Office.js
+  - [ ] PLAN: After you've reviewed, append this list below with a plan breaking down the next steps
 
 - [ ] **Implement robust query parameter management (global + per-query)**
   - [ ] Extend the query domain model to distinguish between global parameters (applied to multiple queries/reports) and query-specific parameters (e.g., date ranges, regions, customer segments) with clear typing and defaults.
