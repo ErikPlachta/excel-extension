@@ -128,7 +128,7 @@ npm test -- --watch=false --browsers=ChromeHeadless
 - This failure is **not** related to the workbook ownership work; tests for ownership-related services/components are blocked by this unresolved SSO spec error.
 - Resolution is intentionally deferred to a separate task/branch so the ownership-focused work here stays scoped; once addressed, the full test suite should pass again without changes to the ownership model.
 
-## High-level App Design (current)
+## High-Level App Design
 
 - **Auth & roles:**
   - Mocked SSO via helpers (`sso-helper.ts`) and middle-tier stubs (`src/middle-tier/app.ts`).
