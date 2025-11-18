@@ -12,10 +12,12 @@
     (valueChange)="onRoleFilterChange($event)"
   ></app-dropdown>
 
-  <app-list
+  <!-- 20251118 | Removed because Shouldn't be here. Was just to verify
+    <app-list
     [items]="filteredListItems"
     emptyMessage="No queries defined in the mock API."
-  ></app-list>
+    ></app-list>
+  -->
 
   <div class="query-actions" *ngIf="filteredQueries.length">
     <div class="query-actions__row" *ngFor="let query of filteredQueries">

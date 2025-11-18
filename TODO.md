@@ -493,6 +493,7 @@ Going forward, **every new feature or meaningful code change must include TSDoc 
   - [x] Surface simple, scalable user options for rerun behavior in the query UI via a per-query "Write mode" dropdown (Overwrite existing table vs Append rows) on `QueryHomeComponent`, wired into `runQuery` so the selected mode is passed into `ExcelService.upsertQueryTable` while still defaulting to config-driven `writeMode`.
 
 - [ ] **Refine and Refactor Office.js Wrapper Logic**
+  - [ ] Act as an expert in TSDoc, Angular, Excel, Office.js, Excel Extensions, data driven design, modular design, API, and security
   - [ ] KEY_PROBLEM_TO_SOLVE: Running a query always appends and includes header to the table.
     - [ ] VERIFY: Understand user reported issue related to query RUN behavior:
       - [ ] Should only include header on initial creation.
@@ -503,9 +504,27 @@ Going forward, **every new feature or meaningful code change must include TSDoc 
     - [ ] Ensure each method correctly initializes and syncs the Office.js context.
     - [ ] Validate that error handling is robust and provides meaningful feedback.
   - [ ] UPDATE_TSDOC: Ensure all methods in `ExcelService` have comprehensive TSDoc comments.
-    - [ ] Review `/Users/erikplachta/repo/excel-extension/src/app/core/excel.service.ts`, and update with complete TSDoc comments at the File, Class, and Method levels.
+    - [ ] Review `/Users/erikplachta/repo/excel-extension/src/app/core/excel.service.ts`, and update with complete TSDoc comments at the File, Class, and Method levels. Complete documentation, no exception.
     - [ ] Verify this class is a proper Angular service wrapper around Office.js
+    - [ ] Look for opportunities to extract logic and functionality that should be moved into helpers, like sorting, filtering, and general helper funcitons that can/should be used by the application as a whole.
+  - [ ] Review `@types/office-runtime`
+    - [ ] What is this designed to do?
+    - [ ] How is used in `/Users/erikplachta/repo/excel-extension/_ARCHIVE/_TEMPLATES/React_TS`
+    - [ ] Can we take advantage of it or should we remove the dependency?
   - [ ] PLAN: After you've reviewed, append this list below with a plan breaking down the next steps
+    - [ ] What needs to be refactored and why?
+    - [ ] What steps will you take?
+
+- [ ] **Refactor excel-telemetry.service.ts and Update to application-telemetry**
+  - [ ] Act as an expert in TSDoc, Angular, Excel, Office.js, Excel Extensions, data driven design, modular design, API, and security
+  - [ ] REVIEW_CODE: Examine all methods in `ExcelTelemetryService` for proper Office.js usage and telemetry handling.
+    - [ ] Ensure each method correctly initializes and syncs the Office.js context.
+    - [ ] Validate that error handling is robust and provides meaningful feedback.
+  - [ ] UPDATE_TSDOC: Ensure all methods in `ExcelTelemetryService` have comprehensive TSDoc comments.
+    - [ ] Review `/Users/erikplachta/repo/excel-extension/src/app/core/excel-telemetry.service.ts`, and update with complete TSDoc comments at the File, Class, and Method levels. Complete documentation, no exception.
+    - [ ] Verify this class is a proper Angular service wrapper around Office.js telemetry functionality.
+    - [ ] Look for opportunities to extract logic and functionality that should be moved into helpers, like sorting, filtering, and general helper functions that can/should be used by the application as a whole.
+  - [ ] PLAN: Determine how this can be converted to be manage logging for the whole app
 
 - [ ] **Implement robust query parameter management (global + per-query)**
   - [ ] Extend the query domain model to distinguish between global parameters (applied to multiple queries/reports) and query-specific parameters (e.g., date ranges, regions, customer segments) with clear typing and defaults.
@@ -526,7 +545,97 @@ Going forward, **every new feature or meaningful code change must include TSDoc 
   - [ ] Content more organized and easier to work with.
   - [ ] Expand on this concept before you get started (just rough draft notes).
 
-## 12. Review and Finalize Jasmine/Karma Testing
+## 12. Resolve NPM I Issues
+
+- [ ] **Run NPM I, Verify Issue, and Help Resolve**
+
+## 13. Refine UI and UX
+
+This section needs to be built out more. The goal is to start polishing and solidifying the design so we can continue with the concept.
+
+> Everything should stay data-driven, modular, etc.
+
+- [ ] **UI: Update content visibility based on Auth**
+  - [ ] Hide content that current user doesn't have auth to use
+    - [ ] NAV buttons
+    - [ ] Some queries or settings that require admin
+    - [ ] Anything else you see
+
+- [ ] **UX: Redesign User Component**
+  - [ ] GOALS:
+    - [ ] User Design Refinement
+      - [ ] UI: Profile Information Section
+        - [ ] Display user's name, email, and role prominently
+        - [ ] Add profile picture placeholder
+    - [ ] UI: Location is top-right corner in nav
+    - [ ] UI: Sign Out Button
+      - [ ] Clear and accessible sign-out button within User component
+      - [ ] Confirmation dialog on sign-out
+
+- [ ] **UX: Redesign Settings Component**
+  - [ ] GOALS:
+    - [ ] Settings Design Refinement
+      - [ ] UI: General Settings Section
+        - [ ] Options for theme selection (light/dark)
+      - [ ] UI: Data Management Section
+        - [ ] Clear cache option
+        - [ ] Export data option
+      - [ ] UI: Debug Section
+        - [ ] FEAT: Enable Logging to table, control table name, tab name, tab visibility, etc.
+        - [ ] UI: App State Component in nav so can verify all current details
+      - [ ] UI: Add Section for Export & Submit Logs
+        - Capture current state of user session and application state
+        - Provide a button to send logs via api endpoint
+
+- [ ] **UX: Redesign Queries View for Better Organization**
+  - [ ] GOALS:
+    - [ ] Queries Design Refinement
+      - [ ] QUERIES: Top Level Queries Component
+        - [ ] Navigation should continue to drive to this top level Queries
+        - [ ] UI: Filters should exist and work. (doesn't seem to affect the list/table below at this time.)
+        - [ ] FEAT: Users should be able to RUN ALL queries from a button above the table
+        - [ ] FEAT: Parameters should exist here that are related to all queries.
+          - [ ] This will be a feature within Queries and Query and should be fully data-driven.
+          - [ ] It should be fully data-driven from the config, but for example: Start Date, End Date, and Group
+        - [ ] UI: This Component should just list all visible queries as a table.
+          - [ ] Each row should have buttons to RUN, GO TO TABLE, and DETAILS
+          - [ ] Each row should show status of last run (time, success/failure)
+          - [ ] Each row should show if admin only or not (badge or icon)
+          - [ ] Each query should have a high-level Category and SubCategory defined. These should be shown in the table as well. (maybe doesn't exist yet.)
+        - [ ] FEAT: Table of Queries
+      - [ ] QUERY: New Query Component
+        - [ ] USAGE: Users navigate here from Queries to individual query via Details button
+        - [ ] UI: Back button exists on top of component followed by BreadCrumb for easy location awareness and navigation back up
+        - [ ] FEAT: Includes Parameters feature for the query itself, so possibly more parameters than on top level
+        - [ ] FEAT: Controls to Append or Overwrite at this level
+        - [ ] TODO: ADD MORE DETAILS HERE
+
+- [ ] **UI: Update Styling for Better Usability**
+  - [ ] Improve spacing and alignment for better readability.
+  - [ ] Use consistent font sizes and colors to enhance visual hierarchy.
+  - [ ] Ensure buttons and interactive elements are easily tappable on mobile devices.
+
+- [ ] **UX: Improve Navigation Flow**
+  - [ ] Simplify navigation to frequently used features.
+  - [ ] Add breadcrumbs or indicators to help users understand their location within the app.
+  - [ ] Ensure smooth transitions between views.
+
+## 13. Building out Authentication
+
+- [ ] **Update UI for Authentication**
+  - [ ] Refine homepage
+
+- [ ] **Review Current Mock configuration**
+  - [ ] Examine existing mock authentication setup in `AuthService` and `AuthApiMockService`.
+  - [ ] Identify gaps and areas for improvement in simulating real-world authentication flows.
+
+- [ ] **Integrate `office-addin-sso` package into AuthService**
+  - [ ] Research and understand the `office-addin-sso` package and its capabilities for handling SSO in Office Add-ins.
+    - [ ] See `/Users/erikplachta/repo/excel-extension/_ARCHIVE/_TEMPLATES/SSO` for reference
+    - [ ] Identify how it can be integrated into the existing `AuthService`.
+    - [ ] Determine how we could
+
+## 14. Review and Finalize Jasmine/Karma Testing
 
 - [ ] **Confirm baseline test runner behavior is stable**
   - [x] Fix the Angular/Karma wiring so `npm test` (via `ng test`) builds the webpack bundle (no more `404: /_karma_webpack_/main.js`) and actually executes specs in Chrome/ChromeHeadless.
@@ -548,7 +657,9 @@ Going forward, **every new feature or meaningful code change must include TSDoc 
   - [ ] Briefly describe the layering of specs (core services, features, helpers) and how to add new tests in a way that respects strict typing and the data-driven design (use shared types, avoid `any` outside Office boundaries).
   - [ ] Capture any recurring patterns or pitfalls discovered during the current round of test fixes (e.g., host/role guards firing before deeper logic) so future changes can avoid re-introducing similar issues.
 
-## 13. Research Class Driven Styles
+## 15. Research Class Driven Styles
+
+This section still needs to be built out, but the goal is to make it flexible for Class Driven Style systems like TailwindCSS
 
 - [ ] **Prepare primitives for Tailwind adoption**
   - [ ] Research and define a Tailwind (or other class-driven) strategy for the UI primitives that keeps feature code using typed variants while mapping variants to class lists inside the primitives.
