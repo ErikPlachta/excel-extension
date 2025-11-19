@@ -569,7 +569,7 @@ Going forward, **every new feature or meaningful code change must include TSDoc 
       - [x] Drive workbook logging configuration from `SettingsService`/config models (e.g., log sheet/table names, column labels, enable/disable flag) so telemetry destinations are fully data driven instead of hard-coded.
       - [x] Expand usage of `TelemetryService` incrementally across the app (beyond Excel operations) by refactoring components/services that currently log directly to the console to call the shared service instead, adding TSDoc for any new telemetry helpers or event shapes.
 
-- [ ] **Implement application-wide telemetry using TelemetryService and SettingsService**
+- [x] **Implement application-wide telemetry using TelemetryService and SettingsService**
   - [x] Design the app-wide telemetry event model
     - [x] Define a small set of event types/interfaces (e.g., `AppTelemetryEvent`, `WorkflowTelemetryEvent`, `FeatureTelemetryEvent`) in `src/app/types` with clear TSDoc and fields for category, name, context, and severity.
     - [ ] Decide which events should be emitted where (queries, worksheets, settings changes, auth flows) and document examples in `CONTEXT-SESSION.md`.
@@ -596,7 +596,7 @@ Going forward, **every new feature or meaningful code change must include TSDoc 
 - [ ] **Support saving and loading named query configurations**
   - [ ] Design a `QueryConfiguration` model that captures a named set of query selections, parameter values (global + per-query), and rerun behaviors (overwrite) so a “report configuration” can be reused.
   - [ ] Implement local storage of configurations keyed by user and workbook context, leveraging the existing auth state to keep configurations scoped to the signed-in user.
-  - [ ] Add UI affordances to create, rename, “save as”, delete, and restore configurations (soft-delete), making it easy to manage multiple report presets.
+  - [ ] Add UI affordance's to create, rename, “save as”, delete, and restore configurations (soft-delete), making it easy to manage multiple report presets.
   - [ ] Prepare the configuration layer for a future backend API by isolating storage concerns behind a service (e.g., `QueryConfigurationService`) with a clear interface that can later be backed by HTTP instead of local storage.
   - [ ] Ensure that loading a configuration updates the query list, parameter panels, and any Excel tables in a predictable, observable way, and that failures are logged and surfaced via the host-status/banner UX.
 
