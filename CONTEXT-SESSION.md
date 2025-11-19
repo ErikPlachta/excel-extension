@@ -378,33 +378,83 @@ The "Refine and Refactor Office.js Wrapper Logic" TODO section (under **11. Refi
   - Office typings are kept minimal and focused on the Office.js boundary; app code stays strongly typed while Office globals stay loosely typed at the edges.
   - Further dependency cleanup or upgrades for Office typings are tracked as follow-up work rather than part of this branch’s core scope.
 
-### Manual validation scenarios (overwrite-only)
+### Office.js wrapper behavior – manual Excel test scenarios
 
-In addition to the "Excel ownership testing" matrix already captured below, this branch emphasizes the following scenarios (also referenced from the TODO and CONTEXT-CURRENT):
+Use these scenarios in a real Excel workbook (with the dev add-in sideloaded) to validate header stability, overwrite behavior, and error handling when ranges are misaligned.
 
-- **Header stability on overwrite**
-  - Run a query to create a table; observe that a table with a single header row and data is created.
-  - Rerun the same query and verify that:
-    - The header row remains in the same position.
-    - Data rows are replaced but not duplicated.
-    - No Excel errors about invalid ranges appear.
+1. **Header stability – first run and overwrite rerun**
+   1.1. Start Excel with a blank workbook and sideload the dev add-in using `dev-manifest.xml`.
+   1.2. Ensure the Angular dev server is running and that `ExcelService.isExcel` shows as true in the host/status banner.
+   1.3. As an analyst or admin, run a query that produces a modest result set (for example the sales summary query).
+   1.4. Observe that a new worksheet is created (or reused) with a single Excel table that has: - Exactly one header row. - Data rows directly beneath the header.
+   1.5. Without editing the table, rerun the same query.
+   1.6. Confirm:
+   - The header row remains in the same row and columns.
+   - Existing data rows are replaced with the new rows (no duplicated header blocks).
+   - Excel does **not** show any errors about invalid or overlapping ranges.
 
-- **Ownership-aware overwrite**
-  - Start from a workbook where `_Extension_Ownership` already tracks a managed table for a query.
-  - Rerun that query and confirm that:
-    - The same managed table is reused (unless header shape changed, in which case a delete/recreate is logged).
-    - Ownership metadata remains consistent with the active table.
+1. **Overwrite behavior with existing managed table**
+1. Use a workbook where a query has already been run once and `_Extension_Ownership` contains a row for that `(sheetName, tableName, queryId)`.
+1. Close and reopen Excel and the taskpane to ensure ownership state is reloaded.
+1. Run the same query again from the Queries view.
+1. Confirm:
+   - The table name and sheet name remain the same.
+   - Only the data body rows change (no extra header row appears; the header stays anchored).
+   - The ownership row for that query/table is still present with an updated `lastTouchedUtc`.
 
-- **Header shape change safety**
-  - Modify a query definition so the output schema changes (e.g., add/remove/rename a column) and run it against a workbook where a previous schema exists.
-  - Verify that overwrite mode:
-    - Detects header mismatch.
-    - Deletes and recreates the managed table instead of forcing a dangerous resize on the existing one.
-    - Updates ownership metadata appropriately.
+1. **Header shape change – safe delete/recreate**
+1. In code, temporarily modify a query definition so it adds, removes, or renames at least one column (for example, add a new "Region" column to the sales query).
+1. Build and restart the dev server, then sideload or reload the add-in.
+1. In Excel, open a workbook where the old version of that query has already created a managed table.
+1. Run the modified query.
+1. Confirm:
+   - The old table is removed and a new table is created in the same header position with the updated header row.
+   - There is still exactly one header row followed by data rows (no duplicated header blocks).
+   - No Excel range or resize errors are shown during the operation.
 
-- **Purge and rerun**
-  - Use the dev-only purge action wired to `ExcelService.purgeExtensionManagedContent` to clear extension-managed tables and ownership metadata.
-  - Rerun queries and confirm that tables and ownership records are recreated from a clean state with no stale geometry.
+1. **User table name conflict – safe alternate table**
+1. In a new workbook, manually insert a table on `Sheet1` and name it using one of the query default table names (for example `tbl_SalesSummary`).
+1. Populate a few rows with obvious sample data.
+1. Sideload the dev add-in and run the matching query from the Queries view.
+1. Confirm:
+   - The manually created user table and its data are unchanged.
+   - The extension creates a separate, suffixed table (for example `tbl_SalesSummary_Query_<id>` or equivalent) to hold query results.
+   - `_Extension_Ownership` marks only the extension-created table as managed.
+
+1. **Misaligned range / geometry error handling**
+1. Run a query to create a managed table.
+1. Manually edit the worksheet to introduce a potential geometry problem, for example:
+   - Insert a blank row in the middle of the table.
+   - Add unrelated values directly below or beside the table so that an automatic resize would collide.
+
+1. Rerun the same query.
+1. Observe behavior and confirm:
+   - The extension either successfully overwrites the existing data body rows without colliding with unrelated content **or** fails gracefully via a user-visible error.
+   - If an error occurs, the query UI shows a friendly error message (from `ExcelOperationResult`) instead of an unhandled exception, and the workbook remains in a usable state.
+   - Any workbook telemetry table (if enabled) contains a log entry describing the failure and the affected table.
+
+1. **Purge extension-managed content and rerun**
+1. In a workbook where multiple queries have been run, open the Tables/Settings view that exposes the dev-only "purge extension-managed content" action wired to `ExcelService.purgeExtensionManagedContent`.
+1. Trigger the purge.
+1. Confirm:
+   - All extension-managed tables are removed.
+   - Any now-empty worksheets created solely for managed tables are removed.
+   - The `_Extension_Ownership` sheet (and any workbook telemetry table, if configured to be purged) is removed.
+   - User-created tables and worksheets remain intact.
+
+1. Run one of the queries again.
+1. Confirm that a fresh managed table and `_Extension_Ownership` sheet are created and that header and data behavior match Scenario 1.
+
+### Office.js wrapper behavior (summary)
+
+- **Overwrite-only semantics:** Query runs always use overwrite behavior. On the first run, `ExcelService.upsertQueryTable` creates a managed table and writes a single header row plus data rows. On rerun, the header remains anchored while **only the data body rows** are cleared and replaced; append mode is not exposed in the UI or code paths in this branch.
+- **Ownership expectations:** All potentially destructive operations (creating, resizing, or deleting tables) are routed through `WorkbookService` and `_Extension_Ownership`. The extension only mutates tables it has explicitly marked as managed; user tables with conflicting names are left intact and new, suffixed tables are created instead.
+- **Geometry safety:** Header and data ranges are treated separately. When a header-shape mismatch is detected on rerun, the extension deletes and recreates the managed table at the same anchor instead of trying to resize into misaligned ranges. Manual geometry issues (extra rows/values colliding with the table) surface as friendly, typed errors via `ExcelOperationResult` rather than raw Office.js exceptions.
+- **Typed boundaries:** Office.js objects remain `any` at the integration edge, but `ExcelService` and `WorkbookService` project workbook state into strongly typed models (`WorkbookTabInfo`, `WorkbookTableInfo`, `WorkbookOwnershipInfo`, `ExcelOperationResult`) that the rest of the app consumes. TSDoc on these models and services documents where the boundary lies and how to evolve it.
+- **Evolution strategy:** Future changes to Excel behavior (for example, reintroducing append semantics or new table layouts) should be implemented by:
+  - Extending the workbook models and `WorkbookService` helpers rather than calling Office.js directly from features.
+  - Updating `ExcelService` to keep overwrite logic the default and to gate any new modes behind explicit, typed configuration.
+  - Adding corresponding manual scenarios under "Office.js wrapper behavior – manual Excel test scenarios" and updating tests so geometry and ownership guarantees remain enforced.
 
 ## Reference Commands (summary)
 

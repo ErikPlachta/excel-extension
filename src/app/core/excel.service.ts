@@ -30,10 +30,28 @@ declare const Office: any;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare const Excel: any;
 
+/**
+ * Angular service that wraps the Office.js Excel APIs.
+ *
+ * This class intentionally keeps the direct Office.js surface area
+ * small and isolates it behind a strongly typed API that the rest of
+ * the app can consume safely. It collaborates with:
+ *
+ * - {@link WorkbookService} (indirectly) by providing
+ *   {@link getWorkbookTables} and {@link getWorkbookOwnership}, which
+ *   are used to build higher-level workbook abstractions.
+ * - {@link ExcelTelemetryService}, which normalizes and logs
+ *   successes and failures for all Excel operations exposed here.
+ */
 @Injectable({ providedIn: "root" })
 export class ExcelService {
   constructor(private readonly telemetry: ExcelTelemetryService) {}
 
+  /**
+   * Cached promise used to ensure `Office.onReady` has completed
+   * before any Excel APIs are invoked. This is only relevant when
+   * running inside Excel; outside Excel the guard returns early.
+   */
   private officeReadyPromise: Promise<void> | null = null;
 
   /**
@@ -51,6 +69,13 @@ export class ExcelService {
    * initialization handshake before any Excel APIs are used.
    *
    * Outside Excel this resolves immediately.
+   */
+  /**
+   * Waits for the Office.js runtime to finish its `Office.onReady`
+   * handshake before attempting to call any Excel APIs.
+   *
+   * @returns A promise that resolves once Office.js reports it is
+   * ready, or immediately when not running inside Excel.
    */
   private async ensureOfficeReady(): Promise<void> {
     if (!this.isExcel) return;
@@ -77,6 +102,12 @@ export class ExcelService {
    *
    * Outside Excel this resolves to an empty array.
    */
+  /**
+   * Lists the names of all worksheets in the active workbook.
+   *
+   * @returns An array of worksheet names; returns an empty array when
+   * not running inside Excel.
+   */
   async getWorksheets(): Promise<string[]> {
     if (!this.isExcel) return [];
     await this.ensureOfficeReady();
@@ -97,6 +128,17 @@ export class ExcelService {
    * the current data row count. This method is used by
    * {@link WorkbookService} to build {@link WorkbookTableInfo}
    * instances.
+   */
+  /**
+   * Lists all tables in the workbook as simple anonymous objects.
+   *
+   * This is a thin, untyped projection over Office.js used internally
+   * by {@link getWorkbookTables}. Callers should prefer the typed
+   * helper instead where possible.
+   *
+   * @returns A list of tables with their name, owning worksheet name
+   * and row count; returns an empty array when not running inside
+   * Excel.
    */
   async getTables(): Promise<{ name: string; worksheet: string; rows: number }[]> {
     if (!this.isExcel) return [];
@@ -125,6 +167,13 @@ export class ExcelService {
    * Returns a lightweight description of all tables in the workbook.
    * This is a typed wrapper around `getTables` for use by
    * `WorkbookService` and features.
+   */
+  /**
+   * Returns a strongly typed view over the workbook's tables for use
+   * by {@link WorkbookService} and features.
+   *
+   * @returns An array of {@link WorkbookTableInfo} describing each
+   * table in the workbook.
    */
   async getWorkbookTables(): Promise<WorkbookTableInfo[]> {
     const tables = await this.getTables();
@@ -156,6 +205,19 @@ export class ExcelService {
    * timestamp. This allows workbook features to distinguish
    * extension-managed tables from user tables and make safe geometry
    * decisions.
+   */
+  /**
+   * Reads ownership metadata for extension-managed tables from the
+   * hidden `_Extension_Ownership` worksheet.
+   *
+   * Office.js objects are kept as `any` within the implementation so
+   * that the public surface can return strongly typed
+   * {@link WorkbookOwnershipInfo} models without leaking Office.js
+   * types into the rest of the app.
+   *
+   * @returns An array of {@link WorkbookOwnershipInfo} entries, or an
+   * empty array when ownership has not yet been recorded or when not
+   * running inside Excel.
    */
   async getWorkbookOwnership(): Promise<WorkbookOwnershipInfo[]> {
     if (!this.isExcel) return [];
@@ -221,6 +283,35 @@ export class ExcelService {
    * extension-managed without overwriting user tables.
    *
    * Errors are normalized and logged via {@link ExcelTelemetryService}.
+   */
+  /**
+   * Creates or overwrites the Excel table that represents the result
+   * of a query run.
+   *
+   * This method currently supports **overwrite-only** semantics: it
+   * will either create a new table for the query or reuse an existing
+   * extension-managed table, keeping the header anchored and
+   * replacing all data body rows on rerun. Append mode is intentionally
+   * not supported in this branch.
+   *
+   * Office.js side effects:
+   * - May create new worksheets and tables.
+   * - May delete and recreate an existing table when the header shape
+   *   changes.
+   * - Always records/update ownership in `_Extension_Ownership` for
+   *   the target table.
+   *
+   * @param query The query definition whose results are being written.
+   * @param rows The executed query result rows to project into the
+   * Excel table.
+   * @param locationHint Optional hint for the desired sheet/table
+   * location; when omitted the ownership model and query defaults are
+   * used to choose a safe target.
+   *
+   * @returns An {@link ExcelOperationResult} whose `value`, on
+   * success, is the {@link QueryRunLocation} of the table that was
+   * written. On failure, `ok` is false and a normalized error (already
+   * logged via {@link ExcelTelemetryService}) is returned.
    */
   async upsertQueryTable(
     query: QueryDefinition,
@@ -449,6 +540,17 @@ export class ExcelService {
    * creating it on demand. Intended for internal telemetry and
    * diagnostics when workbook logging is enabled.
    */
+  /**
+   * Appends a single telemetry log entry to the `_Extension_Log`
+   * worksheet, creating it on demand.
+   *
+   * Office.js side effects:
+   * - May create the `_Extension_Log` sheet and its header row.
+   * - Appends one row per call with the timestamp, level, operation
+   *   name and message.
+   *
+   * @param entry The structured log entry to append.
+   */
   async appendLogEntry(entry: {
     level: "info" | "error";
     operation: string;
@@ -488,6 +590,18 @@ export class ExcelService {
   /**
    * Records or updates an ownership row in the `_Extension_Ownership`
    * worksheet for the given table/query combination.
+   */
+  /**
+   * Ensures there is a single ownership row in `_Extension_Ownership`
+   * for the given table and query id, updating `lastTouchedUtc` on
+   * subsequent writes.
+   *
+   * Office.js side effects:
+   * - May create the `_Extension_Ownership` sheet and its header row.
+   * - Inserts or updates a single row for the specified
+   *   `(sheetName, tableName, queryId)` combination.
+   *
+   * @param info Identifiers for the managed table and owning query.
    */
   private async recordOwnership(info: {
     tableName: string;
@@ -556,6 +670,17 @@ export class ExcelService {
    * Activates the worksheet and selects the range for a previously
    * recorded query location, if running inside Excel.
    */
+  /**
+   * Activates the worksheet and selects the range for a previously
+   * recorded query location.
+   *
+   * Office.js side effects:
+   * - Activates the specified worksheet.
+   * - Selects the full range of the target table.
+   *
+   * @param location The last known location of the query results. If
+   * undefined, null, or not running inside Excel, this is a no-op.
+   */
   async activateQueryLocation(location: QueryRunLocation | undefined | null): Promise<void> {
     if (!this.isExcel || !location) return;
     await this.ensureOfficeReady();
@@ -585,6 +710,21 @@ export class ExcelService {
    *
    * This is a dev-only "clean slate" helper when iterating on table
    * behavior and is not intended for end users.
+   */
+  /**
+   * Removes all tables and worksheets that are marked as
+   * extension-managed in the ownership sheet, then deletes the
+   * ownership sheet itself.
+   *
+   * This is a dev-only "clean slate" helper when iterating on table
+   * behavior and is not intended for end users.
+   *
+   * Office.js side effects:
+   * - Deletes extension-managed tables referenced in
+   *   `_Extension_Ownership`.
+   * - Deletes any now-empty worksheets that previously hosted only
+   *   managed tables.
+   * - Deletes the `_Extension_Ownership` worksheet.
    */
   async purgeExtensionManagedContent(): Promise<void> {
     if (!this.isExcel) return;

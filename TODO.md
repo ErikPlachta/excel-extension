@@ -530,23 +530,23 @@ Going forward, **every new feature or meaningful code change must include TSDoc 
       - [x] Ensure the table’s header row stays in the same row and column, and that any resizing respects Excel’s requirement that the new range aligns with the existing header row.
     - [x] Use workbook ownership helpers (`WorkbookService.getManagedTablesForQuery`, `getOrCreateManagedTableTarget` / equivalent logic) so geometry decisions are centralized and user tables are never overwritten.
     - [x] Update telemetry emitted from `upsertQueryTable` to include the chosen mode (currently always overwrite), header match/mismatch flag, and key geometry decisions (e.g., new table vs reuse).
-  - [ ] VERIFY_BEHAVIOR: Add or update tests and manual validation scenarios for `upsertQueryTable`.
-    - [ ] Extend unit tests (or integration-style tests, as feasible) around `ExcelService.upsertQueryTable` to cover:
+  - [x] VERIFY_BEHAVIOR: Add or update tests and manual validation scenarios for `upsertQueryTable`.
+    - [x] Extend unit tests (or integration-style tests, as feasible) around `ExcelService.upsertQueryTable` to cover:
       - [x] First run creates a managed table with a single header row and data body.
       - [x] Rerun in overwrite mode keeps header fixed and replaces data rows without geometry errors.
-    - [ ] Document manual Excel testing scenarios (in `CONTEXT-SESSION.md` under "Office.js wrapper behavior") that verify header stability, overwrite behavior, and error handling for misaligned ranges.
-  - [ ] UPDATE_TSDOC: Ensure all methods in `ExcelService` have comprehensive TSDoc comments and reflect the new behavior.
-    - [ ] Add or update file-level and class-level TSDoc for `ExcelService` describing its role as the low-level Office.js wrapper and how it relates to `WorkbookService` and `ExcelTelemetryService`.
-    - [ ] Add method-level TSDoc for all public methods (`upsertQueryTable`, `activateQueryLocation`, ownership helpers, purge helpers, telemetry helpers) documenting parameters, return types, Office.js side effects, and error/telemetry behavior.
-    - [ ] Explicitly document where Office.js types remain `any` and where they are mapped into strongly typed models (e.g., `WorkbookTabInfo`, `WorkbookTableInfo`, `WorkbookOwnershipInfo`).
-    - [ ] Look for opportunities to extract reusable helpers (e.g., header comparison, data row projection, safe resize operations, ownership-aware target selection) into private methods with clear TSDoc so they can be reused across query flows and future Excel features.
-  - [ ] REVIEW_DEPENDENCIES: Evaluate `@types/office-runtime` and related Office typings.
-    - [ ] Confirm what `@types/office-runtime` is designed to cover (Office.js runtime host APIs) and how it is used (if at all) in the current codebase.
-    - [ ] Inspect `/Users/erikplachta/repo/excel-extension/_ARCHIVE/_TEMPLATES/React_TS` to see how these types were used in the original template.
-    - [ ] Decide whether to keep, upgrade, or remove `@types/office-runtime` in this Angular app; if kept, document where and how it should be used in `ExcelService` and related wrappers.
-  - [ ] PLAN / WHAT'S NEXT:
-    - [ ] Finish TSDoc and dependency review so the Office.js wrapper surface is fully documented and strongly typed at the boundaries.
-    - [ ] Add a short "Office.js wrapper behavior" section to `CONTEXT-SESSION.md` describing overwrite-only semantics, ownership expectations, and how to safely evolve the geometry logic.
+    - [x] Document manual Excel testing scenarios (in `CONTEXT-SESSION.md` under "Office.js wrapper behavior") that verify header stability, overwrite behavior, and error handling for misaligned ranges.
+  - [x] UPDATE_TSDOC: Ensure all methods in `ExcelService` have comprehensive TSDoc comments and reflect the new behavior.
+    - [x] Add or update file-level and class-level TSDoc for `ExcelService` describing its role as the low-level Office.js wrapper and how it relates to `WorkbookService` and `ExcelTelemetryService`.
+    - [x] Add method-level TSDoc for all public methods (`upsertQueryTable`, `activateQueryLocation`, ownership helpers, purge helpers, telemetry helpers) documenting parameters, return types, Office.js side effects, and error/telemetry behavior.
+    - [x] Explicitly document where Office.js types remain `any` and where they are mapped into strongly typed models (e.g., `WorkbookTabInfo`, `WorkbookTableInfo`, `WorkbookOwnershipInfo`).
+    - [x] Look for opportunities to extract reusable helpers (e.g., header comparison, data row projection, safe resize operations, ownership-aware target selection) into private methods with clear TSDoc so they can be reused across query flows and future Excel features.
+  - [x] REVIEW_DEPENDENCIES: Evaluate `@types/office-runtime` and related Office typings.
+    - [x] Confirm what `@types/office-runtime` is designed to cover (Office.js runtime host APIs) and how it is used (if at all) in the current codebase.
+    - [x] Inspect `/Users/erikplachta/repo/excel-extension/_ARCHIVE/_TEMPLATES/React_TS` to see how these types were used in the original template.
+    - [x] Decide whether to keep, upgrade, or remove `@types/office-runtime` in this Angular app; if kept, document where and how it should be used in `ExcelService` and related wrappers.
+  - [x] PLAN / WHAT'S NEXT:
+    - [x] Finish TSDoc and dependency review so the Office.js wrapper surface is fully documented and strongly typed at the boundaries.
+    - [x] Add a short "Office.js wrapper behavior" section to `CONTEXT-SESSION.md` describing overwrite-only semantics, ownership expectations, and how to safely evolve the geometry logic.
 
 - [ ] **Refactor excel-telemetry.service.ts and Update to application-telemetry**
   - [ ] Act as an expert in TSDoc, Angular, Excel, Office.js, Excel Extensions, data driven design, modular design, API, and security
