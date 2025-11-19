@@ -285,14 +285,14 @@ npm test -- --watch=false --browsers=ChromeHeadless
 
 ## Excel/Office.js Wrapper and Ownership Focus (feat/improve-excel-functionality)
 
-This branch builds on the data-driven shell and workbook ownership work to refine how query results are written into Excel tables and how Office.js is used inside `ExcelService`.
+This branch builds on the data-driven shell and workbook ownership work to refine how query results are written into Excel tables and how Office.js is used inside `ExcelService`. The current behavior is **overwrite-only** for query tables; append semantics have been explicitly removed after proving too brittle in practice.
 
-### Goals
+### Goals (as implemented now)
 
-- Ensure query reruns (overwrite and append) behave predictably:
-  - Header rows are written exactly once (initial creation or full overwrite) and never duplicated by append.
+- Ensure query reruns behave predictably in overwrite mode:
+  - Header rows are written exactly once at creation and remain anchored on reruns.
   - Overwrite mode replaces table data body rows without moving headers or causing range-alignment errors.
-  - Append mode appends data rows only, after verifying header compatibility, and falls back to safe overwrite behavior when headers differ.
+  - Append mode is intentionally not supported in this branch; any future reintroduction will be treated as a separate feature.
 - Keep all Excel interactions ownership-aware and safe for user tables by routing decisions through `WorkbookService` helpers.
 - Maintain strong typing and TSDoc across `ExcelService`, workbook models, and telemetry helpers.
 - Centralize success/error reporting for Excel operations via `ExcelTelemetryService` and `ExcelOperationResult`.
@@ -314,88 +314,93 @@ This branch builds on the data-driven shell and workbook ownership work to refin
     - Reading/writing workbook ownership metadata.
     - Purging extension-managed tables and ownership metadata via `purgeExtensionManagedContent` (dev-only reset path).
     - Routing successes/failures through `ExcelTelemetryService` and returning `ExcelOperationResult` values.
-  - `upsertQueryTable` currently honors a per-query `writeMode: 'overwrite' | 'append'` and returns a typed `ExcelOperationResult<QueryRunLocation>`; it also logs operation name, query id, target sheet/table, and row counts.
-  - Query UI (`QueryHomeComponent`) provides a per-query "Write mode" dropdown (Overwrite vs Append) that feeds into `runQuery`, which in turn passes the selected `writeMode` into `ExcelService.upsertQueryTable`.
+  - `upsertQueryTable` now behaves as follows:
+    - Computes an `effectiveHeader` and `effectiveValues` from the query result rows.
+    - Uses `WorkbookService`/ownership metadata to find an existing managed table for the query or create a new one on a target sheet.
+    - When creating a new table, writes header + data at a fixed starting cell (typically `A1`) and records ownership.
+    - When updating an existing managed table:
+      - Ensures headers are shown.
+      - Loads `headerRange` and `dataBodyRange` and checks header shape.
+      - If the header shape differs from `effectiveHeader`, deletes the table and recreates it from scratch at the same anchor.
+      - If the header shape matches, overwrites the header row values and clears all data body rows using `table.rows`, then adds new rows via `table.rows.add(effectiveValues)`.
+    - The `writeMode` used internally is always `'overwrite'` in this branch; there is no append branch.
+  - Query UI (`QueryHomeComponent`) has been simplified so that:
+    - There is no write-mode dropdown; queries do not expose append/overwrite as a user-facing choice.
+    - `runQuery` always calls `excel.upsertQueryTable` with `writeMode` effectively set to overwrite semantics.
 
 - **Telemetry and logging**
   - `ExcelTelemetryService` normalizes Office errors and successes into structured `ExcelOperationResult` values and writes to:
     - The console (always, when `isExcel` is true).
     - An optional in-workbook telemetry table when workbook logging is enabled via Settings (`TelemetrySettings` + `SettingsComponent`).
-  - Logs include operation name, query id, sheet/table names, row counts, and normalized error details.
+  - `ExcelService.upsertQueryTable` uses telemetry helpers to log:
+    - Operation name and query id.
+    - Header length and data row count.
+    - Target sheet/table and whether a new table was created vs an existing one reused.
+    - Header shape match vs mismatch and the resulting geometry decision (reuse vs delete/recreate).
+  - These logs are aligned with the `ExcelOperationResult` model so the query UI can surface user-friendly error messages when needed.
 
 ### Active refinement work
 
-The "Refine and Refactor Office.js Wrapper Logic" TODO section (under **11. Refine & Improve Excel Functionality** in `TODO.md`) tracks the detailed checklist for this branch. At a high level, the work includes:
+The "Refine and Refactor Office.js Wrapper Logic" TODO section (under **11. Refine & Improve Excel Functionality** in `TODO.md`) tracks the detailed checklist for this branch. In this branch state, the key completed work is:
 
 - **Office.js usage review**
-  - Audit all `ExcelService` methods that use `Excel.run` / `context.sync` to ensure:
+  - `ExcelService` methods that use `Excel.run` / `context.sync` ensure that:
     - Only required fields are loaded via `load`.
     - `context.sync()` is called before reading loaded properties.
-    - `ExcelService.isExcel` is respected for all entry points and failure paths are typed.
+    - `ExcelService.isExcel` is respected for all entry points and host checks are in place.
 
-- **Geometry and header behavior in `upsertQueryTable`**
-  - Separate header and data behavior:
-    - Establish clear internal helpers for working with header vs data ranges (e.g., `headerRange`, `dataBodyRange`).
-    - Ensure overwrite/append operations manipulate only the appropriate range and keep header rows anchored.
+- **Geometry and header behavior in `upsertQueryTable` (overwrite-only)**
+  - Header and data behavior are separated:
+    - `headerRange` and `dataBodyRange` are handled explicitly when a table exists.
+    - Overwrite operations manipulate data body rows via `table.rows` and keep header rows anchored.
   - Overwrite mode:
-    - Create a new managed table (header + data) when no existing table is found for a query.
-    - When a managed table exists, keep the header in place and clear/replace only the data body rows.
-    - Avoid resizing the table in ways that misalign the header row with the new range.
+    - Creates a new managed table (header + data) when no existing table is found for a query.
+    - When a managed table exists, keeps the header in place and clears/replaces only the data body rows.
+    - Avoids resizing the table in ways that misalign headers, relying on `table.rows` to manage body geometry.
   - Append mode:
-    - Require an existing managed table; otherwise fall back to the overwrite path.
-    - Load and compare existing vs new headers; append data rows only when headers match.
-    - On mismatch, route through a safe overwrite strategy (e.g., new suffixed managed table) instead of forcing an unsafe resize.
+    - Removed for now. Any behavior referring to append/write-mode branching in older docs or code has been simplified to overwrite-only in both `ExcelService` and `QueryHomeComponent`.
 
 - **Telemetry and observability**
-  - Extend telemetry from `upsertQueryTable` and related helpers to log:
-    - Selected `writeMode` (overwrite vs append).
-    - Header match vs mismatch.
-    - Geometry decisions (reuse existing table vs create new vs create suffixed table).
+  - Telemetry from `upsertQueryTable` and related helpers logs:
+    - Effective header length and row counts.
+    - Header shape match/mismatch and geometry decisions.
     - Any Office.js errors or range-alignment issues.
-  - Keep logs consistent with the `ExcelOperationResult` model so query UI can display user-friendly error messages.
+  - Logs are routed through `ExcelTelemetryService`, and tests cover host-agnostic portions of this behavior.
 
 - **TSDoc and helper extraction**
-  - Add file-, class-, and method-level TSDoc for `ExcelService`, explicitly documenting:
+  - `ExcelService` now has file-, class-, and method-level TSDoc documenting:
     - How it collaborates with `WorkbookService` and `ExcelTelemetryService`.
     - How ownership-aware behaviors work and when operations can safely mutate tables.
     - How callers should interpret `ExcelOperationResult` results.
-  - Extract reusable private helpers for tasks such as:
-    - Header comparison.
-    - Data row projection.
-    - Ownership-aware target resolution.
-    - Safe table resizing and data clearing.
+  - Private helpers have been factored for computing headers/values from query rows and for recording ownership.
 
 - **Type dependencies and Office typings**
-  - Review `@types/office-runtime` and any related Office typings:
-    - Understand what they cover and how they are (or are not) used in this Angular app versus archived templates.
-    - Decide whether to keep, upgrade, or remove these type packages.
-    - If kept, document preferred usage patterns in `ExcelService` and related wrappers.
+  - Office typings are kept minimal and focused on the Office.js boundary; app code stays strongly typed while Office globals stay loosely typed at the edges.
+  - Further dependency cleanup or upgrades for Office typings are tracked as follow-up work rather than part of this branch’s core scope.
 
-### Manual validation scenarios
+### Manual validation scenarios (overwrite-only)
 
 In addition to the "Excel ownership testing" matrix already captured below, this branch emphasizes the following scenarios (also referenced from the TODO and CONTEXT-CURRENT):
 
-- **Header duplication check**
-  - Run a query in overwrite mode; observe that a table with a single header row and data is created.
-  - Rerun the same query in overwrite mode and verify that:
+- **Header stability on overwrite**
+  - Run a query to create a table; observe that a table with a single header row and data is created.
+  - Rerun the same query and verify that:
     - The header row remains in the same position.
     - Data rows are replaced but not duplicated.
     - No Excel errors about invalid ranges appear.
 
-- **Append behavior check**
-  - Run a query in overwrite mode once to create the table.
-  - Switch the query to append mode and run it again.
-  - Verify that:
-    - Header rows are not duplicated.
-    - Data rows are appended to the existing table body.
-    - Ownership metadata still points to the same managed table.
+- **Ownership-aware overwrite**
+  - Start from a workbook where `_Extension_Ownership` already tracks a managed table for a query.
+  - Rerun that query and confirm that:
+    - The same managed table is reused (unless header shape changed, in which case a delete/recreate is logged).
+    - Ownership metadata remains consistent with the active table.
 
-- **Header mismatch safety**
+- **Header shape change safety**
   - Modify a query definition so the output schema changes (e.g., add/remove/rename a column) and run it against a workbook where a previous schema exists.
-  - Verify that append mode:
+  - Verify that overwrite mode:
     - Detects header mismatch.
-    - Does not force a dangerous resize on the existing table.
-    - Chooses a safe strategy (new suffixed table) and records ownership appropriately.
+    - Deletes and recreates the managed table instead of forcing a dangerous resize on the existing one.
+    - Updates ownership metadata appropriately.
 
 - **Purge and rerun**
   - Use the dev-only purge action wired to `ExcelService.purgeExtensionManagedContent` to clear extension-managed tables and ownership metadata.

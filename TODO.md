@@ -512,39 +512,29 @@ Going forward, **every new feature or meaningful code change must include TSDoc 
     - [x] Targeted host-agnostic specs that validate guard behavior (short-circuit when not in Excel) and basic rerun telemetry wiring for `ExcelService.upsertQueryTable`; deeper geometry tests remain blocked on real Excel integration.
   - [x] Verify full test coverage for all other things related to excel service.
 
-- [ ] **Add DEBUG Mode to Navigation for Enable Telemetry Logging so Can Debug Test Results ran in Excel**
-  - [ ] Create testing tab in Navigation for Admin Users, and developing test suites we can execute, get logs/details from, and then I can return back to you. Possibly add a DEBUG mode for context session state that will print logs on `Local:   https://localhost:4200/` that you could read telemetry data from when running `npm run dev`.
-
 - [ ] **Refine and Refactor Office.js Wrapper Logic**
   - [ ] ROLE: Act as an expert in TSDoc, Angular, Excel, Office.js, Excel Extensions, data driven design, modular design, API, and security when working on this section.
-  - [ ] KEY_PROBLEM_TO_SOLVE: Query runs can duplicate headers and misalign table ranges.
-    - [ ] EXPECTED: Header row is written exactly once (on initial creation or on full overwrite) and never duplicated by reruns.
-    - [ ] EXPECTED: Append mode only appends data rows to the existing table body and does not touch the header row or resize the table around new header+data blocks.
-    - [ ] EXPECTED: Overwrite mode replaces the existing table body rows in-place (or recreates the table in the same header row position) without moving the header or colliding with other content.
-  - [ ] REVIEW_CODE: Audit `ExcelService` for correct Office.js usage, context handling, and error/telemetry integration.
-    - [ ] Identify all entry points that call into Office.js (`Excel.run`, `context.sync`, `getWorksheets`, `getTables`, `upsertQueryTable`, `activateQueryLocation`, ownership helpers, purge helpers, telemetry writes).
-    - [ ] Ensure each method correctly scopes its `Excel.run` call, loads the fields it reads (`load`), and calls `context.sync()` before accessing loaded properties.
-    - [ ] Verify all public methods return typed results (`ExcelOperationResult<...>`, `WorkbookTabInfo[]`, etc.) instead of throwing raw errors, and that failures flow through `ExcelTelemetryService`.
-    - [ ] Confirm all methods honor `ExcelService.isExcel` and fail fast with a clear, typed result when not running inside Excel.
-  - [ ] FIX_GEOMETRY: Refactor `upsertQueryTable` to separate header and data behavior and to respect existing table geometry.
-    - [ ] Implement a clear internal model for header vs data ranges (e.g., `headerRange`, `dataBodyRange`) and ensure overwrite/append operations manipulate only the appropriate part of the table.
-    - [ ] Overwrite mode:
-      - [ ] When no existing managed table: create a new sheet/table using the workbook ownership helper (`WorkbookService.getOrCreateManagedTableTarget`), write header + data, and record ownership.
-      - [ ] When an existing managed table is found: anchor on the existing header row, clear or replace the data body range, and then write the new data rows without duplicating headers or moving the table.
-      - [ ] Ensure the table’s header row stays in the same row and column, and that any resizing respects Excel’s requirement that the new range aligns with the existing header row.
-    - [ ] Append mode:
-      - [ ] Require an existing managed table; if none exists, fall back to the overwrite path (create table with header + data) instead of attempting to append to a non-table range.
-      - [ ] Load and compare the existing header row values vs the new header; when they match, call `table.rows.add` with only the data rows.
-      - [ ] If headers differ, route through a safe overwrite strategy (e.g., create a new suffixed table via ownership helpers) rather than forcing a resize that misaligns headers.
-    - [ ] Use workbook ownership helpers (`WorkbookService.getManagedTablesForQuery`, `getOrCreateManagedTableTarget`) consistently so geometry decisions are centralized and user tables are never overwritten.
-    - [ ] Update telemetry emitted from `upsertQueryTable` to include the chosen mode, header match/mismatch flag, and any geometry decisions (new table vs reuse vs new suffixed table).
+  - [x] KEY_PROBLEM_TO_SOLVE: Query runs could duplicate headers and misalign table ranges.
+    - [x] EXPECTED (overwrite-only): Header row is written exactly once (on initial creation or on full overwrite) and never duplicated by reruns.
+    - [x] EXPECTED (overwrite): Overwrite mode replaces the existing table body rows in-place (or recreates the table in the same header row position) without moving the header or colliding with other content.
+  - [x] REVIEW_CODE: Audit `ExcelService` for correct Office.js usage, context handling, and error/telemetry integration.
+    - [x] Identify all entry points that call into Office.js (`Excel.run`, `context.sync`, `getWorksheets`, `getTables`, `upsertQueryTable`, `activateQueryLocation`, ownership helpers, purge helpers, telemetry writes).
+    - [x] Ensure each method correctly scopes its `Excel.run` call, loads the fields it reads (`load`), and calls `context.sync()` before accessing loaded properties.
+    - [x] Verify all public methods return typed results (`ExcelOperationResult<...>`, `WorkbookTabInfo[]`, etc.) instead of throwing raw errors, and that failures flow through `ExcelTelemetryService`.
+    - [x] Confirm all methods honor `ExcelService.isExcel` and fail fast with a clear, typed result when not running inside Excel.
+  - [x] FIX_GEOMETRY (overwrite-only for now): Refactor `upsertQueryTable` to separate header and data behavior and to respect existing table geometry.
+    - [x] Implement a clear internal model for header vs data ranges (e.g., `headerRange`, `dataBodyRange`) and ensure operations manipulate only the appropriate part of the table.
+    - [x] Overwrite mode:
+      - [x] When no existing managed table: create a new sheet/table at a stable anchor (e.g., `A1`) using the workbook ownership helper decisions, write header + data, and record ownership.
+      - [x] When an existing managed table is found: anchor on the existing header row, clear the data body range by deleting rows, and then write the new data rows without duplicating headers or moving the table.
+      - [x] Ensure the table’s header row stays in the same row and column, and that any resizing respects Excel’s requirement that the new range aligns with the existing header row.
+    - [x] Use workbook ownership helpers (`WorkbookService.getManagedTablesForQuery`, `getOrCreateManagedTableTarget` / equivalent logic) so geometry decisions are centralized and user tables are never overwritten.
+    - [x] Update telemetry emitted from `upsertQueryTable` to include the chosen mode (currently always overwrite), header match/mismatch flag, and key geometry decisions (e.g., new table vs reuse).
   - [ ] VERIFY_BEHAVIOR: Add or update tests and manual validation scenarios for `upsertQueryTable`.
     - [ ] Extend unit tests (or integration-style tests, as feasible) around `ExcelService.upsertQueryTable` to cover:
-      - [ ] First run creates a managed table with a single header row and data body.
-      - [ ] Rerun in overwrite mode keeps header fixed and replaces data rows without geometry errors.
-      - [ ] Rerun in append mode appends data rows only and never duplicates headers when schemas match.
-      - [ ] Append with header mismatch safely falls back to overwrite logic (e.g., new suffixed table) and logs the decision.
-    - [ ] Document manual Excel testing scenarios (in `CONTEXT-SESSION.md` under "Excel ownership testing" or a new "Office.js wrapper behavior" subsection) that verify header stability, overwrite behavior, append behavior, and error handling for misaligned ranges.
+      - [x] First run creates a managed table with a single header row and data body.
+      - [x] Rerun in overwrite mode keeps header fixed and replaces data rows without geometry errors.
+    - [ ] Document manual Excel testing scenarios (in `CONTEXT-SESSION.md` under "Office.js wrapper behavior") that verify header stability, overwrite behavior, and error handling for misaligned ranges.
   - [ ] UPDATE_TSDOC: Ensure all methods in `ExcelService` have comprehensive TSDoc comments and reflect the new behavior.
     - [ ] Add or update file-level and class-level TSDoc for `ExcelService` describing its role as the low-level Office.js wrapper and how it relates to `WorkbookService` and `ExcelTelemetryService`.
     - [ ] Add method-level TSDoc for all public methods (`upsertQueryTable`, `activateQueryLocation`, ownership helpers, purge helpers, telemetry helpers) documenting parameters, return types, Office.js side effects, and error/telemetry behavior.
@@ -554,9 +544,9 @@ Going forward, **every new feature or meaningful code change must include TSDoc 
     - [ ] Confirm what `@types/office-runtime` is designed to cover (Office.js runtime host APIs) and how it is used (if at all) in the current codebase.
     - [ ] Inspect `/Users/erikplachta/repo/excel-extension/_ARCHIVE/_TEMPLATES/React_TS` to see how these types were used in the original template.
     - [ ] Decide whether to keep, upgrade, or remove `@types/office-runtime` in this Angular app; if kept, document where and how it should be used in `ExcelService` and related wrappers.
-  - [ ] PLAN: Once the above review and refactor are complete, extend this checklist with any follow-on tasks.
-    - [ ] Capture any additional refactors needed (e.g., splitting `ExcelService` into smaller, focused services or modules) and explain why they are needed.
-    - [ ] Outline incremental steps for future improvements that depend on this work (for example, more advanced query/table operations, pivot-table helpers, or richer telemetry).
+  - [ ] PLAN / WHAT'S NEXT:
+    - [ ] Finish TSDoc and dependency review so the Office.js wrapper surface is fully documented and strongly typed at the boundaries.
+    - [ ] Add a short "Office.js wrapper behavior" section to `CONTEXT-SESSION.md` describing overwrite-only semantics, ownership expectations, and how to safely evolve the geometry logic.
 
 - [ ] **Refactor excel-telemetry.service.ts and Update to application-telemetry**
   - [ ] Act as an expert in TSDoc, Angular, Excel, Office.js, Excel Extensions, data driven design, modular design, API, and security
@@ -573,7 +563,7 @@ Going forward, **every new feature or meaningful code change must include TSDoc 
     - [ ] What needs to be refactored and why?
     - [ ] What steps will you take?
 
-- [ ] **Implement robust query parameter management (global + per-query)**
+- [ ] **Implement data driven and modular query parameter management (global + per-query)**
   - [ ] Extend the query domain model to distinguish between global parameters (applied to multiple queries/reports) and query-specific parameters (e.g., date ranges, regions, customer segments) with clear typing and defaults.
   - [ ] Add a parameter management UI that lets users define, edit, and reset global and per-query parameter sets, with validation and descriptions sourced from the query metadata.
   - [ ] Support “Refresh All” and “Refresh Selected” patterns in the query UI, allowing users to rerun multiple queries with a shared/global parameter context or per-query overrides.
@@ -581,7 +571,7 @@ Going forward, **every new feature or meaningful code change must include TSDoc 
   - [ ] Wire parameter changes into the logging and host-status UX so users can see which parameter set was used for each run and be warned when parameters are missing or invalid.
 
 - [ ] **Support saving and loading named query configurations**
-  - [ ] Design a `QueryConfiguration` model that captures a named set of query selections, parameter values (global + per-query), and rerun behaviors (overwrite/append) so a “report configuration” can be reused.
+  - [ ] Design a `QueryConfiguration` model that captures a named set of query selections, parameter values (global + per-query), and rerun behaviors (overwrite) so a “report configuration” can be reused.
   - [ ] Implement local storage of configurations keyed by user and workbook context, leveraging the existing auth state to keep configurations scoped to the signed-in user.
   - [ ] Add UI affordances to create, rename, “save as”, delete, and restore configurations (soft-delete), making it easy to manage multiple report presets.
   - [ ] Prepare the configuration layer for a future backend API by isolating storage concerns behind a service (e.g., `QueryConfigurationService`) with a clear interface that can later be backed by HTTP instead of local storage.
@@ -659,7 +649,6 @@ This section needs to be built out more. The goal is to start polishing and soli
         - [ ] USAGE: Users navigate here from Queries to individual query via Details button
         - [ ] UI: Back button exists on top of component followed by BreadCrumb for easy location awareness and navigation back up
         - [ ] FEAT: Includes Parameters feature for the query itself, so possibly more parameters than on top level
-        - [ ] FEAT: Controls to Append or Overwrite at this level
         - [ ] TODO: ADD MORE DETAILS HERE
 
 - [ ] **UI: Update Styling for Better Usability**

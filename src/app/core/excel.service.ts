@@ -4,7 +4,24 @@ import { QueryDefinition, QueryRunLocation } from "../shared/query-model";
 import { ExcelOperationResult, WorkbookOwnershipInfo, WorkbookTableInfo } from "../types";
 import { ExcelTelemetryService } from "./excel-telemetry.service";
 
-// TODO: Convert this to a proper Angular service wrapper around Office.js, multiple files, proper types, utilities, etc. to ensure stability and easy supportability. (I think #12 in todo covers this logic.)
+/**
+ * Low-level wrapper around the Office.js Excel APIs.
+ *
+ * This service is responsible for:
+ *
+ * - Detecting when the host is Excel (`isExcel`).
+ * - Creating and querying worksheets and tables in the active workbook.
+ * - Implementing the core query-table behavior used by the Queries
+ *   feature (`upsertQueryTable`), including geometry and ownership
+ *   decisions.
+ * - Managing workbook-level metadata and log sheets used by
+ *   `WorkbookService` and `ExcelTelemetryService`.
+ *
+ * Office.js types are intentionally left as `any` at the boundary so
+ * that the rest of the app can work with strongly typed models such
+ * as {@link WorkbookTableInfo} and {@link WorkbookOwnershipInfo}
+ * without depending on the full Office.js typings.
+ */
 
 // Office.js globals are provided at runtime by Excel; we keep them
 // as any here and rely on isExcel guards to ensure safe access.
@@ -19,10 +36,22 @@ export class ExcelService {
 
   private officeReadyPromise: Promise<void> | null = null;
 
+  /**
+   * Returns true when the current host is Excel and the Office.js
+   * runtime is available. All public methods that call into
+   * Office.js guard on this property so they become safe no-ops
+   * outside Excel.
+   */
   get isExcel(): boolean {
     return typeof Office !== "undefined" && Office?.context?.host === Office.HostType.Excel;
   }
 
+  /**
+   * Ensures the Office.js runtime has completed its `Office.onReady`
+   * initialization handshake before any Excel APIs are used.
+   *
+   * Outside Excel this resolves immediately.
+   */
   private async ensureOfficeReady(): Promise<void> {
     if (!this.isExcel) return;
 
@@ -43,6 +72,11 @@ export class ExcelService {
     return this.officeReadyPromise;
   }
 
+  /**
+   * Returns the list of worksheet names in the active workbook.
+   *
+   * Outside Excel this resolves to an empty array.
+   */
   async getWorksheets(): Promise<string[]> {
     if (!this.isExcel) return [];
     await this.ensureOfficeReady();
@@ -56,6 +90,14 @@ export class ExcelService {
     });
   }
 
+  /**
+   * Returns a lightweight description of all tables in the workbook.
+   *
+   * Each entry includes the table name, the owning worksheet name and
+   * the current data row count. This method is used by
+   * {@link WorkbookService} to build {@link WorkbookTableInfo}
+   * instances.
+   */
   async getTables(): Promise<{ name: string; worksheet: string; rows: number }[]> {
     if (!this.isExcel) return [];
     await this.ensureOfficeReady();
@@ -105,6 +147,16 @@ export class ExcelService {
    * normal user content, so the model can be evolved without
    * affecting feature code.
    */
+  /**
+   * Reads ownership metadata for extension-managed tables from the
+   * hidden `_Extension_Ownership` worksheet.
+   *
+   * Each row in the ownership sheet records the sheet name, table
+   * name, optional query id, a managed flag and the last-touched
+   * timestamp. This allows workbook features to distinguish
+   * extension-managed tables from user tables and make safe geometry
+   * decisions.
+   */
   async getWorkbookOwnership(): Promise<WorkbookOwnershipInfo[]> {
     if (!this.isExcel) return [];
     await this.ensureOfficeReady();
@@ -152,6 +204,24 @@ export class ExcelService {
     });
   }
 
+  /**
+   * Creates or updates the Excel table backing a query run.
+   *
+   * Current behavior is **overwrite-only**:
+   *
+   * - On first run, a new table is created at a stable anchor (A1)
+   *   using the query's default sheet and table names, and a single
+   *   header row plus data body is written.
+   * - On subsequent runs for the same managed table, the header row
+   *   is kept in place, all data rows are deleted, and the new data
+   *   rows are appended via `table.rows.add`.
+   *
+   * Table ownership is tracked in `_Extension_Ownership` so future
+   * runs and navigation can safely treat the target as
+   * extension-managed without overwriting user tables.
+   *
+   * Errors are normalized and logged via {@link ExcelTelemetryService}.
+   */
   async upsertQueryTable(
     query: QueryDefinition,
     rows: ExecuteQueryResultRow[],
@@ -374,6 +444,11 @@ export class ExcelService {
     });
   }
 
+  /**
+   * Appends a single log entry to the `_Extension_Log` worksheet,
+   * creating it on demand. Intended for internal telemetry and
+   * diagnostics when workbook logging is enabled.
+   */
   async appendLogEntry(entry: {
     level: "info" | "error";
     operation: string;
@@ -410,6 +485,10 @@ export class ExcelService {
     });
   }
 
+  /**
+   * Records or updates an ownership row in the `_Extension_Ownership`
+   * worksheet for the given table/query combination.
+   */
   private async recordOwnership(info: {
     tableName: string;
     sheetName: string;
@@ -473,6 +552,10 @@ export class ExcelService {
     });
   }
 
+  /**
+   * Activates the worksheet and selects the range for a previously
+   * recorded query location, if running inside Excel.
+   */
   async activateQueryLocation(location: QueryRunLocation | undefined | null): Promise<void> {
     if (!this.isExcel || !location) return;
     await this.ensureOfficeReady();
@@ -494,6 +577,14 @@ export class ExcelService {
    * extension-managed in the ownership sheet, then deletes
    * the ownership sheet itself. Intended as a dev-only
    * "clean slate" helper when iterating on table behavior.
+   */
+  /**
+   * Removes all tables and worksheets that are marked as
+   * extension-managed in the ownership sheet, then deletes the
+   * ownership sheet itself.
+   *
+   * This is a dev-only "clean slate" helper when iterating on table
+   * behavior and is not intended for end users.
    */
   async purgeExtensionManagedContent(): Promise<void> {
     if (!this.isExcel) return;

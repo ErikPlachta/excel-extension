@@ -16,6 +16,7 @@ Purpose: Enable AI coding agents to be productive immediately in this Angular-ba
    - Parent/child semantics for checklists: do **not** mark a parent-level checklist item as completed (`[x]`) until **all** of its direct child tasks are `[x]`, unless the user explicitly says otherwise in the current session. Treat parent items as epics and child items as the source of truth for actual work.
 6. You can and should defer to running scripts that require me to provide you the results of the command (e.g., manifest validation) rather than trying to simulate or guess the output yourself.
 7. Do not re-explain or re-summarize content that was already clearly stated in the immediately preceding turn unless the user explicitly asks for a recap or clarification.
+8. When the user says "proceed", "continue", or "next" after you have proposed a plan or options, treat that as approval to **execute the previously proposed next steps immediately**, without asking again.
 
 ## Big Picture
 
