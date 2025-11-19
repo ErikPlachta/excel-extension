@@ -5,7 +5,6 @@ import { ExecuteQueryParams, QueryApiMockService } from "../../shared/query-api-
 import { QueryStateService } from "../../shared/query-state.service";
 import { QueryDefinition } from "../../shared/query-model";
 import { QueryWriteMode } from "../../types";
-import { ListComponent, UiListItem } from "../../shared/ui/list.component";
 import { DropdownComponent, UiDropdownItem } from "../../shared/ui/dropdown.component";
 import { ButtonComponent } from "../../shared/ui/button.component";
 import { QueryUiActionConfig, QueryUiActionType } from "../../types/ui/primitives.types";
@@ -15,13 +14,12 @@ import { WorkbookTableInfo } from "../../types";
 @Component({
   selector: "app-query-home",
   standalone: true,
-  imports: [CommonModule, ListComponent, DropdownComponent, ButtonComponent],
+  imports: [CommonModule, DropdownComponent, ButtonComponent],
   templateUrl: "./query-home.component.html",
   styleUrl: "./query-home.component.css",
 })
 export class QueryHomeComponent implements OnInit {
   queries: QueryDefinition[] = [];
-  listItems: UiListItem[] = [];
   roleFilterItems: UiDropdownItem[] = [];
   selectedRoleFilter: string | null = null;
   writeModeItems: UiDropdownItem[] = [];
@@ -40,16 +38,6 @@ export class QueryHomeComponent implements OnInit {
 
   ngOnInit(): void {
     this.queries = this.state.getQueries();
-    this.listItems = this.queries.map((q) => ({
-      id: q.id,
-      label: q.name,
-      description: q.description,
-      badge: q.uiConfig?.badgeLabelKey
-        ? "Admin only"
-        : this.isAdminOnly(q)
-          ? "Admin only"
-          : undefined,
-    }));
 
     this.roleFilterItems = [
       { value: "all", label: "All queries" },
@@ -58,15 +46,8 @@ export class QueryHomeComponent implements OnInit {
     ];
     this.selectedRoleFilter = "all";
 
-    this.writeModeItems = [
-      { value: "overwrite", label: "Overwrite existing table" },
-      { value: "append", label: "Append rows" },
-    ];
-
-    for (const query of this.queries) {
-      const initial: QueryWriteMode = query.writeMode ?? "overwrite";
-      this.selectedWriteModes.set(query.id, initial);
-    }
+    // Write mode dropdown removed; all queries now always overwrite
+    // any existing extension-managed table.
 
     if (this.workbook.isExcel) {
       void this.loadWorkbookState();
@@ -103,14 +84,12 @@ export class QueryHomeComponent implements OnInit {
     }
   }
 
-  get filteredListItems(): UiListItem[] {
-    if (this.selectedRoleFilter === "admin") {
-      return this.listItems.filter((item) => item.badge === "Admin only");
-    }
-    if (this.selectedRoleFilter === "analyst") {
-      return this.listItems.filter((item) => !item.badge);
-    }
-    return this.listItems;
+  // Legacy getter kept for compatibility with older templates that
+  // referenced `filteredListItems`. The list-based UI is currently
+  // commented out, so this getter is unused and returns an empty
+  // array to avoid TypeScript errors.
+  get filteredListItems(): never[] {
+    return [];
   }
 
   get filteredQueries(): QueryDefinition[] {
@@ -127,10 +106,8 @@ export class QueryHomeComponent implements OnInit {
     this.selectedRoleFilter = value;
   }
 
-  onWriteModeChange(query: QueryDefinition, value: string): void {
-    const mode: QueryWriteMode = value === "append" ? "append" : "overwrite";
-    this.selectedWriteModes.set(query.id, mode);
-  }
+  // Write mode is now fixed to overwrite, so there is no
+  // onWriteModeChange handler or dropdown.
 
   onRunClicked(query: QueryDefinition): void {
     void this.runQuery(query);
@@ -165,9 +142,9 @@ export class QueryHomeComponent implements OnInit {
       const lastParams = (this.state.getLastParams(query.id) ?? {}) as ExecuteQueryParams;
       const result = await this.api.executeQuery(query.id, lastParams);
 
-      const writeMode: QueryWriteMode =
-        this.selectedWriteModes.get(query.id) ?? query.writeMode ?? "overwrite";
-      const effectiveQuery: QueryDefinition = { ...query, writeMode };
+      // Write mode is now always overwrite; append semantics have
+      // been removed for simplicity and predictability.
+      const effectiveQuery: QueryDefinition = { ...query, writeMode: "overwrite" };
 
       const excelResult = await this.excel.upsertQueryTable(effectiveQuery, result.rows);
 

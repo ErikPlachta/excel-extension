@@ -170,6 +170,28 @@ export class ExcelService {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return Excel!.run(async (ctx: any) => {
+      // Basic shape info for telemetry/logging.
+      const header = rows.length ? Object.keys(rows[0]) : [];
+      const values = rows.map((r) => header.map((h) => r[h] ?? null));
+      const effectiveHeader = header.length ? header : ["Value"];
+      const effectiveValues = values.length ? values : [[null]];
+
+      const writeMode = "overwrite";
+
+      // Use telemetry debug helper when available without requiring it.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const maybeDebug = (
+        this.telemetry as unknown as { logDebug?: (event: string, info: any) => void }
+      ).logDebug;
+      if (maybeDebug) {
+        maybeDebug("upsertQueryTable:start", {
+          queryId: query.id,
+          writeMode,
+          headerLength: effectiveHeader.length,
+          rowCount: effectiveValues.length,
+        });
+      }
+
       const [tables, ownership] = await Promise.all([
         this.getWorkbookTables(),
         this.getWorkbookOwnership(),
@@ -196,6 +218,15 @@ export class ExcelService {
       const sheetName = locationHint?.sheetName ?? existingManaged?.worksheet ?? defaultSheetName;
       const tableName = locationHint?.tableName ?? existingManaged?.name ?? safeTableName;
 
+      if (maybeDebug) {
+        maybeDebug("upsertQueryTable:target", {
+          queryId: query.id,
+          sheetName,
+          tableName,
+          hasExistingManaged: !!existingManaged,
+        });
+      }
+
       try {
         const worksheets = ctx.workbook.worksheets;
         let sheet = worksheets.getItemOrNullObject(sheetName);
@@ -206,67 +237,107 @@ export class ExcelService {
           sheet = worksheets.add(sheetName);
         }
 
-        const header = rows.length ? Object.keys(rows[0]) : [];
-        const values = rows.map((r) => header.map((h) => r[h] ?? null));
-        const effectiveHeader = header.length ? header : ["Value"];
-        const effectiveValues = values.length ? values : [[null]];
-
-        const writeMode = query.writeMode ?? "overwrite";
-
         let table = ctx.workbook.tables.getItemOrNullObject(tableName);
-        table.load("name,worksheet,rows");
+        table.load("name,worksheet,showHeaders");
         await ctx.sync();
 
-        if (table.isNullObject || writeMode === "overwrite") {
-          const usedRange = sheet.getUsedRangeOrNullObject();
-          await ctx.sync();
-
-          const startCell = usedRange.isNullObject
-            ? sheet.getRange("A1")
-            : usedRange.getLastRow().getCell(1, 0);
-
+        // Helper: create a new table with header + data starting at A1.
+        const createNewTable = () => {
+          const startCell = sheet.getRange("A1");
           const totalRowCount = 1 + effectiveValues.length;
           const totalColumnCount = effectiveHeader.length;
           const dataRange = startCell.getResizedRange(totalRowCount - 1, totalColumnCount - 1);
-
           dataRange.values = [effectiveHeader, ...effectiveValues];
+          const newTable = ctx.workbook.tables.add(dataRange, true /* hasHeaders */);
+          newTable.name = tableName;
+          return newTable;
+        };
 
-          if (table.isNullObject) {
-            table = ctx.workbook.tables.add(dataRange, true /* hasHeaders */);
-            table.name = tableName;
-          } else {
-            table.resize(dataRange);
+        if (table.isNullObject) {
+          if (maybeDebug) {
+            maybeDebug("upsertQueryTable:createNewTable", {
+              queryId: query.id,
+              sheetName,
+              tableName,
+              totalRowCount: 1 + effectiveValues.length,
+              totalColumnCount: effectiveHeader.length,
+            });
           }
-        } else if (writeMode === "append") {
-          // Ensure the table exists and has a header row; append new
-          // rows to the bottom, preserving existing content.
+          table = createNewTable();
+        } else {
+          // Existing table: work with header and data body using standard
+          // Excel patterns: header row stays fixed; overwrite clears and
+          // rewrites data rows, append adds rows at the bottom.
+          if (!table.showHeaders) {
+            table.showHeaders = true;
+          }
+
           const headerRange = table.getHeaderRowRange();
-          headerRange.load("values");
+          headerRange.load("values,columnCount");
+          const dataBodyRange = table.getDataBodyRange();
+          dataBodyRange.load("rowCount,columnCount");
           await ctx.sync();
 
-          const tableHeaderValues = (headerRange.values as unknown[][])[0] as string[];
-          const headerMatches =
-            tableHeaderValues.length === effectiveHeader.length &&
-            tableHeaderValues.every((h, idx) => String(h) === String(effectiveHeader[idx]));
+          const currentHeaderValues = (headerRange.values as unknown[][])[0] as string[];
+          const currentColumnCount = headerRange.columnCount as number;
 
-          if (!headerMatches) {
-            // Fallback: rewrite the table (safer than appending with
-            // mismatched schema).
-            const usedRange = sheet.getUsedRangeOrNullObject();
-            await ctx.sync();
+          // Basic header validation: if the new header shape differs, we fall
+          // back to creating a fresh table instead of trying to force a resize
+          // that can misalign the existing table.
+          const headerShapeMatches =
+            currentColumnCount === effectiveHeader.length &&
+            currentHeaderValues.length === effectiveHeader.length;
 
-            const startCell = usedRange.isNullObject
-              ? sheet.getRange("A1")
-              : usedRange.getLastRow().getCell(1, 0);
+          if (maybeDebug) {
+            maybeDebug("upsertQueryTable:headerShape", {
+              queryId: query.id,
+              currentColumnCount,
+              effectiveHeaderLength: effectiveHeader.length,
+              currentHeaderLength: currentHeaderValues.length,
+              headerShapeMatches,
+            });
+          }
 
-            const totalRowCount = 1 + effectiveValues.length;
-            const totalColumnCount = effectiveHeader.length;
-            const dataRange = startCell.getResizedRange(totalRowCount - 1, totalColumnCount - 1);
-
-            dataRange.values = [effectiveHeader, ...effectiveValues];
-            table.resize(dataRange);
+          if (!headerShapeMatches) {
+            if (maybeDebug) {
+              maybeDebug("upsertQueryTable:headerMismatch_recreate", {
+                queryId: query.id,
+                sheetName,
+                tableName,
+              });
+            }
+            table.delete();
+            table = createNewTable();
           } else {
-            table.rows.add(null, effectiveValues);
+            // Header shape matches: overwrite header text in place so
+            // labels stay aligned with the columns, then always
+            // overwrite data rows.
+            headerRange.values = [effectiveHeader];
+
+            // Overwrite: delete all existing data rows, then add new
+            // rows via table.rows.add so the array shape always
+            // matches.
+            const currentRowCount = dataBodyRange.rowCount;
+            if (currentRowCount > 0) {
+              const rowsCollection = table.rows;
+              rowsCollection.load("count");
+              await ctx.sync();
+
+              for (let i = rowsCollection.count - 1; i >= 0; i--) {
+                rowsCollection.getItemAt(i).delete();
+              }
+            }
+
+            if (effectiveValues.length > 0) {
+              if (maybeDebug) {
+                maybeDebug("upsertQueryTable:overwrite", {
+                  queryId: query.id,
+                  overwriteRowCount: effectiveValues.length,
+                  columnCount: effectiveHeader.length,
+                });
+              }
+              table.rows.add(null, effectiveValues);
+            }
           }
         }
 

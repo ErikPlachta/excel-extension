@@ -12,6 +12,10 @@ describe("WorkbookService ownership helpers", () => {
       "getWorkbookTables",
     ]);
 
+    // Simulate running inside Excel so getOrCreateManagedTableTarget
+    // exercises its non-null path in this suite.
+    (excelSpy as any).isExcel = true;
+
     workbook = new WorkbookService(excelSpy as unknown as ExcelService);
   });
 
@@ -73,7 +77,7 @@ describe("WorkbookService ownership helpers", () => {
         },
       ];
 
-      excelSpy.getTables.and.resolveTo(tables);
+      excelSpy.getWorkbookTables.and.resolveTo(tables);
 
       const managed = await workbook.isExtensionManagedTable(tables[0]);
       const unmanaged = await workbook.isExtensionManagedTable(tables[1]);
@@ -116,7 +120,7 @@ describe("WorkbookService ownership helpers", () => {
       ];
 
       excelSpy.getWorkbookOwnership.and.resolveTo(ownershipRows);
-      excelSpy.getTables.and.resolveTo(tables);
+      excelSpy.getWorkbookTables.and.resolveTo(tables);
 
       const result = await workbook.getManagedTablesForQuery("q1-sales");
 
@@ -150,15 +154,15 @@ describe("WorkbookService ownership helpers", () => {
       const tables: WorkbookTableInfo[] = [{ name: "tbl_Q1Sales", worksheet: "Sheet1", rows: 10 }];
 
       excelSpy.getWorkbookOwnership.and.resolveTo(ownershipRows);
-      excelSpy.getTables.and.resolveTo(tables);
+      excelSpy.getWorkbookTables.and.resolveTo(tables);
 
       const target = await workbook.getOrCreateManagedTableTarget(baseQuery);
 
-      expect(target).toBeTruthy();
-      if (!target) return;
-
-      expect(target.sheetName).toBe("Sheet1");
-      expect(target.tableName).toBe("tbl_Q1Sales");
+      expect(target).toEqual({
+        sheetName: "Sheet1",
+        tableName: "tbl_Q1Sales",
+        existing: { name: "tbl_Q1Sales", worksheet: "Sheet1", rows: 10 },
+      });
     });
 
     it("returns a safe new table name when default conflicts with unmanaged user table", async () => {
@@ -173,15 +177,14 @@ describe("WorkbookService ownership helpers", () => {
       ];
 
       excelSpy.getWorkbookOwnership.and.resolveTo(ownershipRows);
-      excelSpy.getTables.and.resolveTo(tables);
+      excelSpy.getWorkbookTables.and.resolveTo(tables);
 
       const target = await workbook.getOrCreateManagedTableTarget(baseQuery);
 
-      expect(target).toBeTruthy();
-      if (!target) return;
-
-      expect(target.sheetName).toBe("Sheet1");
-      expect(target.tableName).not.toBe("tbl_Q1Sales");
+      expect(target).toEqual({
+        sheetName: "Sheet1",
+        tableName: "tbl_Q1Sales_q1-sales",
+      });
     });
   });
 });

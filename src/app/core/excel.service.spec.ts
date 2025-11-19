@@ -72,4 +72,18 @@ describe("ExcelService.upsertQueryTable (host-agnostic behavior)", () => {
     expect(error.message).toContain("Excel is not available");
     expect(telemetrySpy.logSuccess).not.toHaveBeenCalled();
   });
+
+  it("does not attempt geometry decisions when Excel is not available (overwrite)", async () => {
+    const result = await callUpsert("overwrite");
+
+    expect(result.ok).toBeFalse();
+    expect(telemetrySpy.logSuccess).not.toHaveBeenCalled();
+  });
+
+  it("does not attempt geometry decisions when Excel is not available (append)", async () => {
+    const result = await callUpsert("append");
+
+    expect(result.ok).toBeFalse();
+    expect(telemetrySpy.logSuccess).not.toHaveBeenCalled();
+  });
 });

@@ -27,13 +27,6 @@
         <div class="query-actions__badge" *ngIf="isAdminOnly(query)">Admin only</div>
       </div>
       <div class="query-actions__buttons">
-        <app-dropdown
-          [items]="writeModeItems"
-          [value]="selectedWriteModes.get(query.id) ?? query.writeMode ?? 'overwrite'"
-          placeholder="Write mode"
-          label="Write mode"
-          (valueChange)="onWriteModeChange(query, $event)"
-        ></app-dropdown>
         <ng-container *ngFor="let action of query.uiConfig?.actions || []">
           <app-button
             [label]="

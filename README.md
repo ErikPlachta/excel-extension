@@ -53,10 +53,22 @@ No additional configuration is required; the workflow uses the built-in `GITHUB_
 
 ## Testing
 
-Run unit tests with Karma/Jasmine:
+Run unit tests with Karma/Jasmine in interactive/watch mode:
 
 ```bash
-npm test -- --watch=false --browsers=ChromeHeadless
+npm test
+```
+
+For CI/headless runs (single pass, no watch) use:
+
+```bash
+npm run test:ci
+```
+
+To capture full Jasmine failure output for later inspection or AI-assisted debugging, you can pipe the CI run to a log file:
+
+```bash
+npm run test:ci > test-results.log 2>&1
 ```
 
 Linters and formatters:

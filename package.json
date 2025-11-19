@@ -12,6 +12,7 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
+    "test:ci": "ng test --watch=false --browsers=ChromeHeadless",
     "lint": "eslint . --ext .ts,.html",
     "lint:office": "office-addin-lint check",
     "lint:office:fix": "office-addin-lint fix",

@@ -12,6 +12,17 @@ declare const Excel: any;
 @Injectable({ providedIn: "root" })
 export class ExcelTelemetryService {
   constructor(private readonly settings: SettingsService) {}
+
+  /**
+   * Optional debug helper used by ExcelService and other callers to emit
+   * structured diagnostics without affecting normal telemetry behavior.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  logDebug(event: string, info?: Record<string, any>): void {
+    // eslint-disable-next-line no-console
+    console.debug("[Excel][debug]", event, info ?? {});
+  }
+
   logSuccess(operation: string, info?: Record<string, unknown>): void {
     // For now we log to the console; this can later
     // be redirected to an in-workbook log table.

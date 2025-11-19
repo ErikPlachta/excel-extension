@@ -13,6 +13,7 @@ Purpose: Enable AI coding agents to be productive immediately in this Angular-ba
    - `CONTEXT-SESSION.md` → the **branch/session-level narrative**, describing overall goals, architecture, and how major features fit together; no granular task tracking here.
    - `CONTEXT-CURRENT.md` → the **current-focus sandbox**, a zoomed-in view for the active subset of work (goals, snapshot, active refinement notes, manual validation scenarios) tied to one or more unchecked TODOs.
    - When asked to update planning/checklist docs (like `TODO.md`, `CONTEXT-SESSION.md`, or `CONTEXT-CURRENT.md`), prefer a single comprehensive pass over the requested scope (e.g., an entire section) rather than touching only the immediately-adjacent bullets.
+   - Parent/child semantics for checklists: do **not** mark a parent-level checklist item as completed (`[x]`) until **all** of its direct child tasks are `[x]`, unless the user explicitly says otherwise in the current session. Treat parent items as epics and child items as the source of truth for actual work.
 6. You can and should defer to running scripts that require me to provide you the results of the command (e.g., manifest validation) rather than trying to simulate or guess the output yourself.
 7. Do not re-explain or re-summarize content that was already clearly stated in the immediately preceding turn unless the user explicitly asks for a recap or clarification.
 
