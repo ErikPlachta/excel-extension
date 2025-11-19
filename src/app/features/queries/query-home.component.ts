@@ -1,6 +1,6 @@
 import { CommonModule } from "@angular/common";
 import { Component, OnInit } from "@angular/core";
-import { ExcelService, AuthService } from "../../core";
+import { ExcelService, AuthService, TelemetryService } from "../../core";
 import { ExecuteQueryParams, QueryApiMockService } from "../../shared/query-api-mock.service";
 import { QueryStateService } from "../../shared/query-state.service";
 import { QueryDefinition } from "../../shared/query-model";
@@ -33,7 +33,8 @@ export class QueryHomeComponent implements OnInit {
     private readonly workbook: WorkbookService,
     private readonly auth: AuthService,
     private readonly api: QueryApiMockService,
-    private readonly state: QueryStateService
+    private readonly state: QueryStateService,
+    private readonly telemetry: TelemetryService
   ) {}
 
   ngOnInit(): void {
@@ -110,6 +111,14 @@ export class QueryHomeComponent implements OnInit {
   // onWriteModeChange handler or dropdown.
 
   onRunClicked(query: QueryDefinition): void {
+    this.telemetry.logEvent(
+      this.telemetry.createWorkflowEvent({
+        category: "query",
+        name: "query.run.requested",
+        severity: "info",
+        context: { queryId: query.id },
+      })
+    );
     void this.runQuery(query);
   }
 
@@ -159,9 +168,31 @@ export class QueryHomeComponent implements OnInit {
         rowCount: result.rows.length,
         location: excelResult.value,
       });
+      this.telemetry.logEvent(
+        this.telemetry.createWorkflowEvent({
+          category: "query",
+          name: "query.run.completed",
+          severity: "info",
+          context: {
+            queryId: query.id,
+            rowCount: result.rows.length,
+          },
+        })
+      );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       this.error = err?.message ?? String(err);
+      this.telemetry.logEvent(
+        this.telemetry.createWorkflowEvent({
+          category: "query",
+          name: "query.run.failed",
+          severity: "error",
+          message: this.error ?? undefined,
+          context: {
+            queryId: query.id,
+          },
+        })
+      );
     } finally {
       this.isRunning = false;
     }

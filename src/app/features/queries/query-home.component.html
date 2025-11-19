@@ -19,7 +19,7 @@
     ></app-list>
   -->
 
-  <div class="query-actions" *ngIf="filteredQueries.length">
+  <div class="query-actions query-actions--cards" *ngIf="filteredQueries.length">
     <div class="query-actions__row" *ngFor="let query of filteredQueries">
       <div class="query-actions__meta">
         <div class="query-actions__name">{{ query.name }}</div>

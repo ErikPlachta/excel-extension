@@ -6,6 +6,8 @@ const STORAGE_KEY = "excel-extension.settings";
 const DEFAULT_SETTINGS: AppSettings = {
   telemetry: {
     enableWorkbookLogging: false,
+    enableConsoleLogging: true,
+    sessionStrategy: "per-load",
     logWorksheetName: "_Extension_Log",
     logTableName: "_Extension_Log_Table",
     logColumns: {
@@ -13,6 +15,8 @@ const DEFAULT_SETTINGS: AppSettings = {
       level: "level",
       operation: "operation",
       message: "message",
+      sessionId: "sessionId",
+      correlationId: "correlationId",
     },
   },
 };

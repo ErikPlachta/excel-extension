@@ -1,17 +1,17 @@
 import { ExcelService } from "./excel.service";
-import { ExcelTelemetryService } from "./excel-telemetry.service";
+import { TelemetryService } from "./telemetry.service";
 import { QueryDefinition, QueryRunLocation } from "../shared/query-model";
 import { ExecuteQueryResultRow } from "../shared/query-api-mock.service";
 import { ExcelOperationResult } from "../types";
 
 describe("ExcelService.upsertQueryTable (host-agnostic behavior)", () => {
   let service: ExcelService;
-  let telemetrySpy: jasmine.SpyObj<ExcelTelemetryService>;
+  let telemetrySpy: jasmine.SpyObj<TelemetryService>;
 
   beforeEach(() => {
-    telemetrySpy = jasmine.createSpyObj<ExcelTelemetryService>("ExcelTelemetryService", [
-      "logSuccess",
+    telemetrySpy = jasmine.createSpyObj<TelemetryService>("TelemetryService", [
       "normalizeError",
+      "logEvent",
     ]);
 
     // In unit tests we are not running inside Excel, so
@@ -59,7 +59,7 @@ describe("ExcelService.upsertQueryTable (host-agnostic behavior)", () => {
 
     expect(error.operation).toBe("upsertQueryTable");
     expect(error.message).toContain("Excel is not available");
-    expect(telemetrySpy.logSuccess).not.toHaveBeenCalled();
+    expect(telemetrySpy.logEvent).not.toHaveBeenCalled();
   });
 
   it("returns a typed error when not running inside Excel (append)", async () => {
@@ -70,20 +70,20 @@ describe("ExcelService.upsertQueryTable (host-agnostic behavior)", () => {
 
     expect(error.operation).toBe("upsertQueryTable");
     expect(error.message).toContain("Excel is not available");
-    expect(telemetrySpy.logSuccess).not.toHaveBeenCalled();
+    expect(telemetrySpy.logEvent).not.toHaveBeenCalled();
   });
 
   it("does not attempt geometry decisions when Excel is not available (overwrite)", async () => {
     const result = await callUpsert("overwrite");
 
     expect(result.ok).toBeFalse();
-    expect(telemetrySpy.logSuccess).not.toHaveBeenCalled();
+    expect(telemetrySpy.logEvent).not.toHaveBeenCalled();
   });
 
   it("does not attempt geometry decisions when Excel is not available (append)", async () => {
     const result = await callUpsert("append");
 
     expect(result.ok).toBeFalse();
-    expect(telemetrySpy.logSuccess).not.toHaveBeenCalled();
+    expect(telemetrySpy.logEvent).not.toHaveBeenCalled();
   });
 });

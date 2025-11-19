@@ -2,7 +2,7 @@ import { Injectable } from "@angular/core";
 import { ExecuteQueryResultRow } from "../shared/query-api-mock.service";
 import { QueryDefinition, QueryRunLocation } from "../shared/query-model";
 import { ExcelOperationResult, WorkbookOwnershipInfo, WorkbookTableInfo } from "../types";
-import { ExcelTelemetryService } from "./excel-telemetry.service";
+import { TelemetryService } from "./telemetry.service";
 
 /**
  * Low-level wrapper around the Office.js Excel APIs.
@@ -15,7 +15,7 @@ import { ExcelTelemetryService } from "./excel-telemetry.service";
  *   feature (`upsertQueryTable`), including geometry and ownership
  *   decisions.
  * - Managing workbook-level metadata and log sheets used by
- *   `WorkbookService` and `ExcelTelemetryService`.
+ *   `WorkbookService` and `TelemetryService`.
  *
  * Office.js types are intentionally left as `any` at the boundary so
  * that the rest of the app can work with strongly typed models such
@@ -40,12 +40,12 @@ declare const Excel: any;
  * - {@link WorkbookService} (indirectly) by providing
  *   {@link getWorkbookTables} and {@link getWorkbookOwnership}, which
  *   are used to build higher-level workbook abstractions.
- * - {@link ExcelTelemetryService}, which normalizes and logs
+ * - {@link TelemetryService}, which normalizes and logs
  *   successes and failures for all Excel operations exposed here.
  */
 @Injectable({ providedIn: "root" })
 export class ExcelService {
-  constructor(private readonly telemetry: ExcelTelemetryService) {}
+  constructor(private readonly telemetry: TelemetryService) {}
 
   /**
    * Cached promise used to ensure `Office.onReady` has completed
@@ -117,7 +117,7 @@ export class ExcelService {
     return Excel!.run(async (ctx: any) => {
       const sheets = ctx.workbook.worksheets.load("items/name");
       await ctx.sync();
-      return sheets.items.map((s: any) => s.name);
+      return sheets.items.map((s: { name: string }) => s.name);
     });
   }
 
@@ -155,11 +155,13 @@ export class ExcelService {
 
       await ctx.sync();
 
-      return tables.items.map((t: any) => ({
-        name: t.name,
-        worksheet: t.worksheet.name,
-        rows: t.rows.count,
-      }));
+      return tables.items.map(
+        (t: { name: string; worksheet: { name: string }; rows: { count: number } }) => ({
+          name: t.name,
+          worksheet: t.worksheet.name,
+          rows: t.rows.count,
+        })
+      );
     });
   }
 
@@ -282,7 +284,7 @@ export class ExcelService {
    * runs and navigation can safely treat the target as
    * extension-managed without overwriting user tables.
    *
-   * Errors are normalized and logged via {@link ExcelTelemetryService}.
+   * Errors are normalized and logged via {@link TelemetryService}.
    */
   /**
    * Creates or overwrites the Excel table that represents the result
@@ -301,17 +303,17 @@ export class ExcelService {
    * - Always records/update ownership in `_Extension_Ownership` for
    *   the target table.
    *
-   * @param query The query definition whose results are being written.
-   * @param rows The executed query result rows to project into the
+   * @param query - The query definition whose results are being written.
+   * @param rows - The executed query result rows to project into the
    * Excel table.
-   * @param locationHint Optional hint for the desired sheet/table
+   * @param locationHint - Optional hint for the desired sheet/table
    * location; when omitted the ownership model and query defaults are
    * used to choose a safe target.
    *
    * @returns An {@link ExcelOperationResult} whose `value`, on
    * success, is the {@link QueryRunLocation} of the table that was
    * written. On failure, `ok` is false and a normalized error (already
-   * logged via {@link ExcelTelemetryService}) is returned.
+   * logged via {@link TelemetryService}) is returned.
    */
   async upsertQueryTable(
     query: QueryDefinition,
@@ -339,19 +341,18 @@ export class ExcelService {
 
       const writeMode = "overwrite";
 
-      // Use telemetry debug helper when available without requiring it.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const maybeDebug = (
-        this.telemetry as unknown as { logDebug?: (event: string, info: any) => void }
-      ).logDebug;
-      if (maybeDebug) {
-        maybeDebug("upsertQueryTable:start", {
-          queryId: query.id,
-          writeMode,
-          headerLength: effectiveHeader.length,
-          rowCount: effectiveValues.length,
-        });
-      }
+      const debugContextBase = {
+        queryId: query.id,
+        writeMode,
+        headerLength: effectiveHeader.length,
+        rowCount: effectiveValues.length,
+      } as const;
+      this.telemetry.logEvent({
+        category: "excel",
+        name: "upsertQueryTable:start",
+        severity: "debug",
+        context: debugContextBase,
+      });
 
       const [tables, ownership] = await Promise.all([
         this.getWorkbookTables(),
@@ -379,14 +380,17 @@ export class ExcelService {
       const sheetName = locationHint?.sheetName ?? existingManaged?.worksheet ?? defaultSheetName;
       const tableName = locationHint?.tableName ?? existingManaged?.name ?? safeTableName;
 
-      if (maybeDebug) {
-        maybeDebug("upsertQueryTable:target", {
+      this.telemetry.logEvent({
+        category: "excel",
+        name: "upsertQueryTable:target",
+        severity: "debug",
+        context: {
           queryId: query.id,
           sheetName,
           tableName,
           hasExistingManaged: !!existingManaged,
-        });
-      }
+        },
+      });
 
       try {
         const worksheets = ctx.workbook.worksheets;
@@ -415,15 +419,18 @@ export class ExcelService {
         };
 
         if (table.isNullObject) {
-          if (maybeDebug) {
-            maybeDebug("upsertQueryTable:createNewTable", {
+          this.telemetry.logEvent({
+            category: "excel",
+            name: "upsertQueryTable:createNewTable",
+            severity: "debug",
+            context: {
               queryId: query.id,
               sheetName,
               tableName,
               totalRowCount: 1 + effectiveValues.length,
               totalColumnCount: effectiveHeader.length,
-            });
-          }
+            },
+          });
           table = createNewTable();
         } else {
           // Existing table: work with header and data body using standard
@@ -449,24 +456,30 @@ export class ExcelService {
             currentColumnCount === effectiveHeader.length &&
             currentHeaderValues.length === effectiveHeader.length;
 
-          if (maybeDebug) {
-            maybeDebug("upsertQueryTable:headerShape", {
+          this.telemetry.logEvent({
+            category: "excel",
+            name: "upsertQueryTable:headerShape",
+            severity: "debug",
+            context: {
               queryId: query.id,
               currentColumnCount,
               effectiveHeaderLength: effectiveHeader.length,
               currentHeaderLength: currentHeaderValues.length,
               headerShapeMatches,
-            });
-          }
+            },
+          });
 
           if (!headerShapeMatches) {
-            if (maybeDebug) {
-              maybeDebug("upsertQueryTable:headerMismatch_recreate", {
+            this.telemetry.logEvent({
+              category: "excel",
+              name: "upsertQueryTable:headerMismatch_recreate",
+              severity: "debug",
+              context: {
                 queryId: query.id,
                 sheetName,
                 tableName,
-              });
-            }
+              },
+            });
             table.delete();
             table = createNewTable();
           } else {
@@ -490,24 +503,33 @@ export class ExcelService {
             }
 
             if (effectiveValues.length > 0) {
-              if (maybeDebug) {
-                maybeDebug("upsertQueryTable:overwrite", {
+              this.telemetry.logEvent({
+                category: "excel",
+                name: "upsertQueryTable:overwrite",
+                severity: "debug",
+                context: {
                   queryId: query.id,
                   overwriteRowCount: effectiveValues.length,
                   columnCount: effectiveHeader.length,
-                });
-              }
+                },
+              });
               table.rows.add(null, effectiveValues);
             }
           }
         }
 
         await ctx.sync();
-        this.telemetry.logSuccess("upsertQueryTable", {
-          queryId: query.id,
-          sheetName,
-          tableName,
-          rowCount: rows.length,
+        this.telemetry.logEvent({
+          category: "excel",
+          name: "upsertQueryTable",
+          severity: "info",
+          message: "ok",
+          context: {
+            queryId: query.id,
+            sheetName,
+            tableName,
+            rowCount: rows.length,
+          },
         });
       } catch (err) {
         return this.telemetry.normalizeError<QueryRunLocation>(
@@ -549,7 +571,7 @@ export class ExcelService {
    * - Appends one row per call with the timestamp, level, operation
    *   name and message.
    *
-   * @param entry The structured log entry to append.
+   * @param entry - The structured log entry to append.
    */
   async appendLogEntry(entry: {
     level: "info" | "error";
@@ -601,7 +623,7 @@ export class ExcelService {
    * - Inserts or updates a single row for the specified
    *   `(sheetName, tableName, queryId)` combination.
    *
-   * @param info Identifiers for the managed table and owning query.
+   * @param info - Identifiers for the managed table and owning query.
    */
   private async recordOwnership(info: {
     tableName: string;
@@ -678,7 +700,7 @@ export class ExcelService {
    * - Activates the specified worksheet.
    * - Selects the full range of the target table.
    *
-   * @param location The last known location of the query results. If
+   * @param location - The last known location of the query results. If
    * undefined, null, or not running inside Excel, this is a no-op.
    */
   async activateQueryLocation(location: QueryRunLocation | undefined | null): Promise<void> {

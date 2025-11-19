@@ -512,7 +512,7 @@ Going forward, **every new feature or meaningful code change must include TSDoc 
     - [x] Targeted host-agnostic specs that validate guard behavior (short-circuit when not in Excel) and basic rerun telemetry wiring for `ExcelService.upsertQueryTable`; deeper geometry tests remain blocked on real Excel integration.
   - [x] Verify full test coverage for all other things related to excel service.
 
-- [ ] **Refine and Refactor Office.js Wrapper Logic**
+- [x] **Refine and Refactor Office.js Wrapper Logic**
   - [ ] ROLE: Act as an expert in TSDoc, Angular, Excel, Office.js, Excel Extensions, data driven design, modular design, API, and security when working on this section.
   - [x] KEY_PROBLEM_TO_SOLVE: Query runs could duplicate headers and misalign table ranges.
     - [x] EXPECTED (overwrite-only): Header row is written exactly once (on initial creation or on full overwrite) and never duplicated by reruns.
@@ -548,20 +548,43 @@ Going forward, **every new feature or meaningful code change must include TSDoc 
     - [x] Finish TSDoc and dependency review so the Office.js wrapper surface is fully documented and strongly typed at the boundaries.
     - [x] Add a short "Office.js wrapper behavior" section to `CONTEXT-SESSION.md` describing overwrite-only semantics, ownership expectations, and how to safely evolve the geometry logic.
 
-- [ ] **Refactor excel-telemetry.service.ts and Update to application-telemetry**
-  - [ ] Act as an expert in TSDoc, Angular, Excel, Office.js, Excel Extensions, data driven design, modular design, API, and security
-  - [ ] REVIEW_CODE: Examine all methods in `ExcelTelemetryService` for proper Office.js usage and telemetry handling.
-    - [ ] Ensure each method correctly initializes and syncs the Office.js context.
-    - [ ] Validate that error handling is robust and provides meaningful feedback.
-  - [ ] UPDATE_TSDOC: Ensure all methods in `ExcelTelemetryService` have comprehensive TSDoc comments.
-    - [ ] Review `/Users/erikplachta/repo/excel-extension/src/app/core/excel-telemetry.service.ts`, and update with complete TSDoc comments at the File, Class, and Method levels. Complete documentation, no exception.
-    - [ ] Verify this class is a proper Angular service wrapper around Office.js telemetry functionality.
-    - [ ] Look for opportunities to extract logic and functionality that should be moved into helpers, like sorting, filtering, and general helper functions that can/should be used by the application as a whole.
-  - [ ] PLAN: Determine how this can be converted to be manage logging for the whole app
-    - [ ] REMEMBER: Data driven design from CONFIG files.
-    - [ ] REMEMBER: TSDoc is critical for all new and existing code.
-    - [ ] What needs to be refactored and why?
-    - [ ] What steps will you take?
+- [x] **Refactor excel-telemetry.service.ts and Update to application-telemetry**
+  - [x] Act as an expert in TSDoc, Angular, Excel, Office.js, Excel Extensions, data driven design, modular design, API, and security
+  - [x] REVIEW_CODE: Examine all methods in `TelemetryService` for proper Office.js usage and telemetry handling.
+    - [x] Ensure each method correctly initializes and syncs the Office.js context.
+    - [x] Validate that error handling is robust and provides meaningful feedback.
+  - [x] UPDATE_TSDOC: Ensure all methods in `TelemetryService` have comprehensive TSDoc comments.
+    - [x] Review `/Users/erikplachta/repo/excel-extension/src/app/core/excel-telemetry.service.ts`, and update with complete TSDoc comments at the File, Class, and Method levels. Complete documentation, no exception.
+    - [x] Verify this class is a proper Angular service wrapper around Office.js telemetry functionality.
+    - [x] Look for opportunities to extract logic and functionality that should be moved into helpers, like sorting, filtering, and general helper functions that can/should be used by the application as a whole.
+  - [x] PLAN: Determine how this can be converted to manage logging for the whole app
+    - [x] REMEMBER: Data driven design from CONFIG files.
+    - [x] REMEMBER: TSDoc is critical for all new and existing code.
+    - [x] What needs to be refactored and why?
+      - [x] Generalize `TelemetryService` responsibilities from Excel-only operations to application-wide events, keeping Office.js usage behind host guards but allowing non-Excel callers to log via the same API.
+      - [x] Ensure all features (queries, worksheets, settings, auth) call into `TelemetryService` instead of writing directly to `console` or ad-hoc log helpers, so logging behavior is centralized.
+      - [x] Keep Office/Excel-specific logging paths isolated inside `TelemetryService` (and potentially small helpers) so that app-wide logging does not leak Office.js types into the rest of the app.
+    - [x] What steps will you take?
+      - [x] Treat `TelemetryService` as the single app-wide telemetry entry point and keep its public API host-agnostic (e.g., `logDebug`, `logSuccess`, `logError`, `normalizeError`), with Excel-specific log sinks remaining optional and guarded.
+      - [x] Drive workbook logging configuration from `SettingsService`/config models (e.g., log sheet/table names, column labels, enable/disable flag) so telemetry destinations are fully data driven instead of hard-coded.
+      - [x] Expand usage of `TelemetryService` incrementally across the app (beyond Excel operations) by refactoring components/services that currently log directly to the console to call the shared service instead, adding TSDoc for any new telemetry helpers or event shapes.
+
+- [ ] **Implement application-wide telemetry using TelemetryService and SettingsService**
+  - [x] Design the app-wide telemetry event model
+    - [x] Define a small set of event types/interfaces (e.g., `AppTelemetryEvent`, `WorkflowTelemetryEvent`, `FeatureTelemetryEvent`) in `src/app/types` with clear TSDoc and fields for category, name, context, and severity.
+    - [ ] Decide which events should be emitted where (queries, worksheets, settings changes, auth flows) and document examples in `CONTEXT-SESSION.md`.
+  - [x] Extend configuration and SettingsService for telemetry
+    - [x] Add telemetry-related settings (enable console logging, enable workbook logging, session strategy, worksheet/table/column names) to `AppSettings`/`TelemetrySettings` in `src/app/types`.
+    - [x] Ensure `SettingsService` continues to load/merge defaults correctly and that new settings are documented with TSDoc.
+  - [x] Refactor core services/components to use `TelemetryService`
+    - [x] Replace direct `console.*` calls in core Excel paths with `TelemetryService.logEvent` so logging is centralized and enriched with app context.
+    - [x] Add helper methods on `TelemetryService` to represent common app-level events (e.g., `createWorkflowEvent`, `createFeatureEvent`), keeping Office.js-specific logic internal.
+  - [ ] Verify telemetry behavior and configuration
+    - [ ] Add or update unit tests around `TelemetryService` and `SettingsService` to cover new settings, event shapes, and behavior (no-op outside Excel, host-guarded workbook logging, config-driven names/columns).
+    - [ ] Manually validate in Excel that enabling workbook logging via Settings results in appropriate rows being appended to the log table for key operations, and that disabling it reverts to console-only logging.
+  - [ ] Document the telemetry model and usage
+    - [ ] Update `CONTEXT-SESSION.md` with a short "Application telemetry" section describing `TelemetryService`'s role, event types, and config knobs, and how it relates to Excel-specific logging.
+    - [ ] Add a brief note in `README.md` under a telemetry/logging subsection pointing contributors to `TelemetryService`, `SettingsService`, and the telemetry settings for adding new telemetry events.
 
 - [ ] **Implement data driven and modular query parameter management (global + per-query)**
   - [ ] Extend the query domain model to distinguish between global parameters (applied to multiple queries/reports) and query-specific parameters (e.g., date ranges, regions, customer segments) with clear typing and defaults.
