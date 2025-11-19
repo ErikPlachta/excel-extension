@@ -258,11 +258,65 @@ npm test -- --watch=false --browsers=ChromeHeadless
   - None of the Angular/Office code runs (`main.ts`, `ExcelService`, host banners, etc.).
   - There is no way for the add-in to render an in-pane fallback message because the page itself never loads.
 - To make this behavior discoverable, we rely on manifest metadata and docs instead of an in-pane fallback:
-  - `dev-manifest.xml` now:
-    - Sets `<DisplayName>` to `"Excel Extension (Dev – localhost:4200)"` so the dev-only nature is obvious.
-    - Uses a `Description` that explicitly mentions the need to run `npm start` or `npm run start:dev` and explains that a blank taskpane usually means the dev server is not reachable.
-    - Updates `GetStarted.Title` / `GetStarted.Description` to call out the dev server requirement and to suggest starting the dev server if the taskpane is blank after clicking **Show Task Pane**.
-    - Points `GetStarted.LearnMoreUrl` at the GitHub repo for deeper troubleshooting.
+  - `dev-manifest.xml` display name clearly calls out the dependency on the localhost dev server.
+  - `README.md` documents the "blank taskpane" scenario and how to resolve it (start the dev server, reload the add-in).
+
+## Application telemetry
+
+Application telemetry is centralized in `TelemetryService` under `src/app/core/telemetry.service.ts`. It is responsible for enriching events with app context, choosing the right sinks (console vs workbook table), and normalizing Excel/Office.js errors.
+
+- **Event model:**
+  - `AppTelemetryEvent` is the base event shape (category, name, severity, message, optional `context`, `sessionId`, `correlationId`).
+  - `WorkflowTelemetryEvent` and `FeatureTelemetryEvent` are typed specializations used for long-running workflows and UI/feature events. Helpers `createWorkflowEvent` and `createFeatureEvent` in `TelemetryService` construct these with sensible default categories.
+  - Severity is expressed as a `TelemetrySeverity` union (e.g., `"debug" | "info" | "warn" | "error"`) and is mapped internally to both console methods and a simplified workbook `level` (`"info" | "error"`).
+
+- **Configuration via Settings:**
+  - Telemetry configuration lives on `AppSettings.telemetry` / `TelemetrySettings` (see `src/app/types` and `SettingsService`). Key knobs include:
+    - `enableConsoleLogging`: turn console logging on/off without touching call sites.
+    - `enableWorkbookLogging`: control whether events are also appended into an in-workbook log table.
+    - `sessionStrategy`: how session ids are generated/used (currently per-load).
+    - `logWorksheetName`, `logTableName`: worksheet and table names for the log surface (defaults to `_Extension_Log` / `_Extension_Log_Table`).
+    - `logColumns`: column labels for timestamp, level, operation, message, sessionId, and correlationId; defaults are applied when persisted settings are missing fields.
+  - `SettingsService` merges persisted values over defaults so older settings files automatically pick up new telemetry fields without migrations.
+
+- **Sinks and behavior:**
+  - **Console sink:**
+    - Always host-agnostic; when `enableConsoleLogging` is true, all events go to the browser/Excel console.
+    - Severity chooses the console method: `debug` → `console.debug`, `info` → `console.info`, `warn` → `console.warn`, `error` → `console.error`.
+    - Events are enriched with:
+      - A generated `sessionId` (per Angular runtime load, unless overridden).
+      - `hostStatus` from `AppContextService` (is Excel host, online/offline snapshot).
+      - `authSummary` from `AppContextService` (auth flag, display name, roles).
+
+  - **Workbook sink (in-workbook log table):**
+    - Controlled by `telemetry.enableWorkbookLogging` and guarded by host checks so it is a no-op outside Excel.
+    - When enabled **and** the host is Excel (`Office.context.host === Office.HostType.Excel`), `TelemetryService` writes log rows into a configurable table on a dedicated worksheet using Office.js:
+      - Worksheet: `logWorksheetName` (default `_Extension_Log`).
+      - Table: `logTableName` (default `_Extension_Log_Table`).
+      - Columns: labels from `logColumns` for timestamp, level, operation, message, sessionId, correlationId.
+    - Behavior is best-effort:
+      - If the sheet or table does not exist, it is created with a single header row at `A1:F1` and the configured column labels.
+      - Each event appends one row with ISO timestamp, mapped level, operation name, message, sessionId, and correlationId.
+      - Office.js failures are swallowed; the console remains the primary diagnostic surface. This avoids surfacing noisy add-in errors to end users while still keeping structured telemetry in the browser/Excel dev tools.
+
+- **Error normalization for Excel operations:**
+  - Excel/Office.js wrappers (for example, `ExcelService`) are expected to use `TelemetryService.normalizeError` to convert thrown values into a typed `ExcelOperationResult<T>` with an `ExcelErrorInfo` payload.
+  - `normalizeError`:
+    - Extracts a message from the thrown value (if present), falls back to a friendly fallback message.
+    - Logs an `AppTelemetryEvent` with category `"excel"`, severity `"error"`, and `context.raw` containing the original error.
+    - Returns `{ ok: false, error }` to the caller so components can render user-friendly error messages without re-parsing exceptions.
+
+- **Where events are emitted today (high level):**
+  - **Query execution:**
+    - `ExcelService.upsertQueryTable` uses telemetry to log successes/failures for query runs (operation name, query id, sheet/table names, row counts) via `ExcelOperationResult` and error normalization.
+    - When workbook logging is enabled, these operations also write into the log table so rerun decisions and failures can be inspected directly inside Excel.
+  - **Workbook ownership and purge flows:**
+    - Ownership-aware helpers (`WorkbookService` and purge helpers in `ExcelService`) emit telemetry around table creation, reuse, conflicts with user tables, and purge/reset operations.
+  - **Settings and auth (planned/initial wiring):**
+    - Settings changes that affect telemetry (e.g., toggling workbook logging) and key auth transitions (sign-in/out, role changes) are being wired to `TelemetryService` so future analysis can correlate behavior with configuration and user context.
+
+When adding new features, prefer logging via `TelemetryService.logEvent` (or the helper builders) instead of direct `console` calls. For new event types, extend the typed event models under `src/app/types`, add TSDoc, and update this section with a short note on where those events fire. - Sets `<DisplayName>` to `"Excel Extension (Dev – localhost:4200)"` so the dev-only nature is obvious. - Uses a `Description` that explicitly mentions the need to run `npm start` or `npm run start:dev` and explains that a blank taskpane usually means the dev server is not reachable. - Updates `GetStarted.Title` / `GetStarted.Description` to call out the dev server requirement and to suggest starting the dev server if the taskpane is blank after clicking **Show Task Pane**. - Points `GetStarted.LearnMoreUrl` at the GitHub repo for deeper troubleshooting.
+
 - Expected remediation when Excel shows a blank taskpane in dev:
   1. In the repo, run `npm start` (HTTP) or `npm run start:dev` (HTTPS dev certs) so `https://localhost:4200/` is reachable.
   2. Close and reopen the taskpane (or reload the add-in) from Excel.

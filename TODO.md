@@ -579,12 +579,12 @@ Going forward, **every new feature or meaningful code change must include TSDoc 
   - [x] Refactor core services/components to use `TelemetryService`
     - [x] Replace direct `console.*` calls in core Excel paths with `TelemetryService.logEvent` so logging is centralized and enriched with app context.
     - [x] Add helper methods on `TelemetryService` to represent common app-level events (e.g., `createWorkflowEvent`, `createFeatureEvent`), keeping Office.js-specific logic internal.
-  - [ ] Verify telemetry behavior and configuration
-    - [ ] Add or update unit tests around `TelemetryService` and `SettingsService` to cover new settings, event shapes, and behavior (no-op outside Excel, host-guarded workbook logging, config-driven names/columns).
-    - [ ] Manually validate in Excel that enabling workbook logging via Settings results in appropriate rows being appended to the log table for key operations, and that disabling it reverts to console-only logging.
-  - [ ] Document the telemetry model and usage
-    - [ ] Update `CONTEXT-SESSION.md` with a short "Application telemetry" section describing `TelemetryService`'s role, event types, and config knobs, and how it relates to Excel-specific logging.
-    - [ ] Add a brief note in `README.md` under a telemetry/logging subsection pointing contributors to `TelemetryService`, `SettingsService`, and the telemetry settings for adding new telemetry events.
+  - [x] Verify telemetry behavior and configuration
+    - [x] Add or update unit tests around `TelemetryService` and `SettingsService` to cover new settings, event shapes, and behavior (no-op outside Excel, host-guarded workbook logging, config-driven names/columns).
+    - [x] Manually validate in Excel that enabling workbook logging via Settings results in appropriate rows being appended to the log table for key operations, and that disabling it reverts to console-only logging.
+  - [x] Document the telemetry model and usage
+    - [x] Update `CONTEXT-SESSION.md` with a short "Application telemetry" section describing `TelemetryService`'s role, event types, and config knobs, and how it relates to Excel-specific logging.
+    - [x] Add a brief note in `README.md` under a telemetry/logging subsection pointing contributors to `TelemetryService`, `SettingsService`, and the telemetry settings for adding new telemetry events.
 
 - [ ] **Implement data driven and modular query parameter management (global + per-query)**
   - [ ] Extend the query domain model to distinguish between global parameters (applied to multiple queries/reports) and query-specific parameters (e.g., date ranges, regions, customer segments) with clear typing and defaults.

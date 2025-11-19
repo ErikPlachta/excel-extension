@@ -113,6 +113,16 @@ npm run validate:dev-manifest
 
 For GitHub Pages, use `prod-manifest.xml`, which points to the deployed site. The deploy workflow already sets `--base-href /excel-extension/` at build time.
 
+## Telemetry and logging
+
+Telemetry for this extension is centralized in `TelemetryService` under `src/app/core/telemetry.service.ts` and configured via `TelemetrySettings` on `AppSettings` (see `SettingsService`).
+
+- **Console logging:** When `enableConsoleLogging` is true in settings, application events (queries, workbook operations, and other features) are logged to the browser/Excel console with enriched context (session id, host status, auth summary).
+- **In-workbook log table:** When `enableWorkbookLogging` is enabled and the host is Excel, a best-effort log of key operations is appended to a configurable worksheet/table (default `_Extension_Log` / `_Extension_Log_Table`). This is primarily useful for troubleshooting query runs and workbook ownership behavior directly inside Excel.
+- **Error normalization:** Excel/Office.js operations return a typed `ExcelOperationResult`/`ExcelErrorInfo` instead of throwing raw errors, making it easier for components to show clear error messages while telemetry records structured details.
+
+For a deeper description of event shapes, sinks, and where telemetry is emitted, see the "Application telemetry" section in `CONTEXT-SESSION.md`.
+
 ## Additional Resources
 
 For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.

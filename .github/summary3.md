@@ -1,6 +1,6 @@
 # Copilot Governance Summary v3
 
-This file refines `summary2.md` to close integrity gaps and make it even easier for GPT‑5.1/Copilot Chat and other LLMs to generate robust, repo-specific `copilot-instructions.md` files. It is **meta-only**: do not treat this file itself as the active governance file; always create or respect a project’s own `copilot-instructions.md`.
+This file is instructions for GPT‑5.1/Copilot Chat and other LLMs to generate robust, repo-specific `copilot-instructions.md` files. It is **meta-only**: do not treat this file itself as the active governance file; always create or respect a project’s own `copilot-instructions.md`.
 
 ## Instructions for LLMs
 
