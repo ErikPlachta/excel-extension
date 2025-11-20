@@ -4,6 +4,13 @@ import { ExecuteQueryParams, QueryApiMockService } from "./query-api-mock.servic
 import { QueryDefinition, QueryRun } from "./query-model";
 import type { QueryParameterValues } from "../types";
 
+/**
+ * Shape of the in-memory state managed by {@link QueryStateService}.
+ *
+ * This snapshot is kept inside a BehaviorSubject so components can
+ * either subscribe to {@link QueryStateService.state$} or read the
+ * latest value via {@link QueryStateService.snapshot}.
+ */
 export interface QueryStateSnapshot {
   queries: QueryDefinition[];
   lastParams: Record<string, ExecuteQueryParams>;
@@ -45,6 +52,7 @@ export class QueryStateService {
     return this.stateSubject.value;
   }
 
+  /** Return the current list of known {@link QueryDefinition} objects. */
   getQueries(): QueryDefinition[] {
     return this.snapshot.queries;
   }
@@ -108,10 +116,19 @@ export class QueryStateService {
     }
   }
 
+  /**
+   * Get the current global parameter defaults that apply to all
+   * parameterized queries which opt into the shared parameter model.
+   */
   getGlobalParams(): QueryParameterValues {
     return this.snapshot.globalParams;
   }
 
+  /**
+   * Replace the current set of global parameter defaults and persist
+   * them to localStorage. Callers should pass a full object rather
+   * than mutating the returned reference from {@link getGlobalParams}.
+   */
   setGlobalParams(values: QueryParameterValues): void {
     this.stateSubject.next({
       ...this.snapshot,
@@ -124,6 +141,11 @@ export class QueryStateService {
     return this.snapshot.queryParams[queryId];
   }
 
+  /**
+   * Persist per-query parameter overrides for a specific query id.
+   * Overrides are merged into state but callers are expected to
+   * construct the full map for the given query.
+   */
   setQueryParams(queryId: string, values: QueryParameterValues): void {
     const { queryParams } = this.snapshot;
     this.stateSubject.next({
@@ -140,6 +162,10 @@ export class QueryStateService {
     return this.snapshot.queryRunFlags[queryId] ?? false;
   }
 
+  /**
+   * Update the stored Run-checkbox flag for a single query and
+   * persist the updated flags collection to localStorage.
+   */
   setQueryRunFlag(queryId: string, value: boolean): void {
     const { queryRunFlags } = this.snapshot;
     this.stateSubject.next({
@@ -156,6 +182,11 @@ export class QueryStateService {
     return this.snapshot.lastParams[queryId];
   }
 
+  /**
+   * Persist the last set of {@link ExecuteQueryParams} that were used
+   * to execute a given query. This does not affect global or per-query
+   * parameter defaults; it is used primarily for telemetry and UX.
+   */
   setLastParams(queryId: string, params: ExecuteQueryParams): void {
     const { lastParams } = this.snapshot;
     this.stateSubject.next({
@@ -171,6 +202,10 @@ export class QueryStateService {
     return this.snapshot.lastRuns[queryId];
   }
 
+  /**
+   * Record the most recent completed run for a query, including the
+   * inferred or actual worksheet/table location used in Excel.
+   */
   setLastRun(queryId: string, run: QueryRun): void {
     const { lastRuns } = this.snapshot;
     this.stateSubject.next({

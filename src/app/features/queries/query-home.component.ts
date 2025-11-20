@@ -83,6 +83,10 @@ export class QueryHomeComponent implements OnInit {
   }
 
   onActionClicked(query: QueryDefinition, action: QueryUiActionConfig): void {
+    if (action.type === "show-details") {
+      this.toggleDetails(query);
+      return;
+    }
     this.dispatchAction(query, action.type);
   }
 
@@ -96,9 +100,6 @@ export class QueryHomeComponent implements OnInit {
     if (type === "go-to-table") {
       void this.goToLastRun(query);
       return;
-    }
-    if (type === "show-details") {
-      this.openDetails(query);
     }
   }
 
@@ -122,6 +123,23 @@ export class QueryHomeComponent implements OnInit {
 
   onRoleFilterChange(value: string): void {
     this.selectedRoleFilter = value;
+  }
+
+  toggleDetails(query: QueryDefinition): void {
+    if (this.selectedQuery && this.selectedQuery.id === query.id) {
+      this.closeDetails();
+      return;
+    }
+    this.openDetails(query);
+  }
+
+  hasCustomParams(query: QueryDefinition): boolean {
+    const overrides = this.state.getQueryParams(query.id) ?? {};
+    return Object.keys(overrides).length > 0;
+  }
+
+  getEffectiveParamsForDisplay(query: QueryDefinition): QueryParameterValues {
+    return this.state.getEffectiveParams(query, "unique");
   }
 
   openDetails(query: QueryDefinition): void {

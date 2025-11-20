@@ -63,6 +63,7 @@
 /* Each query row as a card */
 .query-actions__row {
   display: flex;
+  flex-direction: column;
   justify-content: space-between;
   align-items: stretch;
   padding: 0.5rem 0.75rem;
@@ -70,6 +71,7 @@
   border: 1px solid #dde2ea;
   background: #f8fafc;
   gap: 0.75rem;
+  width: 100%;
 }
 
 .query-actions__meta {
@@ -77,9 +79,22 @@
   min-width: 0;
 }
 
+.query-actions__meta-main {
+  flex: 1 1 100%;
+  min-width: 100%;
+}
+
+.query-actions__meta-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
 .query-actions__name {
   font-weight: 600;
   color: #1f2933;
+  margin-bottom: 0.1rem;
 }
 
 .query-actions__badge {
@@ -105,6 +120,7 @@
   align-items: center;
   gap: 0.25rem;
   font-size: 0.8rem;
+  white-space: nowrap;
 }
 
 .query-actions__description {
@@ -114,20 +130,6 @@
 
 .query-item__id {
   color: #777;
-}
-
-.query-actions__buttons {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 0.25rem;
-  align-items: flex-end;
-}
-
-.query-actions__batch {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 0.75rem;
 }
 
 .query-details {
@@ -177,6 +179,56 @@
 
 .query-details__bindings li {
   list-style: disc;
+}
+
+/* Inline parameters summary within each card */
+.query-actions__params {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  font-size: 0.8rem;
+  color: #555;
+  width: 100%;
+}
+
+.query-actions__params-heading {
+  font-weight: 600;
+  color: #374151;
+}
+
+.query-actions__params-body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.query-actions__params-body span {
+  background: #e5edf8;
+  border-radius: 999px;
+  padding: 0.1rem 0.4rem;
+}
+
+.query-actions__params-indicator {
+  font-size: 0.75rem;
+  margin-top: 0.15rem;
+}
+
+.query-actions__params-indicator--muted {
+  color: #6b7280;
+}
+
+/* Inline details editor inside each card */
+.query-card__details {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px dashed #cbd5e1;
+}
+
+.query-card__details h4 {
+  margin: 0 0 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #111827;
 }
 
 /* Empty-state under filters */

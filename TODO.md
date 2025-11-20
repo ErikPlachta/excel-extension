@@ -586,7 +586,7 @@ Going forward, **every new feature or meaningful code change must include TSDoc 
     - [x] Update `CONTEXT-SESSION.md` with a short "Application telemetry" section describing `TelemetryService`'s role, event types, and config knobs, and how it relates to Excel-specific logging.
     - [x] Add a brief note in `README.md` under a telemetry/logging subsection pointing contributors to `TelemetryService`, `SettingsService`, and the telemetry settings for adding new telemetry events.
 
-- [ ] **Implement data driven and modular query parameter management (global + per-query)**
+- [x] **Implement data driven and modular query parameter management (global + per-query)**
   - [x] Extend query types to support a shared parameter set
     - [x] Define a typed parameter key/value model in `src/app/types` (e.g., `QueryParameterKey` and `QueryParameterValues` for `StartDate`, `EndDate`, `Group`, `SubGroup`).
     - [x] Extend `QueryDefinition` to declare which parameters it participates in (e.g., `parameterKeys?: QueryParameterKey[]`) so behavior stays data driven.
@@ -608,14 +608,14 @@ Going forward, **every new feature or meaningful code change must include TSDoc 
     - [x] Add two top-level Run buttons to `QueryHomeComponent`: "Run – Use Global Params" and "Run – Use Unique Parameters".
     - [x] Implement handlers that collect selected queries (via `Run` checkboxes), compute effective parameters per query (`global` vs `unique`), and call a shared `runSingle` helper that wraps existing `runQuery` behavior.
     - [x] Ensure per-row Run actions (if kept) also invoke the shared helper so telemetry and error handling are consistent.
-  - [ ] Integrate parameters into telemetry
+  - [x] Integrate parameters into telemetry
     - [x] Emit batch-level telemetry events (e.g., `query.batch.run.requested/completed/failed`) including mode (`global`/`unique`), query ids, and a summarized parameter snapshot.
     - [x] Extend existing single-query events (`query.run.*`) to include mode and effective parameters in their context payload.
-    - [ ] Verify that telemetry respects Settings (console vs workbook logging) and that parameter payloads remain compact and safe to log.
-  - [ ] Add tests and TSDoc for new behavior
-    - [ ] Extend `QueryStateService` specs to cover new fields, effective parameter calculation, and `localStorage` hydration/persistence.
-    - [ ] Extend `QueryHomeComponent` specs to cover Run checkbox behavior, new Run buttons, host/role guards for these flows, and telemetry invocations.
-    - [ ] Add or update TSDoc on all new types and public methods introduced for parameter management so they align with the repo’s strict typing and documentation standards.
+    - [x] Verify that telemetry respects Settings (console vs workbook logging) and that parameter payloads remain compact and safe to log.
+  - [x] Add tests and TSDoc for new behavior
+    - [x] Extend `QueryStateService` specs to cover new fields, effective parameter calculation, and `localStorage` hydration/persistence.
+    - [x] Extend `QueryHomeComponent` specs to cover Run checkbox behavior, new Run buttons, host/role guards for these flows, and telemetry invocations.
+    - [x] Add or update TSDoc on all new types and public methods introduced for parameter management so they align with the repo’s strict typing and documentation standards.
 
 - [ ] **Support saving and loading named query configurations**
   - [ ] Design a `QueryConfiguration` model that captures a named set of query selections, parameter values (global + per-query), and rerun behaviors (overwrite) so a “report configuration” can be reused.

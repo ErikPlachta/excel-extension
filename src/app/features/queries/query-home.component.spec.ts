@@ -35,6 +35,7 @@ describe("QueryHomeComponent role visibility and execution", () => {
   let authStub: AuthServiceStub;
   let excelStub: { isExcel: boolean; upsertQueryTable: jasmine.Spy };
   let apiStub: jasmine.SpyObj<QueryApiMockService>;
+  let telemetryStub: TelemetryServiceStub;
 
   beforeEach(async () => {
     authStub = new AuthServiceStub();
@@ -68,12 +69,14 @@ describe("QueryHomeComponent role visibility and execution", () => {
       subGroups: ["North", "South"],
     } as GroupingOptionsResult);
 
+    telemetryStub = new TelemetryServiceStub();
+
     await TestBed.configureTestingModule({
       imports: [QueryHomeComponent],
       providers: [
         { provide: AuthService, useValue: authStub },
         { provide: ExcelService, useValue: excelStub },
-        { provide: TelemetryService, useClass: TelemetryServiceStub },
+        { provide: TelemetryService, useValue: telemetryStub },
         { provide: QueryApiMockService, useValue: apiStub },
         QueryStateService,
       ],
@@ -164,6 +167,74 @@ describe("QueryHomeComponent role visibility and execution", () => {
     expect(component["error"]).toBeNull();
   });
 
+  it("prefers per-query overrides when running selected queries in unique mode", async () => {
+    excelStub.isExcel = true;
+    authStub.roles = ["analyst"];
+
+    // Select the query for batch run
+    const query = apiStub.getQueries()[0] as QueryDefinition;
+    component.onRunFlagChange(query, true);
+
+    // Seed global params that will be used as fallbacks
+    component.onGlobalDateChange("StartDate", "2024-01-01");
+    component.onGlobalDateChange("EndDate", "2024-12-31");
+
+    // Open details and set per-query overrides
+    component.openDetails(query);
+    component.onOverrideChange("Group", "Consumer");
+    component.onOverrideChange("SubGroup", "North");
+    component.onSaveOverrides();
+
+    apiStub.executeQuery.and.callFake(async (_id: string, params?: ExecuteQueryParams) => {
+      const p = params ?? {};
+
+      // Expect overrides to win over globals for Group/SubGroup
+      expect(p["Group"]).toBe("Consumer");
+      expect(p["SubGroup"]).toBe("North");
+      // Globals should still apply for StartDate/EndDate
+      expect(p["StartDate"] ?? p["startDate"]).toBe("2024-01-01");
+      expect(p["EndDate"] ?? p["endDate"]).toBe("2024-12-31");
+
+      return {
+        query,
+        rows: [],
+      };
+    });
+
+    excelStub.upsertQueryTable.and.resolveTo({
+      ok: true,
+      value: { sheetName: "Sales_Summary", tableName: "tbl_SalesSummary" },
+    } as any);
+
+    await component.runSelected("unique");
+
+    expect(component["error"]).toBeNull();
+  });
+
+  it("logs telemetry events when running a batch of queries", async () => {
+    excelStub.isExcel = true;
+    authStub.roles = ["analyst"];
+
+    component.onRunFlagChange(apiStub.getQueries()[0] as QueryDefinition, true);
+
+    apiStub.executeQuery.and.resolveTo({
+      query: apiStub.getQueries()[0] as QueryDefinition,
+      rows: [],
+    });
+
+    excelStub.upsertQueryTable.and.resolveTo({
+      ok: true,
+      value: { sheetName: "Sales_Summary", tableName: "tbl_SalesSummary" },
+    } as any);
+
+    await component.runSelected("global");
+
+    const names = telemetryStub.logEvent.calls.all().map((c) => (c.args[0] as any).name);
+
+    expect(names).toContain("query.batch.run.requested");
+    expect(names).toContain("query.batch.run.completed");
+  });
+
   it("loads grouping options into component state", async () => {
     excelStub.isExcel = true;
 
@@ -186,8 +257,9 @@ describe("QueryHomeComponent role visibility and execution", () => {
     const compiled = fixture.nativeElement as HTMLElement;
     const html = compiled.textContent ?? "";
 
+    // Details section should now be rendered inside the selected card
+    expect(html).toContain("Overrides");
     expect(html).toContain("Start date override");
-    expect(html).not.toContain("End date override");
     expect(html).toContain("Group override");
   });
 });
