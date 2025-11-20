@@ -55,148 +55,143 @@ Task Management and Focus is managed by using 3 key files/documents with very pr
 
 ## Current Focus
 
-- [ ] **Resolve Jasmine/Karma Testing Suite Issues** (subset of [11. Refine & Improve Excel Functionality](TODO.md#11-refine--improve-excel-functionality))
-- [ ] **Refine and Refactor Office.js Wrapper Logic** (subset of [11. Refine & Improve Excel Functionality](TODO.md#11-refine--improve-excel-functionality))
+- [ ] **Implement data driven and modular query parameter management (global + per-query)** (subset of [11. Refine & Improve Excel Functionality](TODO.md#11-refine--improve-excel-functionality))
 
 ### Goals
 
-- Restore and harden the Jasmine/Karma test runner so that `npm test` / `ng test` builds the bundle, serves `/_karma_webpack_/main.js` correctly, and executes all specs (including Excel/workbook-related ones) in Chrome/ChromeHeadless.
-- Exercise Excel-related behavior in a host-agnostic way via specs (e.g., Excel guards, ownership helpers, `upsertQueryTable` when `Office` is undefined) while leaving real Office.js interaction to manual Excel validation.
-- Ensure query reruns (overwrite and append) behave predictably and are verifiable:
-  - Header rows are written exactly once (initial creation or full overwrite) and never duplicated by append.
-  - Overwrite mode replaces table data body rows without moving headers or causing range-alignment errors.
-  - Append mode appends data rows only, after verifying header compatibility, and falls back to safe overwrite behavior when headers differ.
-- Keep all Excel interactions ownership-aware and safe for user tables by routing decisions through `WorkbookService` helpers.
-- Maintain strong typing and TSDoc across `ExcelService`, workbook models, telemetry helpers, and their accompanying specs.
-- Centralize success/error reporting for Excel operations via `ExcelTelemetryService` and `ExcelOperationResult`, and reflect this behavior in tests.
+- Support a data-driven query parameter model with **global defaults** plus **per-query overrides**, starting with a shared parameter set: `StartDate` (date), `EndDate` (date), `Group` (string), `SubGroup` (string).
+- Provide a clear UX where:
+  - Global parameters are edited on the main Queries view.
+  - Per-query overrides are edited in a details view/panel.
+  - Two top-level Run buttons exist: "Run – Use Global Params" (batch across selected queries) and "Run – Use Unique Parameters" (batch using per-query overrides).
+  - Each query row has a `Run` checkbox controlling whether it participates in global runs.
+- Persist parameter choices and run-selection flags **per user + workbook**, using `QueryStateService` backed by `localStorage` (with a clear abstraction ready for future workbook-level metadata storage).
+- Ensure all query executions (single or batch, global or unique) use the **effective parameter set** (global defaults merged with per-query overrides) and pass the correct values into `QueryApiMockService.executeQuery`.
+- Emit **telemetry events** for query runs that capture:
+  - Which mode was used (`global` vs `unique`).
+  - Which queries were executed.
+  - The effective parameter values per query (within reasonable limits for logging).
+- Keep the implementation consistent with the existing data-driven patterns (types in `src/app/types`, state via `QueryStateService`, UI via primitives and config), with strict typing and TSDoc.
 
 ### Current implementation snapshot (what already exists)
 
-- **Test runner wiring**
-  - Angular 20 test target is configured in `angular.json` to use `@angular-devkit/build-angular:karma` with `tsconfig.spec.json` and polyfills (`zone.js`, `zone.js/testing`).
-  - `karma.conf.cjs` is wired with the Angular Karma plugin, Jasmine, and Chrome/ChromeHeadless.
-  - `src/test.ts` bootstraps Angular testing via `getTestBed().initTestEnvironment(...)` and imports the correct Zone.js testing patches.
-  - `npm test` / `ng test` was recently observed to start Karma/Chrome but previously served `/_karma_webpack_/main.js` as 404 and ran 0 specs; this needs to be revalidated and fixed.
+- **Query domain and state**
+  - `QueryDefinition`, `QueryParameter`, `QueryRun`, and `QueryRunLocation` are defined in `src/app/types` and re-exported via `shared/query-model.ts`.
+  - `QueryApiMockService` exposes `getQueries()`, `getQueryById()`, and `executeQuery(queryId, params)` with a small set of mock queries (sales summary, top customers, inventory, user audit, JSONPlaceholder users).
+  - `QueryStateService` maintains an in-memory snapshot with:
+    - `queries: QueryDefinition[]` (loaded from `QueryApiMockService`).
+    - `lastParams: Record<string, ExecuteQueryParams>` per query id.
+    - `lastRuns: Record<string, QueryRun | undefined>` per query id.
+  - `QueryStateService` provides helpers to get/set last-used params and last run info per query.
 
-- **Existing Excel-related specs**
-  - `src/app/core/workbook.service.spec.ts` tests workbook ownership helpers using spies/stubs over `ExcelService` to avoid real Office.js calls.
-  - `src/app/core/excel.service.spec.ts` (new) verifies that `ExcelService.upsertQueryTable` returns a failure result and does not log success when `Office` is undefined (host-agnostic guard behavior).
-  - Other feature specs (e.g., `QueryHomeComponent`) rely on stubbing `ExcelService.isExcel` and `AuthService` to exercise guard paths.
+- **Query UI / Queries view**
+  - `QueryHomeComponent` lists queries and supports actions via `QueryUiConfig`/`QueryUiActionConfig` (e.g., `run-query`, `go-to-table`, `show-details`).
+  - Role-based visibility is enforced using `AuthService` (queries require analyst/admin roles, with some admin-only queries).
+  - Host-based guards use `ExcelService.isExcel` to disable query execution and navigation outside Excel.
+  - `runQuery(query)` currently:
+    - Verifies Excel host and permissions.
+    - Uses `QueryStateService.getLastParams(query.id) ?? {}` as parameters.
+    - Calls `QueryApiMockService.executeQuery` and passes rows to `ExcelService.upsertQueryTable` (overwrite-only for now).
+    - Records last run info (time, row count, location) via `QueryStateService.setLastRun`.
+    - Emits telemetry events (`query.run.requested`, `query.run.completed`, `query.run.failed`).
+  - `goToLastRun(query)` navigates to the last run’s table (or best-guess table) using `WorkbookService`/`ExcelService`.
 
-- **Workbook ownership model**
-  - Ownership metadata is stored in a dedicated hidden worksheet (e.g., `_Extension_Ownership`) with rows keyed by `sheetName`, `tableName`, and `queryId`, plus flags like `isManaged` and `lastTouchedUtc`.
-  - `WorkbookService` exposes typed helpers (`WorkbookTabInfo`, `WorkbookTableInfo`, `WorkbookOwnershipInfo`) and operations such as:
-    - `getSheets()`, `getTables()`, `getTableByName(name)`.
-    - `getOwnership()`, `isExtensionManagedTable(table)`, `getManagedTablesForQuery(queryId)`.
-    - `getOrCreateManagedTableTarget(query)` to choose safe sheet/table targets for query runs.
-  - Excel features (Queries view, Tables view) rely on these helpers instead of making assumptions about table names.
+- **UI primitives and config**
+  - UI primitives (`ButtonComponent`, `DropdownComponent`, `SectionComponent`, `TableComponent`/`ListComponent`) exist under `src/app/shared/ui` and are already used by query and shell views.
+  - Text and labels are centralized via `APP_TEXT`.
+  - Shell layout and nav behavior are driven by `AppConfig` and UI config types (`NavItemConfig`, layout hints), and query UI behavior is driven by `QueryUiConfig`.
 
-- **ExcelService / query table behavior**
-  - `ExcelService` is the low-level Office.js wrapper responsible for:
-    - Creating/updating tables for query runs via `upsertQueryTable`.
-    - Navigating to query tables via `activateQueryLocation`.
-    - Reading/writing workbook ownership metadata.
-    - Purging extension-managed tables and ownership metadata via `purgeExtensionManagedContent` (dev-only reset path).
-    - Routing successes/failures through `ExcelTelemetryService` and returning `ExcelOperationResult` values.
-  - `upsertQueryTable` currently honors a per-query `writeMode: 'overwrite' | 'append'` and returns a typed `ExcelOperationResult<QueryRunLocation>`; it also logs operation name, query id, target sheet/table, and row counts.
-  - Query UI (`QueryHomeComponent`) provides a per-query "Write mode" dropdown (Overwrite vs Append) that feeds into `runQuery`, which in turn passes the selected `writeMode` into `ExcelService.upsertQueryTable`.
-
-- **Telemetry and logging**
-  - `ExcelTelemetryService` normalizes Office errors and successes into structured `ExcelOperationResult` values and writes to:
-    - The console (always, when `isExcel` is true).
-    - An optional in-workbook telemetry table when workbook logging is enabled via Settings (`TelemetrySettings` + `SettingsComponent`).
-  - Logs include operation name, query id, sheet/table names, row counts, and normalized error details.
+- **Telemetry and persistence patterns**
+  - `TelemetryService` provides app-wide telemetry (`AppTelemetryEvent`, `WorkflowTelemetryEvent`, etc.), including `createWorkflowEvent` and `logEvent`, with an optional workbook log sink.
+  - `AuthService` demonstrates a pattern for persisting auth state across reloads via `localStorage` with a clear, typed abstraction.
 
 ### Active refinement work (what this focus will change)
 
-- **Karma/Angular runner diagnosis and fix**
-  - Reproduce the previous failure where `npm test` started Karma/Chrome but reported `404: /_karma_webpack_/main.js` and executed 0 specs, capturing logs and exact configuration state.
-  - Inspect and, if necessary, adjust the `angular.json` `test` target, `karma.conf.cjs`, and `src/test.ts` wiring so that the webpack bundle is built and served correctly for tests.
-  - Ensure at least one trivial spec (for example in `excel.service.spec.ts`) runs and reports pass/fail to confirm the pipeline is healthy before relying on more complex specs.
+- **Extend types for parameters**
+  - Introduce a small, shared parameter key/value model in `src/app/types`, for example:
+    - `type QueryParameterKey = "StartDate" | "EndDate" | "Group" | "SubGroup";`
+    - `interface QueryParameterValues { StartDate?: string; EndDate?: string; Group?: string; SubGroup?: string; }`
+  - Extend `QueryDefinition` with optional metadata such as `parameterKeys?: QueryParameterKey[]` to indicate which of the global set a given query uses.
+  - Keep values as strings (e.g., ISO dates) initially to avoid Date vs JSON issues and keep execution mock-friendly.
 
-- **Stubbing and guard patterns for Excel-related specs**
-  - Standardize on host-agnostic patterns in unit tests: always rely on `ExcelService.isExcel` and stubs/mocks instead of real Office.js or a browser `Office` global.
-  - Tighten `WorkbookService` and `ExcelService` specs so they exercise ownership and rerun decision logic through plain TypeScript types, avoiding `Excel.run` calls in tests.
-  - Use these patterns to validate rerun decision logic (append vs overwrite, header match vs mismatch) even though actual header duplication/misaligned ranges are still verified manually in Excel.
+- **Extend QueryStateService for global + per-query params**
+  - Extend `QueryStateSnapshot` to include:
+    - `globalParams: QueryParameterValues` (defaults for all queries).
+    - `queryParams: Record<string, QueryParameterValues>` (per-query overrides).
+    - `queryRunFlags: Record<string, boolean>` (per-query `Run` checkbox state for batch runs).
+  - Add helpers:
+    - `getGlobalParams() / setGlobalParams(values: QueryParameterValues)`.
+    - `getQueryParams(queryId) / setQueryParams(queryId, values)`.
+    - `getQueryRunFlag(queryId) / setQueryRunFlag(queryId, value)`.
+    - `getEffectiveParams(query, mode: "global" | "unique"): ExecuteQueryParams` that maps `QueryParameterValues` into the existing `ExecuteQueryParams` shape.
 
-- **Office.js usage review**
-  - Audit all `ExcelService` methods that use `Excel.run` / `context.sync` to ensure:
-    - Only required fields are loaded via `load`.
-    - `context.sync()` is called before reading loaded properties.
-    - `ExcelService.isExcel` is respected for all entry points and failure paths are typed.
+- **Persist per user + workbook**
+  - Add a light-weight persistence layer inside `QueryStateService` using `localStorage` keys such as:
+    - `excel-ext:queries:globalParams`.
+    - `excel-ext:queries:queryParams`.
+    - `excel-ext:queries:runFlags`.
+  - On service construction, hydrate from storage with defensive parsing.
+  - Whenever global/query params or run flags are updated, write the updated slice back to storage.
+  - Keep the storage access encapsulated so it can later be swapped for workbook-level metadata (e.g., a dedicated worksheet or custom properties).
 
-- **Geometry and header behavior in `upsertQueryTable`**
-  - Separate header and data behavior:
-    - Establish clear internal helpers for working with header vs data ranges (e.g., `headerRange`, `dataBodyRange`).
-    - Ensure overwrite/append operations manipulate only the appropriate range and keep header rows anchored.
-  - Overwrite mode:
-    - Create a new managed table (header + data) when no existing table is found for a query.
-    - When a managed table exists, keep the header in place and clear/replace only the data body rows.
-    - Avoid resizing the table in ways that misalign the header row with the new range.
-  - Append mode:
-    - Require an existing managed table; otherwise fall back to the overwrite path.
-    - Load and compare existing vs new headers; append data rows only when headers match.
-    - On mismatch, route through a safe overwrite strategy (e.g., new suffixed managed table) instead of forcing an unsafe resize.
+- **Global parameter UI on Queries view**
+  - In `QueryHomeComponent`, introduce a `globalParams: QueryParameterValues` property bound to `QueryStateService.getGlobalParams()`.
+  - Add a top-of-view UI section (using `SectionComponent`, `DropdownComponent`, and standard inputs) to edit:
+    - `StartDate` / `EndDate`: date inputs bound to ISO strings.
+    - `Group` / `SubGroup`: dropdowns backed by placeholder `UiDropdownItem[]` options (to be replaced later by real, data-driven lists).
+  - On change, call `setGlobalParams` so the state and storage are updated immediately.
 
-- **Telemetry and observability**
-  - Extend telemetry from `upsertQueryTable` and related helpers to log:
-    - Selected `writeMode` (overwrite vs append).
-    - Header match vs mismatch.
-    - Geometry decisions (reuse existing table vs create new vs create suffixed table).
-    - Any Office.js errors or range-alignment issues.
-  - Keep logs consistent with the `ExcelOperationResult` model so query UI can display user-friendly error messages.
+- **Per-query Run checkbox and details/overrides**
+  - Add a `Run` checkbox to each query row:
+    - Bound to `getQueryRunFlag(query.id)`.
+    - Disabled when the user cannot run that query or when `!excel.isExcel`.
+    - Toggle handler calls `setQueryRunFlag`.
+  - Reuse the existing `show-details` action in `QueryUiConfig` to open a per-query details panel within `QueryHomeComponent` (for now):
+    - Track `selectedQuery: QueryDefinition | null` and `selectedQueryParams: QueryParameterValues`.
+    - Load overrides via `getQueryParams(query.id)` when opening details.
+    - Render editors for the same parameter set, scoped to the selected query.
+    - Persist changes via `setQueryParams(selectedQuery.id, values)`.
 
-- **TSDoc and helper extraction**
-  - Add file-, class-, and method-level TSDoc for `ExcelService`, explicitly documenting:
-    - How it collaborates with `WorkbookService` and `ExcelTelemetryService`.
-    - How ownership-aware behaviors work and when operations can safely mutate tables.
-    - How callers should interpret `ExcelOperationResult` results.
-  - Extract reusable private helpers for tasks such as:
-    - Header comparison.
-    - Data row projection.
-    - Ownership-aware target resolution.
-    - Safe table resizing and data clearing.
+- **New Run flows (global vs unique)**
+  - Add two top-level Run buttons in `QueryHomeComponent`:
+    - `onRunAllGlobal()`:
+      - Collect all queries where `queryRunFlags[query.id]` is true and `canRun(query)`.
+      - For each, compute `params = getEffectiveParams(query, "global")`.
+      - Call a shared `runSingle(query, params, "global")` helper that wraps the existing `runQuery` logic.
+    - `onRunAllUnique()`:
+      - Same as above, but use `getEffectiveParams(query, "unique")` based on per-query overrides.
+  - Refactor the existing per-row Run behavior to go through the same helper (likely with `mode: "unique"` and query-specific params), so telemetry and error handling are consistent.
 
-- **Type dependencies and Office typings**
-  - Review `@types/office-runtime` and any related Office typings:
-    - Understand what they cover and how they are (or are not) used in this Angular app versus archived templates.
-    - Decide whether to keep, upgrade, or remove these type packages.
-    - If kept, document preferred usage patterns in `ExcelService` and related wrappers.
+- **Telemetry integration**
+  - For each run path (per-row and batch/global/unique), emit enriched telemetry events via `TelemetryService`:
+    - Batch events: `query.batch.run.requested/completed/failed` with context including:
+      - `mode: "global" | "unique"`.
+      - `queryIds: string[]`.
+      - Optionally, a summarized parameter snapshot.
+    - Single-query events: continue to use `query.run.*` events, but extend context to include `mode` and the effective parameters for that query.
+  - Ensure telemetry respects existing settings (console vs workbook logging) and keeps parameter payloads reasonably compact.
+
+- **Tests and TSDoc**
+  - Extend or add specs for `QueryStateService`:
+    - Verify default/empty state for new fields.
+    - Verify set/get behavior for global and per-query parameters and run flags.
+    - Verify effective param resolution for both modes.
+    - Verify localStorage hydration and persistence logic.
+  - Extend `QueryHomeComponent` specs to cover:
+    - Guard behavior when Excel is not detected or user lacks roles (existing patterns).
+    - New Run buttons and run-checkbox behaviors (which queries are included).
+    - That telemetry is invoked with correct `mode`, `queryIds`, and parameter snapshots.
+  - Add or refine TSDoc for new types and methods introduced as part of this work so they align with the repo’s strict typing and documentation standards.
 
 ### Manual validation scenarios (for this focus)
 
-- **Baseline Karma/Chrome run**
-  - Run `npm test -- --watch=false --browsers=ChromeHeadless`.
-  - Confirm that Karma serves `/_karma_webpack_/main.js` without 404, Chrome launches, and at least one spec executes and reports.
-
-- **Excel guard specs**
-  - In `excel.service.spec.ts`, keep `Office` undefined and verify that `upsertQueryTable` returns a failure result and that `ExcelTelemetryService.logSuccess` is not called.
-  - In `workbook.service.spec.ts`, verify that ownership helpers and table selection logic work correctly using stubs/mocks for `ExcelService` and workbook data.
-
-- **Header duplication check (manual Excel)**
-  - Run a query in overwrite mode; observe that a table with a single header row and data is created.
-  - Rerun the same query in overwrite mode and verify that:
-    - The header row remains in the same position.
-    - Data rows are replaced but not duplicated.
-    - No Excel errors about invalid ranges appear.
-
-- **Append behavior check (manual Excel)**
-  - Run a query in overwrite mode once to create the table.
-  - Switch the query to append mode and run it again.
-  - Verify that:
-    - Header rows are not duplicated.
-    - Data rows are appended to the existing table body.
-    - Ownership metadata still points to the same managed table.
-
-- **Header mismatch safety (manual Excel)**
-  - Modify a query definition so the output schema changes (e.g., add/remove/rename a column) and run it against a workbook where a previous schema exists.
-  - Verify that append mode:
-    - Detects header mismatch.
-    - Does not force a dangerous resize on the existing table.
-    - Chooses a safe strategy (new suffixed table) and records ownership appropriately.
-
-- **Purge and rerun (manual Excel)**
-  - Use the dev-only purge action wired to `ExcelService.purgeExtensionManagedContent` to clear extension-managed tables and ownership metadata.
-  - Rerun queries and confirm that tables and ownership records are recreated from a clean state with no stale geometry.
+- Start the dev server and sideload the add-in into Excel.
+- On the Queries view:
+  - Set global `StartDate`/`EndDate` and `Group`/`SubGroup` values; reload the page and confirm they persist.
+  - For a given query, open the details panel and set per-query overrides; reload and confirm they persist separately from global defaults.
+  - Use the `Run` checkbox to select a subset of queries and click "Run – Use Global Params"; confirm only selected queries run and that they use the global parameters.
+  - Click "Run – Use Unique Parameters" and confirm that per-query overrides are respected (e.g., by inspecting written tables or telemetry logs).
+  - Inspect the telemetry console and/or workbook log table to confirm that each run records mode, query ids, and parameter snapshots.
+- Toggle Excel/host state (e.g., run outside Excel) and confirm that Run buttons and checkboxes are disabled or guarded appropriately.
 
 <!-- END:CURRENT-FOCUS -->

@@ -11,10 +11,13 @@ export interface ExecuteQueryResultRow {
 }
 
 export interface ExecuteQueryResult {
-  /** The query that was executed */
   query: QueryDefinition;
-  /** Rows returned by the mock execution */
   rows: ExecuteQueryResultRow[];
+}
+
+export interface GroupingOptionsResult {
+  groups: string[];
+  subGroups: string[];
 }
 
 @Injectable({ providedIn: "root" })
@@ -63,6 +66,29 @@ export class QueryApiMockService {
       id: "sales-summary",
       name: "Sales Summary",
       description: "Summarized sales by region and month.",
+      parameterKeys: ["StartDate", "EndDate", "Group", "SubGroup"],
+      parameterBindings: [
+        {
+          key: "StartDate",
+          description: "Filters rows on or after the start date.",
+          fieldNames: ["AsOfDate"],
+        },
+        {
+          key: "EndDate",
+          description: "Filters rows on or before the end date.",
+          fieldNames: ["AsOfDate"],
+        },
+        {
+          key: "Group",
+          description: "Filters by primary group.",
+          fieldNames: ["Group"],
+        },
+        {
+          key: "SubGroup",
+          description: "Filters by subgroup within the primary group.",
+          fieldNames: ["SubGroup"],
+        },
+      ],
       parameters: [
         this.createDateParam("startDate", "Start Date"),
         this.createDateParam("endDate", "End Date"),
@@ -76,6 +102,7 @@ export class QueryApiMockService {
       id: "top-customers",
       name: "Top Customers",
       description: "Top customers by revenue.",
+      parameterKeys: ["Group", "SubGroup"],
       parameters: [this.createNumberParam("topN", "Top N", 10)],
       defaultSheetName: "Top_Customers",
       defaultTableName: "tbl_TopCustomers",
@@ -86,6 +113,7 @@ export class QueryApiMockService {
       id: "inventory-status",
       name: "Inventory Status",
       description: "Current inventory levels by product.",
+      parameterKeys: ["Group"],
       parameters: [],
       defaultSheetName: "Inventory_Status",
       defaultTableName: "tbl_InventoryStatus",
@@ -96,6 +124,7 @@ export class QueryApiMockService {
       id: "user-audit",
       name: "User Access Audit",
       description: "Admin-only report of users and their roles.",
+      parameterKeys: [],
       parameters: [],
       defaultSheetName: "User_Audit",
       defaultTableName: "tbl_UserAudit",
@@ -108,6 +137,7 @@ export class QueryApiMockService {
       name: "JSONPlaceholder Users",
       description:
         "Fetches user data from jsonplaceholder.typicode.com and flattens it into Excel-friendly rows.",
+      parameterKeys: [],
       parameters: [],
       defaultSheetName: "JsonApi_Example",
       defaultTableName: "tbl_JsonApiExample",
@@ -125,6 +155,13 @@ export class QueryApiMockService {
     return this.queries.find((q) => q.id === id);
   }
 
+  async getGroupingOptions(): Promise<GroupingOptionsResult> {
+    return {
+      groups: ["All", "Consumer", "Enterprise", "Government"],
+      subGroups: ["All", "North", "South", "East", "West"],
+    };
+  }
+
   async executeQuery(
     queryId: string,
     params: ExecuteQueryParams = {}
@@ -139,9 +176,9 @@ export class QueryApiMockService {
     if (query.id === "jsonapi-example") {
       rows = await this.fetchJsonPlaceholderUsers();
     } else {
-      // Deterministic mock rows based on query id and simple params.
-      rows = this.buildRows(query, params);
+      rows = await this.loadAndFilterMockRows(query.id, params);
     }
+
     return { query, rows };
   }
 
@@ -162,58 +199,249 @@ export class QueryApiMockService {
       defaultValue,
     };
   }
+  private async loadAndFilterMockRows(
+    queryId: string,
+    params: ExecuteQueryParams
+  ): Promise<ExecuteQueryResultRow[]> {
+    let raw: ExecuteQueryResultRow[] = [];
 
-  private buildRows(query: QueryDefinition, params: ExecuteQueryParams): ExecuteQueryResultRow[] {
-    switch (query.id) {
-      case "sales-summary":
-        return this.buildSalesSummaryRows(params);
-      case "top-customers":
-        return this.buildTopCustomersRows(params);
-      case "inventory-status":
-        return this.buildInventoryStatusRows();
-      case "user-audit":
-        return this.buildUserAuditRows();
-      case "jsonapi-example":
-        return this.buildJsonPlaceholderFallbackRows();
-      default:
-        return [];
+    try {
+      switch (queryId) {
+        case "sales-summary":
+          raw = (await import("./mock-data/sales-summary.json")).default as ExecuteQueryResultRow[];
+          break;
+        case "top-customers":
+          raw = (await import("./mock-data/top-customers.json")).default as ExecuteQueryResultRow[];
+          break;
+        case "inventory-status":
+          raw = (await import("./mock-data/inventory-status.json"))
+            .default as ExecuteQueryResultRow[];
+          break;
+        case "user-audit":
+          return this.buildUserAuditRows();
+        default:
+          return [];
+      }
+    } catch {
+      return [];
     }
+
+    // Basic parameter-driven filtering; can be extended per-query.
+    // NOTE: ExecuteQueryParams come from QueryParamsService/QueryStateService,
+    // which currently use parameter keys like "startDate"/"endDate".
+    // The mock data itself uses an "AsOfDate" column, so we support both
+    // naming conventions when filtering.
+    const startDateRaw = params["StartDate"] ?? params["startDate"];
+    const endDateRaw = params["EndDate"] ?? params["endDate"];
+
+    const rawGroup = typeof params["Group"] === "string" ? (params["Group"] as string) : "";
+    const rawSubGroup =
+      typeof params["SubGroup"] === "string" ? (params["SubGroup"] as string) : "";
+
+    // Treat the literal "All" as a no-op filter so that selecting
+    // (All) in the UI does not accidentally filter out every row.
+    const groupFilter = rawGroup && rawGroup !== "All" ? rawGroup : "";
+    const subGroupFilter = rawSubGroup && rawSubGroup !== "All" ? rawSubGroup : "";
+
+    let rows = raw;
+
+    if (startDateRaw || endDateRaw) {
+      const start = startDateRaw ? new Date(String(startDateRaw)) : null;
+      const end = endDateRaw ? new Date(String(endDateRaw)) : null;
+      rows = rows.filter((r) => {
+        const asOf = r["AsOfDate"] ? new Date(String(r["AsOfDate"])) : null;
+        if (!asOf) return false;
+        if (start && asOf < start) return false;
+        if (end && asOf > end) return false;
+        return true;
+      });
+    }
+
+    if (groupFilter) {
+      rows = rows.filter((r) => r["Group"] === groupFilter);
+    }
+
+    if (subGroupFilter) {
+      rows = rows.filter((r) => r["SubGroup"] === subGroupFilter);
+    }
+
+    // top-customers: respect topN if provided
+    if (queryId === "top-customers") {
+      const topNRaw = params["topN"];
+      const topN = typeof topNRaw === "number" && topNRaw > 0 ? Math.min(topNRaw, 200) : 50;
+      rows = rows
+        .slice()
+        .sort((a, b) => (Number(a["Rank"]) || 0) - (Number(b["Rank"]) || 0))
+        .filter((r) => (Number(r["Rank"]) || 0) >= 1 && (Number(r["Rank"]) || 0) <= topN);
+    }
+
+    return rows;
   }
 
+  // Legacy procedural builders kept for reference; not used now that
+  // JSON-backed mock data is loaded via `loadAndFilterMockRows`.
   private buildSalesSummaryRows(params: ExecuteQueryParams): ExecuteQueryResultRow[] {
     const regions = ["North", "South", "East", "West"];
-    const now = new Date();
-    const baseYear = now.getFullYear();
-    return regions.map((region, index) => ({
-      Region: region,
-      Year: baseYear,
-      Month: index + 1,
-      Sales: 10000 + index * 2500,
-    }));
+    const groups = ["Consumer", "Enterprise", "Government"];
+
+    const startDateRaw = params["StartDate"];
+    const endDateRaw = params["EndDate"];
+    const groupFilter = typeof params["Group"] === "string" ? (params["Group"] as string) : "";
+    const subGroupFilter =
+      typeof params["SubGroup"] === "string" ? (params["SubGroup"] as string) : "";
+
+    const baseDate = new Date();
+    baseDate.setMonth(0, 1);
+
+    const startDate =
+      typeof startDateRaw === "string" && startDateRaw
+        ? new Date(startDateRaw)
+        : new Date(baseDate.getFullYear(), 0, 1);
+    const endDate =
+      typeof endDateRaw === "string" && endDateRaw
+        ? new Date(endDateRaw)
+        : new Date(baseDate.getFullYear(), 11, 31);
+
+    const rows: ExecuteQueryResultRow[] = [];
+    const maxRows = 5000;
+
+    // Walk day-by-day and emit 10-20 randomized rows per day.
+    for (
+      let asOfDate = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+      asOfDate <= endDate;
+      asOfDate = new Date(asOfDate.getFullYear(), asOfDate.getMonth(), asOfDate.getDate() + 1)
+    ) {
+      const perDayCount = 10 + Math.floor(Math.random() * 11); // 10-20 rows per day
+
+      for (let i = 0; i < perDayCount; i += 1) {
+        const group = groups[Math.floor(Math.random() * groups.length)];
+        const region = regions[Math.floor(Math.random() * regions.length)];
+
+        if (groupFilter && group !== groupFilter) {
+          continue;
+        }
+        if (subGroupFilter && region !== subGroupFilter) {
+          continue;
+        }
+
+        if (rows.length >= maxRows) {
+          return rows;
+        }
+
+        rows.push({
+          AsOfDate: asOfDate,
+          Group: group,
+          SubGroup: region,
+          Region: region,
+          Year: asOfDate.getFullYear(),
+          Month: asOfDate.getMonth() + 1,
+          Day: asOfDate.getDate(),
+          Sales: 10000 + asOfDate.getMonth() * 2500 + asOfDate.getDate() * 10 + i,
+        });
+      }
+    }
+
+    return rows;
   }
 
   private buildTopCustomersRows(params: ExecuteQueryParams): ExecuteQueryResultRow[] {
     const topNRaw = params["topN"];
-    const topN = typeof topNRaw === "number" && topNRaw > 0 ? Math.min(topNRaw, 50) : 10;
+    const topN = typeof topNRaw === "number" && topNRaw > 0 ? Math.min(topNRaw, 200) : 50;
+
+    const groups = ["Consumer", "Enterprise", "Government"];
+    const subGroups = ["North", "South", "East", "West"];
+
+    const groupFilter = typeof params["Group"] === "string" ? (params["Group"] as string) : "";
+    const subGroupFilter =
+      typeof params["SubGroup"] === "string" ? (params["SubGroup"] as string) : "";
+
     const rows: ExecuteQueryResultRow[] = [];
-    for (let i = 1; i <= topN; i += 1) {
-      rows.push({
-        Rank: i,
-        Customer: `Customer ${i}`,
-        Revenue: 50000 - i * 750,
-      });
+
+    let rank = 1;
+    for (
+      let asOfDate = new Date();
+      rank <= topN;
+      asOfDate = new Date(asOfDate.getFullYear(), asOfDate.getMonth(), asOfDate.getDate() + 1)
+    ) {
+      const perDayCount = 10 + Math.floor(Math.random() * 11);
+
+      for (let i = 0; i < perDayCount && rank <= topN; i += 1) {
+        const group = groups[Math.floor(Math.random() * groups.length)];
+        const subGroup = subGroups[Math.floor(Math.random() * subGroups.length)];
+
+        if (groupFilter && group !== groupFilter) {
+          continue;
+        }
+        if (subGroupFilter && subGroup !== subGroupFilter) {
+          continue;
+        }
+
+        rows.push({
+          Rank: rank,
+          Customer: `Customer ${rank}`,
+          Revenue: 50000 - rank * 100,
+          AsOfDate: asOfDate,
+          Group: group,
+          SubGroup: subGroup,
+        });
+
+        rank += 1;
+      }
     }
+
     return rows;
   }
 
-  private buildInventoryStatusRows(): ExecuteQueryResultRow[] {
-    const products = ["Widget A", "Widget B", "Widget C", "Widget D"];
-    return products.map((product, index) => ({
-      Product: product,
-      SKU: `SKU-${1000 + index}`,
-      OnHand: 100 - index * 10,
-      ReorderLevel: 40,
-    }));
+  private buildInventoryStatusRows(params: ExecuteQueryParams): ExecuteQueryResultRow[] {
+    const products = ["Widget A", "Widget B", "Widget C", "Widget D", "Widget E", "Widget F"];
+    const groups = ["Consumer", "Enterprise", "Government"];
+    const subGroups = ["North", "South", "East", "West"];
+
+    const groupFilter = typeof params["Group"] === "string" ? (params["Group"] as string) : "";
+    const subGroupFilter =
+      typeof params["SubGroup"] === "string" ? (params["SubGroup"] as string) : "";
+
+    const rows: ExecuteQueryResultRow[] = [];
+    const maxRows = 5000;
+
+    // Walk day-by-day and emit 10-20 randomized rows per day across products,
+    // with a hard cap to keep Excel responsive.
+    for (
+      let asOfDate = new Date();
+      rows.length < maxRows;
+      asOfDate = new Date(asOfDate.getFullYear(), asOfDate.getMonth(), asOfDate.getDate() + 1)
+    ) {
+      const perDayCount = 10 + Math.floor(Math.random() * 11);
+
+      for (let i = 0; i < perDayCount; i += 1) {
+        const product = products[Math.floor(Math.random() * products.length)];
+        const group = groups[Math.floor(Math.random() * groups.length)];
+        const subGroup = subGroups[Math.floor(Math.random() * subGroups.length)];
+
+        if (groupFilter && group !== groupFilter) {
+          continue;
+        }
+        if (subGroupFilter && subGroup !== subGroupFilter) {
+          continue;
+        }
+
+        if (rows.length >= maxRows) {
+          return rows;
+        }
+
+        rows.push({
+          AsOfDate: asOfDate,
+          Group: group,
+          SubGroup: subGroup,
+          Product: product,
+          SKU: `SKU-${product.replace(/\D/g, "") || "1000"}`,
+          OnHand: 100 - asOfDate.getMonth() * 5 - asOfDate.getDate(),
+          ReorderLevel: 40,
+        });
+      }
+    }
+
+    return rows;
   }
 
   private buildUserAuditRows(): ExecuteQueryResultRow[] {

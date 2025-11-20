@@ -3,6 +3,50 @@
 
   <p *ngIf="!queries.length">No queries defined in the mock API.</p>
 
+  <div class="query-home__global" *ngIf="queries.length">
+    <h3>Global parameters</h3>
+    <div class="query-home__global-row">
+      <label>
+        Start date
+        <input
+          type="date"
+          [value]="globalParams.StartDate || ''"
+          (change)="onGlobalDateChange('StartDate', $any($event.target).value)"
+        />
+      </label>
+      <label>
+        End date
+        <input
+          type="date"
+          [value]="globalParams.EndDate || ''"
+          (change)="onGlobalDateChange('EndDate', $any($event.target).value)"
+        />
+      </label>
+    </div>
+    <div class="query-home__global-row">
+      <label>
+        Group
+        <select
+          [value]="globalParams.Group || 'All'"
+          (change)="onGlobalGroupChange('Group', $any($event.target).value)"
+        >
+          <option value="All">(All)</option>
+          <option *ngFor="let g of availableGroups" [value]="g">{{ g }}</option>
+        </select>
+      </label>
+      <label>
+        Sub-group
+        <select
+          [value]="globalParams.SubGroup || 'All'"
+          (change)="onGlobalGroupChange('SubGroup', $any($event.target).value)"
+        >
+          <option value="All">(All)</option>
+          <option *ngFor="let sg of availableSubGroups" [value]="sg">{{ sg }}</option>
+        </select>
+      </label>
+    </div>
+  </div>
+
   <app-dropdown
     *ngIf="queries.length"
     [items]="roleFilterItems"
@@ -18,13 +62,37 @@
     emptyMessage="No queries defined in the mock API."
     ></app-list>
   -->
-
   <div class="query-actions query-actions--cards" *ngIf="filteredQueries.length">
+    <div class="query-actions__batch">
+      <app-button
+        label="Run  Use Global Params"
+        variant="secondary"
+        size="sm"
+        [disabled]="isRunning || !excel.isExcel"
+        (clicked)="runSelected('global')"
+      ></app-button>
+      <app-button
+        label="Run  Use Unique Parameters"
+        variant="primary"
+        size="sm"
+        [disabled]="isRunning || !excel.isExcel"
+        (clicked)="runSelected('unique')"
+      ></app-button>
+    </div>
     <div class="query-actions__row" *ngFor="let query of filteredQueries">
       <div class="query-actions__meta">
         <div class="query-actions__name">{{ query.name }}</div>
         <div class="query-actions__description">{{ query.description }}</div>
         <div class="query-actions__badge" *ngIf="isAdminOnly(query)">Admin only</div>
+        <label class="query-actions__run-flag">
+          <input
+            type="checkbox"
+            [checked]="getRunFlag(query)"
+            [disabled]="!canRun(query) || !excel.isExcel"
+            (change)="onRunFlagChange(query, $any($event.target).checked)"
+          />
+          Include in batch runs
+        </label>
       </div>
       <div class="query-actions__buttons">
         <ng-container *ngFor="let action of query.uiConfig?.actions || []">
@@ -49,5 +117,80 @@
     </div>
   </div>
 
-  <p class="error" *ngIf="error">{{ error }}</p>
+  <div class="query-details" *ngIf="selectedQuery">
+    <div class="query-details__content">
+      <h3>Details: {{ selectedQuery.name }}</h3>
+      <p>{{ selectedQuery.description }}</p>
+
+      <div
+        class="query-details__row"
+        *ngIf="
+          selectedQuery?.parameterKeys?.includes('StartDate') ||
+          selectedQuery?.parameterKeys?.includes('EndDate')
+        "
+      >
+        <label *ngIf="selectedQuery?.parameterKeys?.includes('StartDate')">
+          Start date override
+          <input
+            type="date"
+            [value]="selectedQueryOverrides.StartDate || ''"
+            (change)="onOverrideChange('StartDate', $any($event.target).value)"
+          />
+        </label>
+        <label *ngIf="selectedQuery?.parameterKeys?.includes('EndDate')">
+          End date override
+          <input
+            type="date"
+            [value]="selectedQueryOverrides.EndDate || ''"
+            (change)="onOverrideChange('EndDate', $any($event.target).value)"
+          />
+        </label>
+      </div>
+
+      <div
+        class="query-details__row"
+        *ngIf="
+          selectedQuery?.parameterKeys?.includes('Group') ||
+          selectedQuery?.parameterKeys?.includes('SubGroup')
+        "
+      >
+        <label *ngIf="selectedQuery?.parameterKeys?.includes('Group')">
+          Group override
+          <select
+            [value]="selectedQueryOverrides.Group || 'All'"
+            (change)="onOverrideChange('Group', $any($event.target).value)"
+          >
+            <option value="All">(All)</option>
+            <option *ngFor="let g of availableGroups" [value]="g">{{ g }}</option>
+          </select>
+        </label>
+        <label *ngIf="selectedQuery?.parameterKeys?.includes('SubGroup')">
+          Sub-group override
+          <select
+            [value]="selectedQueryOverrides.SubGroup || 'All'"
+            (change)="onOverrideChange('SubGroup', $any($event.target).value)"
+          >
+            <option value="All">(All)</option>
+            <option *ngFor="let sg of availableSubGroups" [value]="sg">{{ sg }}</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="query-details__buttons">
+        <app-button
+          label="Clear overrides"
+          variant="secondary"
+          size="sm"
+          (clicked)="onClearOverrides()"
+        ></app-button>
+        <app-button
+          label="Save"
+          variant="primary"
+          size="sm"
+          (clicked)="onSaveOverrides()"
+        ></app-button>
+        <app-button label="Close" variant="ghost" size="sm" (clicked)="closeDetails()"></app-button>
+      </div>
+    </div>
+  </div>
 </section>

@@ -13,4 +13,13 @@
     />
     Enable in-workbook telemetry log table
   </label>
+
+  <label>
+    <input
+      type="checkbox"
+      [checked]="settings.value.telemetry.enableConsoleLogging"
+      (change)="onTelemetryConsoleLoggingChange($event.target.checked)"
+    />
+    Enable console telemetry logging
+  </label>
 </section>

@@ -587,11 +587,35 @@ Going forward, **every new feature or meaningful code change must include TSDoc 
     - [x] Add a brief note in `README.md` under a telemetry/logging subsection pointing contributors to `TelemetryService`, `SettingsService`, and the telemetry settings for adding new telemetry events.
 
 - [ ] **Implement data driven and modular query parameter management (global + per-query)**
-  - [ ] Extend the query domain model to distinguish between global parameters (applied to multiple queries/reports) and query-specific parameters (e.g., date ranges, regions, customer segments) with clear typing and defaults.
-  - [ ] Add a parameter management UI that lets users define, edit, and reset global and per-query parameter sets, with validation and descriptions sourced from the query metadata.
-  - [ ] Support “Refresh All” and “Refresh Selected” patterns in the query UI, allowing users to rerun multiple queries with a shared/global parameter context or per-query overrides.
-  - [ ] Ensure parameter choices are persisted (e.g., via `QueryStateService` and `localStorage`) so that a user’s preferred filters survive reloads and are visible in the UI before refresh.
-  - [ ] Wire parameter changes into the logging and host-status UX so users can see which parameter set was used for each run and be warned when parameters are missing or invalid.
+  - [x] Extend query types to support a shared parameter set
+    - [x] Define a typed parameter key/value model in `src/app/types` (e.g., `QueryParameterKey` and `QueryParameterValues` for `StartDate`, `EndDate`, `Group`, `SubGroup`).
+    - [x] Extend `QueryDefinition` to declare which parameters it participates in (e.g., `parameterKeys?: QueryParameterKey[]`) so behavior stays data driven.
+  - [x] Extend `QueryStateService` for global + per-query parameters and run-selection flags
+    - [x] Add `globalParams`, `queryParams`, and `queryRunFlags` to `QueryStateSnapshot` with strict typing.
+    - [x] Add helpers to get/set global params, per-query overrides, and per-query `Run` checkbox state.
+    - [x] Add a helper to compute effective parameters for a query in a given mode (`global` vs `unique`) and map them into `ExecuteQueryParams`.
+  - [x] Persist parameter state per user + workbook
+    - [x] Back the new `QueryStateService` fields with `localStorage` using stable, documented keys, hydrating on construction and persisting on change.
+    - [x] Keep storage access encapsulated so it can later be swapped for workbook-level metadata without touching callers.
+  - [x] Implement global parameter UI on the Queries view
+    - [x] Add a top-of-view section in `QueryHomeComponent` to edit global `StartDate`/`EndDate` (date inputs) and `Group`/`SubGroup` (dropdowns with placeholder options).
+    - [x] Bind this UI to `QueryStateService.getGlobalParams()`/`setGlobalParams()` so values persist and reload correctly.
+  - [x] Implement per-query Run checkbox and override/details panel
+    - [x] Add a `Run` checkbox to each query row, bound to `queryRunFlags[query.id]` and disabled when Excel is not detected or the user lacks permission.
+    - [x] Reuse the existing `show-details` action to open a per-query details panel in `QueryHomeComponent` that edits per-query overrides using the same parameter model.
+    - [x] Persist per-query overrides via `QueryStateService.setQueryParams()` and ensure they load correctly on refresh.
+  - [x] Add batch Run flows for global vs unique parameters
+    - [x] Add two top-level Run buttons to `QueryHomeComponent`: "Run – Use Global Params" and "Run – Use Unique Parameters".
+    - [x] Implement handlers that collect selected queries (via `Run` checkboxes), compute effective parameters per query (`global` vs `unique`), and call a shared `runSingle` helper that wraps existing `runQuery` behavior.
+    - [x] Ensure per-row Run actions (if kept) also invoke the shared helper so telemetry and error handling are consistent.
+  - [ ] Integrate parameters into telemetry
+    - [x] Emit batch-level telemetry events (e.g., `query.batch.run.requested/completed/failed`) including mode (`global`/`unique`), query ids, and a summarized parameter snapshot.
+    - [x] Extend existing single-query events (`query.run.*`) to include mode and effective parameters in their context payload.
+    - [ ] Verify that telemetry respects Settings (console vs workbook logging) and that parameter payloads remain compact and safe to log.
+  - [ ] Add tests and TSDoc for new behavior
+    - [ ] Extend `QueryStateService` specs to cover new fields, effective parameter calculation, and `localStorage` hydration/persistence.
+    - [ ] Extend `QueryHomeComponent` specs to cover Run checkbox behavior, new Run buttons, host/role guards for these flows, and telemetry invocations.
+    - [ ] Add or update TSDoc on all new types and public methods introduced for parameter management so they align with the repo’s strict typing and documentation standards.
 
 - [ ] **Support saving and loading named query configurations**
   - [ ] Design a `QueryConfiguration` model that captures a named set of query selections, parameter values (global + per-query), and rerun behaviors (overwrite) so a “report configuration” can be reused.

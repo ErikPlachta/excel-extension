@@ -15,6 +15,7 @@ export interface QueryParameter {
 }
 
 import { QueryUiConfig } from "./ui/primitives.types";
+import type { QueryParameterBinding, QueryParameterKey } from "./query-params.types";
 
 /**
  * Controls how a query rerun should write rows into its
@@ -34,6 +35,14 @@ export interface QueryDefinition {
   description?: string;
   /** Optional list of roles allowed to run this query; omitted means any allowed query role. */
   allowedRoles?: string[];
+  /**
+   * Optional list of well-known parameter keys this query participates in.
+   * Used by the parameter management feature to map global/per-query
+   * values into concrete execution parameters in a data-driven way.
+   */
+  parameterKeys?: QueryParameterKey[];
+  /** Optional metadata describing how well-known parameter keys map to query fields. */
+  parameterBindings?: QueryParameterBinding[];
   /** Parameters required/optional for this query. */
   parameters: QueryParameter[];
   /** Base name to use when creating sheets for this query. */

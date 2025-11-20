@@ -35,6 +35,24 @@ export class SettingsComponent {
     );
   }
 
+  onTelemetryConsoleLoggingChange(checked: boolean): void {
+    const current = this.settings.value.telemetry;
+    this.settings.update({
+      telemetry: {
+        ...current,
+        enableConsoleLogging: checked,
+      },
+    });
+    this.telemetry.logEvent(
+      this.telemetry.createFeatureEvent({
+        category: "settings",
+        name: "telemetry.consoleLogging.toggled",
+        severity: "info",
+        context: { enabled: checked },
+      })
+    );
+  }
+
   async resetManagedTables(): Promise<void> {
     if (!this.excel.isExcel) return;
     await this.excel.purgeExtensionManagedContent();

@@ -4,7 +4,7 @@ import { ExcelService, AuthService, TelemetryService } from "../../core";
 import { ExecuteQueryParams, QueryApiMockService } from "../../shared/query-api-mock.service";
 import { QueryStateService } from "../../shared/query-state.service";
 import { QueryDefinition } from "../../shared/query-model";
-import { QueryWriteMode } from "../../types";
+import { QueryParameterValues, QueryWriteMode } from "../../types";
 import { DropdownComponent, UiDropdownItem } from "../../shared/ui/dropdown.component";
 import { ButtonComponent } from "../../shared/ui/button.component";
 import { QueryUiActionConfig, QueryUiActionType } from "../../types/ui/primitives.types";
@@ -27,6 +27,11 @@ export class QueryHomeComponent implements OnInit {
   isRunning = false;
   error: string | null = null;
   workbookTables: WorkbookTableInfo[] = [];
+  globalParams: QueryParameterValues = {};
+  selectedQuery: QueryDefinition | null = null;
+  selectedQueryOverrides: QueryParameterValues = {};
+  availableGroups: string[] = [];
+  availableSubGroups: string[] = [];
 
   constructor(
     public readonly excel: ExcelService,
@@ -39,6 +44,7 @@ export class QueryHomeComponent implements OnInit {
 
   ngOnInit(): void {
     this.queries = this.state.getQueries();
+    this.globalParams = { ...this.state.getGlobalParams() };
 
     this.roleFilterItems = [
       { value: "all", label: "All queries" },
@@ -52,6 +58,7 @@ export class QueryHomeComponent implements OnInit {
 
     if (this.workbook.isExcel) {
       void this.loadWorkbookState();
+      void this.loadGroupingOptions();
     }
   }
 
@@ -61,6 +68,17 @@ export class QueryHomeComponent implements OnInit {
     } catch {
       // Swallow errors here; go-to-table remains best-effort.
       this.workbookTables = [];
+    }
+  }
+
+  private async loadGroupingOptions(): Promise<void> {
+    try {
+      const groups = await this.api.getGroupingOptions();
+      this.availableGroups = groups.groups;
+      this.availableSubGroups = groups.subGroups;
+    } catch {
+      this.availableGroups = [];
+      this.availableSubGroups = [];
     }
   }
 
@@ -80,8 +98,7 @@ export class QueryHomeComponent implements OnInit {
       return;
     }
     if (type === "show-details") {
-      // Example extra action: for now we just expose the query id.
-      this.error = `Details not implemented yet for query '${query.id}'.`;
+      this.openDetails(query);
     }
   }
 
@@ -105,6 +122,34 @@ export class QueryHomeComponent implements OnInit {
 
   onRoleFilterChange(value: string): void {
     this.selectedRoleFilter = value;
+  }
+
+  openDetails(query: QueryDefinition): void {
+    this.selectedQuery = query;
+    this.selectedQueryOverrides = {
+      ...this.state.getQueryParams(query.id),
+    };
+  }
+
+  closeDetails(): void {
+    this.selectedQuery = null;
+    this.selectedQueryOverrides = {};
+  }
+
+  onGlobalDateChange(key: "StartDate" | "EndDate", value: string): void {
+    this.globalParams = {
+      ...this.globalParams,
+      [key]: value || undefined,
+    };
+    this.state.setGlobalParams(this.globalParams);
+  }
+
+  onGlobalGroupChange(key: "Group" | "SubGroup", value: string): void {
+    this.globalParams = {
+      ...this.globalParams,
+      [key]: value || undefined,
+    };
+    this.state.setGlobalParams(this.globalParams);
   }
 
   // Write mode is now fixed to overwrite, so there is no
@@ -135,7 +180,184 @@ export class QueryHomeComponent implements OnInit {
     return this.auth.hasAnyRole(["analyst", "admin"]);
   }
 
+  getRunFlag(query: QueryDefinition): boolean {
+    return this.state.getQueryRunFlag(query.id);
+  }
+
+  onRunFlagChange(query: QueryDefinition, checked: boolean): void {
+    this.state.setQueryRunFlag(query.id, checked);
+  }
+
+  onOverrideChange(key: "StartDate" | "EndDate" | "Group" | "SubGroup", value: string): void {
+    if (!this.selectedQuery) {
+      return;
+    }
+    this.selectedQueryOverrides = {
+      ...this.selectedQueryOverrides,
+      [key]: value || undefined,
+    };
+  }
+
+  onSaveOverrides(): void {
+    if (!this.selectedQuery) {
+      return;
+    }
+    this.state.setQueryParams(this.selectedQuery.id, this.selectedQueryOverrides);
+    this.closeDetails();
+  }
+
+  onClearOverrides(): void {
+    if (!this.selectedQuery) {
+      return;
+    }
+    this.selectedQueryOverrides = {};
+    this.state.setQueryParams(this.selectedQuery.id, {});
+  }
+
+  async runSelected(mode: "global" | "unique"): Promise<void> {
+    if (!this.excel.isExcel) {
+      this.error = "Queries can only be run inside Excel.";
+      return;
+    }
+
+    const runnable = this.filteredQueries.filter((q) => this.getRunFlag(q) && this.canRun(q));
+
+    if (!runnable.length) {
+      this.error = "Select at least one query to run.";
+      return;
+    }
+
+    this.telemetry.logEvent(
+      this.telemetry.createWorkflowEvent({
+        category: "query",
+        name: "query.batch.run.requested",
+        severity: "info",
+        context: {
+          mode,
+          queryIds: runnable.map((q) => q.id),
+          globalParams: this.state.getGlobalParams(),
+          perQueryParams: Object.fromEntries(
+            runnable.map((q) => [q.id, this.state.getQueryParams(q.id) ?? {}])
+          ),
+        },
+      })
+    );
+
+    this.isRunning = true;
+    this.error = null;
+
+    const results: { query: QueryDefinition; ok: boolean; error?: string }[] = [];
+
+    for (const query of runnable) {
+      try {
+        const ok = await this.runSingle(query, mode);
+        results.push({ query, ok });
+      } catch (err) {
+        const message = (err as Error)?.message ?? String(err);
+        results.push({ query, ok: false, error: message });
+      }
+    }
+
+    const failed = results.filter((r) => !r.ok);
+
+    if (failed.length) {
+      this.error = `One or more queries failed: ${failed.map((f) => f.query.id).join(", ")}`;
+    }
+
+    this.telemetry.logEvent(
+      this.telemetry.createWorkflowEvent({
+        category: "query",
+        name: failed.length ? "query.batch.run.failed" : "query.batch.run.completed",
+        severity: failed.length ? "error" : "info",
+        context: {
+          mode,
+          queryIds: runnable.map((q) => q.id),
+          failedQueryIds: failed.map((f) => f.query.id),
+          globalParams: this.state.getGlobalParams(),
+          perQueryParams: Object.fromEntries(
+            runnable.map((q) => [q.id, this.state.getQueryParams(q.id) ?? {}])
+          ),
+        },
+      })
+    );
+
+    this.isRunning = false;
+  }
+
+  private async runSingle(query: QueryDefinition, mode: "global" | "unique"): Promise<boolean> {
+    if (!this.excel.isExcel || !this.canRun(query)) {
+      return false;
+    }
+
+    const effectiveParams = this.state.getEffectiveParams(query, mode);
+
+    this.telemetry.logEvent(
+      this.telemetry.createWorkflowEvent({
+        category: "query",
+        name: "query.run.requested",
+        severity: "info",
+        context: { queryId: query.id, mode, params: effectiveParams },
+      })
+    );
+
+    try {
+      const result = await this.api.executeQuery(query.id, effectiveParams as ExecuteQueryParams);
+
+      const effectiveQuery: QueryDefinition = { ...query, writeMode: "overwrite" };
+      const excelResult = await this.excel.upsertQueryTable(effectiveQuery, result.rows);
+
+      if (!excelResult.ok) {
+        this.telemetry.logEvent(
+          this.telemetry.createWorkflowEvent({
+            category: "query",
+            name: "query.run.failed",
+            severity: "error",
+            message: excelResult.error?.message,
+            context: { queryId: query.id, mode },
+          })
+        );
+        return false;
+      }
+
+      this.state.setLastRun(query.id, {
+        queryId: query.id,
+        completedAt: new Date(),
+        rowCount: result.rows.length,
+        location: excelResult.value,
+      });
+
+      this.telemetry.logEvent(
+        this.telemetry.createWorkflowEvent({
+          category: "query",
+          name: "query.run.completed",
+          severity: "info",
+          context: {
+            queryId: query.id,
+            mode,
+            rowCount: result.rows.length,
+          },
+        })
+      );
+
+      return true;
+    } catch (err) {
+      const message = (err as Error)?.message ?? String(err);
+      this.telemetry.logEvent(
+        this.telemetry.createWorkflowEvent({
+          category: "query",
+          name: "query.run.failed",
+          severity: "error",
+          message,
+          context: { queryId: query.id, mode },
+        })
+      );
+      return false;
+    }
+  }
+
   async runQuery(query: QueryDefinition): Promise<void> {
+    this.error = null;
+
     if (!this.excel.isExcel) {
       this.error = "Queries can only be run inside Excel.";
       return;
@@ -146,56 +368,13 @@ export class QueryHomeComponent implements OnInit {
     }
 
     this.isRunning = true;
-    this.error = null;
-    try {
-      const lastParams = (this.state.getLastParams(query.id) ?? {}) as ExecuteQueryParams;
-      const result = await this.api.executeQuery(query.id, lastParams);
+    const ok = await this.runSingle(query, "unique");
 
-      // Write mode is now always overwrite; append semantics have
-      // been removed for simplicity and predictability.
-      const effectiveQuery: QueryDefinition = { ...query, writeMode: "overwrite" };
-
-      const excelResult = await this.excel.upsertQueryTable(effectiveQuery, result.rows);
-
-      if (!excelResult.ok) {
-        this.error = excelResult.error?.message ?? "Failed to write results into Excel.";
-        return;
-      }
-
-      this.state.setLastRun(query.id, {
-        queryId: query.id,
-        completedAt: new Date(),
-        rowCount: result.rows.length,
-        location: excelResult.value,
-      });
-      this.telemetry.logEvent(
-        this.telemetry.createWorkflowEvent({
-          category: "query",
-          name: "query.run.completed",
-          severity: "info",
-          context: {
-            queryId: query.id,
-            rowCount: result.rows.length,
-          },
-        })
-      );
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (err: any) {
-      this.error = err?.message ?? String(err);
-      this.telemetry.logEvent(
-        this.telemetry.createWorkflowEvent({
-          category: "query",
-          name: "query.run.failed",
-          severity: "error",
-          message: this.error ?? undefined,
-          context: {
-            queryId: query.id,
-          },
-        })
-      );
-    } finally {
-      this.isRunning = false;
+    if (!ok) {
+      this.error = `Failed to run query '${query.id}'.`;
     }
+
+    this.isRunning = false;
   }
 
   async goToLastRun(query: QueryDefinition): Promise<void> {
