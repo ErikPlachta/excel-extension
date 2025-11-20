@@ -637,7 +637,9 @@ Going forward, **every new feature or meaningful code change must include TSDoc 
   - [ ] Ensure that loading a configuration updates the query list, parameter panels, and any Excel tables in a predictable, observable way, and that failures are logged and surfaced via the host-status/banner UX.
   - [ ] Use existing UI Components for this design, like Cards, Buttons, List, status-banner, table, etc. We may need to make like for the form.
 
-### 12. Resolve NPM I Issues
+### 12. Queries Refactor: Configuration & Workbook Selection
+
+### 13. Resolve NPM I Issues
 
 - [ ] **Run NPM I, Verify Issue, and Help Resolve**
   - [ ] Run `npm install` locally and capture the full console output (including any warnings or errors) so we have an exact record of the current failure/success state.
@@ -646,7 +648,7 @@ Going forward, **every new feature or meaningful code change must include TSDoc 
   - [ ] Propose and implement a minimal, safe fix for the identified `npm install` issues (such as adjusting a version range, adding a missing dependency, or updating a script), keeping changes focused and consistent with the existing toolchain.
   - [ ] Re-run `npm install` after applying fixes to confirm a clean install, then summarize the root cause and resolution steps in `CONTEXT-SESSION.md` under a short "NPM install issues" subsection.
 
-### 13. Refine UI and UX
+### 14. Refine UI and UX
 
 This section needs to be built out more. The goal is to start polishing and solidifying the design so we can continue with the concept.
 
@@ -716,7 +718,7 @@ This section needs to be built out more. The goal is to start polishing and soli
   - [ ] Add breadcrumbs or indicators to help users understand their location within the app.
   - [ ] Ensure smooth transitions between views.
 
-### 14. Building out Authentication
+### 15. Building out Authentication
 
 - [ ] **Update UI for Authentication**
   - [ ] Refine homepage
@@ -731,7 +733,7 @@ This section needs to be built out more. The goal is to start polishing and soli
     - [ ] Identify how it can be integrated into the existing `AuthService`.
     - [ ] Determine how we could
 
-## 15. Review and Finalize Jasmine/Karma Testing
+## 16. Review and Finalize Jasmine/Karma Testing
 
 - [ ] **Confirm baseline test runner behavior is stable**
   - [x] Fix the Angular/Karma wiring so `npm test` (via `ng test`) builds the webpack bundle (no more `404: /_karma_webpack_/main.js`) and actually executes specs in Chrome/ChromeHeadless.
@@ -753,7 +755,7 @@ This section needs to be built out more. The goal is to start polishing and soli
   - [ ] Briefly describe the layering of specs (core services, features, helpers) and how to add new tests in a way that respects strict typing and the data-driven design (use shared types, avoid `any` outside Office boundaries).
   - [ ] Capture any recurring patterns or pitfalls discovered during the current round of test fixes (e.g., host/role guards firing before deeper logic) so future changes can avoid re-introducing similar issues.
 
-## 15. Research Class Driven Styles
+## 17. Research Class Driven Styles
 
 This section still needs to be built out, but the goal is to make it flexible for Class Driven Style systems like TailwindCSS
 
