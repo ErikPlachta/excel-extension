@@ -617,17 +617,25 @@ Going forward, **every new feature or meaningful code change must include TSDoc 
     - [x] Extend `QueryHomeComponent` specs to cover Run checkbox behavior, new Run buttons, host/role guards for these flows, and telemetry invocations.
     - [x] Add or update TSDoc on all new types and public methods introduced for parameter management so they align with the repo’s strict typing and documentation standards.
 
-- [ ] **Support saving and loading named query configurations**
-  - [ ] Design a `QueryConfiguration` model that captures a named set of query selections, parameter values (global + per-query), and rerun behaviors (overwrite) so a “report configuration” can be reused.
+- [x] **Quick update to style of Queries so more Mobile/Taskbar Friendly**
+  - [x] List should be easier to view.
+  - [x] Content more organized and easier to work with.
+  - [x] Expand on this concept before you get started (just rough draft notes).
+
+- [ ] **Add new Query feature Where all Available Queries exist, User Can Select which Queries to Add to Workbook, and Users Can Save/Edit/Load Configurations**
+  - [ ] This will be a sub-feature within queries itself
+  - [ ] Queries Page no longer shows a list of all available queries, it's instead of a list of Queries User wants to have within the workbook based on the master list of available queries.
+  - [ ] The same query can be loaded more than once and have different parameters
+  - [ ] When a new query is added, a mini-form appears to allow user to define 1. Source Query, 2. Parameters, Target Tab name, Target Table Name
+  - [ ] Once a query is added to the workbook, it appears in the list of queries for that workbook.
+  - [ ] When users want to modify the query config, they can click on details and make the approriate change(s)
+  - [ ] User can Name, Save, Rename, Modify and Delete Query Configuration(s), which are a collection of queries against existing API Endpoints that are customized based on user's need.
+  - [ ] We'll need to design a `QueryConfiguration` model that captures a named set of query selections, parameter values (global + per-query), and rerun behaviors (overwrite) so a “report configuration” can be reused.
   - [ ] Implement local storage of configurations keyed by user and workbook context, leveraging the existing auth state to keep configurations scoped to the signed-in user.
   - [ ] Add UI affordance's to create, rename, “save as”, delete, and restore configurations (soft-delete), making it easy to manage multiple report presets.
   - [ ] Prepare the configuration layer for a future backend API by isolating storage concerns behind a service (e.g., `QueryConfigurationService`) with a clear interface that can later be backed by HTTP instead of local storage.
   - [ ] Ensure that loading a configuration updates the query list, parameter panels, and any Excel tables in a predictable, observable way, and that failures are logged and surfaced via the host-status/banner UX.
-
-- [ ] **Quick update to style of Queries so more Mobile/Taskbar Friendly**
-  - [ ] List should be easier to view.
-  - [ ] Content more organized and easier to work with.
-  - [ ] Expand on this concept before you get started (just rough draft notes).
+  - [ ] Use existing UI Components for this design, like Cards, Buttons, List, status-banner, table, etc. We may need to make like for the form.
 
 ### 12. Resolve NPM I Issues
 
