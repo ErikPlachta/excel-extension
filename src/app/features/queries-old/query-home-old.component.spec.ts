@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from "@angular/core/testing";
-import { QueryHomeComponent } from "./query-home.component";
+import { QueryHomeComponent } from "./query-home-old.component";
 import { AuthService, ExcelService, TelemetryService } from "../../core";
 import {
   ExecuteQueryParams,

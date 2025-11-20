@@ -1,5 +1,9 @@
 /**
- * Simple parameter definition for a query, including type and default value.
+ * Simple parameter definition for a query invocation, including type and default value.
+ *
+ * In this refactor, a "query" should be thought of as a call against a
+ * specific API definition with concrete parameter values. The API itself is
+ * described by {@link QueryDefinition}.
  */
 export interface QueryParameter {
   /** Unique identifier for this parameter within a query. */
@@ -24,7 +28,11 @@ import type { QueryParameterBinding, QueryParameterKey } from "./query-params.ty
 export type QueryWriteMode = "overwrite" | "append";
 
 /**
- * Definition of a query that can be executed against a data source.
+ * Definition of an API-style data operation that can be invoked as a "query".
+ *
+ * The mock layer and UI treat this as the master catalog entry. A single
+ * {@link QueryDefinition} (API) may be invoked many times with different
+ * parameters and targets when users build configurations.
  */
 export interface QueryDefinition {
   /** Stable id used by API/state. */
@@ -43,7 +51,11 @@ export interface QueryDefinition {
   parameterKeys?: QueryParameterKey[];
   /** Optional metadata describing how well-known parameter keys map to query fields. */
   parameterBindings?: QueryParameterBinding[];
-  /** Parameters required/optional for this query. */
+  /**
+   * Parameters required/optional when invoking this API as a query. These
+   * definitions describe the shape of the input the underlying data source
+   * expects, not the values for a particular run.
+   */
   parameters: QueryParameter[];
   /** Base name to use when creating sheets for this query. */
   defaultSheetName: string;

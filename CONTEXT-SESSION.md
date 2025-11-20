@@ -1,8 +1,8 @@
 # Context Session
 
-Date: 2025-11-18  
+Date: 2025-11-19  
 Repository: excel-extension
-Branch: feat/improve-excel-functionality
+Branch: feat/add-query-config
 
 <!-- BEGIN:COPILOT-INSTRUCTIONS -->
 
@@ -33,7 +33,7 @@ Angular 20 task-pane app for Excel using standalone components and Office.js. Ex
 We now have a role-aware, query-centric extension that:
 
 - Provides role-specific app features and navigation based on auth state (`AuthService`).
-- Executes mock remote-style queries and writes results into tables on target sheets via `ExcelService`.
+- Executes mock remote-style queries (calls against API-style definitions) and writes results into tables on target sheets via `ExcelService`.
 - Remembers query configurations and last runs (`QueryStateService`) for refresh/navigation.
 - Creates new sheets/tables per query run, with sensible default names that users can override.
 
@@ -43,9 +43,29 @@ We also have:
 - A modern lint/test stack (ESLint 9, Angular + Office add-in tooling).
 - CI for all PRs and CD to GitHub Pages from `main`.
 
-The focus of the `feat/improve-excel-functionality` branch is: **refining Excel integration, workbook ownership, and query execution behavior** while preserving the existing data-driven shell and type-safe configuration. This includes improving `ExcelService`/Office.js wrapper logic, hardening workbook ownership flows, and tightening telemetry and error handling around query runs.
+The focus of the `feat/add-query-config` branch is: **refactoring the Queries experience into an API-centric, configuration-driven model** while preserving existing behavior through a `queries-old` safety copy. This includes clarifying API vs query terminology in the mock/data layers, cloning the current Queries feature for regression safety, and then introducing an API catalog, per-workbook selected queries, and named configurations in later phases.
+
+Early work on this branch is concentrating on **Phase 0 and Phase 1** of the Queries refactor (see section 12 in `TODO.md`): aligning terminology and documentation, and creating a `queries-old` copy of the current Queries feature that can be exercised via an internal route without altering the primary user experience.
 
 When updating planning/checklist docs (like `TODO.md` or this file), treat explicitly mentioned scopes (for example, a whole section) as all-inclusive and prefer a single consistent pass over that scope instead of piecemeal edits. Every discrete actionable bullet should be a checkbox with an accurate `[x]`/`[ ]` state.
+
+### Current Queries behavior (baseline)
+
+The current Queries view presents a **flat list of query definitions** driven by `QueryDefinition` catalog entries from `QueryApiMockService`. Each definition describes an API-style data operation (id, name, description, parameter keys, default sheet/table names, allowed roles, and UI config), and the view renders one row per definition without any per-workbook selection layer yet.
+
+Parameter management is **data driven and split into global vs per-query** state via `QueryStateService`:
+
+- A global parameter panel at the top of the view exposes shared keys like `StartDate`, `EndDate`, `Group`, and `SubGroup`. These values are stored in `globalParams`, persisted in `localStorage`, and can be applied across multiple queries.
+- Each query row has a `Run` checkbox and an associated details panel that can override parameters on a per-query basis. These overrides live in `queryParams[query.id]` and are also persisted. Effective parameters for a run are computed per query based on the chosen mode.
+- Two batch Run buttons allow running all selected queries in either **Global** or **Unique** parameter mode; both flows ultimately call the same `runSingle`/`runQuery` helper so telemetry and error handling stay consistent.
+
+Telemetry for query execution uses the shared `TelemetryService`/`ExcelTelemetryService` pipeline:
+
+- `QueryHomeComponent` emits app-level events (for example, batch run requested/completed, single query run, errors) through `TelemetryService`, which can log to the console and, when enabled in Settings, to an in-workbook telemetry table.
+- `ExcelService.upsertQueryTable` returns a typed `ExcelOperationResult<QueryRunLocation>` instead of throwing, normalizes Excel-specific errors, and appends structured log entries when workbook logging is on.
+- `QueryStateService` records successful runs as `QueryRun` entries with locations; `goToLastRun` uses this state (and workbook ownership helpers) to navigate back to the last table for a query.
+
+This baseline—flat catalog-style Queries view, global + per-query parameter management, and centralized telemetry for execution and navigation—serves as the regression reference for the later API catalog, per-workbook selection, configuration, and queued-execution phases in section 12 of `TODO.md`.
 
 ## Current State Snapshot
 

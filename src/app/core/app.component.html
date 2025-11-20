@@ -54,7 +54,7 @@
   <app-user *ngIf="currentView === 'user' && authSummary.isAuthenticated"></app-user>
   <app-query-home
     *ngIf="
-      currentView === 'queries' &&
+      currentView === 'queriesOld' &&
       authSummary.isAuthenticated &&
       auth.hasAnyRole(['analyst', 'admin'])
     "

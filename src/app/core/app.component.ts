@@ -7,7 +7,7 @@ import { SsoHomeComponent } from "../features/sso/sso-home.component";
 import { WorksheetsComponent } from "../features/worksheets/worksheets.component";
 import { TablesComponent } from "../features/tables/tables.component";
 import { UserComponent } from "../features/user/user.component";
-import { QueryHomeComponent } from "../features/queries/query-home.component";
+import { QueryHomeOldComponent } from "../features/queries-old/query-home-old.component";
 import { DebugContextComponent } from "../features/debug/debug-context.component";
 import { SettingsComponent } from "../features/settings/settings.component";
 import { ButtonComponent } from "../shared/ui/button.component";
@@ -22,7 +22,7 @@ import { ButtonComponent } from "../shared/ui/button.component";
     WorksheetsComponent,
     TablesComponent,
     UserComponent,
-    QueryHomeComponent,
+    QueryHomeOldComponent,
     DebugContextComponent,
     SettingsComponent,
   ],
@@ -109,8 +109,8 @@ export class AppComponent {
         return this.text.nav.tables;
       case "nav.user":
         return this.text.nav.user;
-      case "nav.queries":
-        return this.text.nav.queries;
+      case "nav.queriesOld":
+        return this.text.nav.queriesOld;
       case "nav.settings":
         return this.text.nav.settings;
       default:

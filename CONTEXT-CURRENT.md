@@ -55,46 +55,27 @@ Task Management and Focus is managed by using 3 key files/documents with very pr
 
 ## Current Focus
 
-- [ ] **Implement data driven and modular query parameter management (global + per-query)** (subset of [11. Refine & Improve Excel Functionality](TODO.md#11-refine--improve-excel-functionality))
+- [ ] **Refactor Queries feature into API-centric configuration model without breaking existing behavior** (Section 12 in `TODO.md`)
 
 ### Goals
 
-- Support a data-driven query parameter model with **global defaults** plus **per-query overrides**, starting with a shared parameter set: `StartDate` (date), `EndDate` (date), `Group` (string), `SubGroup` (string).
-- Provide a clear UX where:
-  - Global parameters are edited on the main Queries view.
-  - Per-query overrides are edited in a details view/panel.
-  - Two top-level Run buttons exist: "Run – Use Global Params" (batch across selected queries) and "Run – Use Unique Parameters" (batch using per-query overrides).
-  - Each query row has a `Run` checkbox controlling whether it participates in global runs.
-- Persist parameter choices and run-selection flags **per user + workbook**, using `QueryStateService` backed by `localStorage` (with a clear abstraction ready for future workbook-level metadata storage).
-- Ensure all query executions (single or batch, global or unique) use the **effective parameter set** (global defaults merged with per-query overrides) and pass the correct values into `QueryApiMockService.executeQuery`.
-- Emit **telemetry events** for query runs that capture:
-  - Which mode was used (`global` vs `unique`).
-  - Which queries were executed.
-  - The effective parameter values per query (within reasonable limits for logging).
-- Keep the implementation consistent with the existing data-driven patterns (types in `src/app/types`, state via `QueryStateService`, UI via primitives and config), with strict typing and TSDoc.
+- Preserve the current Queries behavior during the refactor by cloning it into a `queries-old` surface that can be exercised via an internal route without impacting end users.
+- Clarify terminology in the query domain so that **APIs** (catalog entries) and **queries** (invocations) are clearly distinguished in types, TSDoc, and mock services, while avoiding breaking changes to public APIs in the early phases.
+- Establish a phased path (Phase 0–4) for moving from the current flat Queries list to an API catalog + per-workbook selected queries + named configurations, with clear exit criteria for retiring `queries-old`.
+- Keep all changes aligned with existing patterns: strict typing in `src/app/types`, `QueryStateService` as the state hub, and query/Excel behavior guarded via `AuthService` and `ExcelService.isExcel`.
 
 ### Current implementation snapshot (what already exists)
 
 - **Query domain and state**
   - `QueryDefinition`, `QueryParameter`, `QueryRun`, and `QueryRunLocation` are defined in `src/app/types` and re-exported via `shared/query-model.ts`.
-  - `QueryApiMockService` exposes `getQueries()`, `getQueryById()`, and `executeQuery(queryId, params)` with a small set of mock queries (sales summary, top customers, inventory, user audit, JSONPlaceholder users).
-  - `QueryStateService` maintains an in-memory snapshot with:
-    - `queries: QueryDefinition[]` (loaded from `QueryApiMockService`).
-    - `lastParams: Record<string, ExecuteQueryParams>` per query id.
-    - `lastRuns: Record<string, QueryRun | undefined>` per query id.
-  - `QueryStateService` provides helpers to get/set last-used params and last run info per query.
+  - `QueryApiMockService` exposes `getQueries()`, `getQueryById()`, and `executeQuery(queryId, params)` with a set of mock definitions that currently use the term "query" for both the catalog entry and the invocation.
+  - `QueryStateService` maintains an in-memory snapshot with query definitions, global and per-query parameters, run flags, and last runs, backed by `localStorage`.
 
 - **Query UI / Queries view**
   - `QueryHomeComponent` lists queries and supports actions via `QueryUiConfig`/`QueryUiActionConfig` (e.g., `run-query`, `go-to-table`, `show-details`).
   - Role-based visibility is enforced using `AuthService` (queries require analyst/admin roles, with some admin-only queries).
   - Host-based guards use `ExcelService.isExcel` to disable query execution and navigation outside Excel.
-  - `runQuery(query)` currently:
-    - Verifies Excel host and permissions.
-    - Uses `QueryStateService.getLastParams(query.id) ?? {}` as parameters.
-    - Calls `QueryApiMockService.executeQuery` and passes rows to `ExcelService.upsertQueryTable` (overwrite-only for now).
-    - Records last run info (time, row count, location) via `QueryStateService.setLastRun`.
-    - Emits telemetry events (`query.run.requested`, `query.run.completed`, `query.run.failed`).
-  - `goToLastRun(query)` navigates to the last run’s table (or best-guess table) using `WorkbookService`/`ExcelService`.
+  - `runQuery` and the newer batch flows already use the effective parameter model and integrated telemetry; this behavior should be preserved in `queries-old`.
 
 - **UI primitives and config**
   - UI primitives (`ButtonComponent`, `DropdownComponent`, `SectionComponent`, `TableComponent`/`ListComponent`) exist under `src/app/shared/ui` and are already used by query and shell views.
@@ -107,91 +88,30 @@ Task Management and Focus is managed by using 3 key files/documents with very pr
 
 ### Active refinement work (what this focus will change)
 
-- **Extend types for parameters**
-  - Introduce a small, shared parameter key/value model in `src/app/types`, for example:
-    - `type QueryParameterKey = "StartDate" | "EndDate" | "Group" | "SubGroup";`
-    - `interface QueryParameterValues { StartDate?: string; EndDate?: string; Group?: string; SubGroup?: string; }`
-  - Extend `QueryDefinition` with optional metadata such as `parameterKeys?: QueryParameterKey[]` to indicate which of the global set a given query uses.
-  - Keep values as strings (e.g., ISO dates) initially to avoid Date vs JSON issues and keep execution mock-friendly.
+- **Phase 0: Terminology and documentation alignment**
+  - Review `src/app/types/query.types.ts`, `src/app/shared/query-model.ts`, and `src/app/shared/query-api-mock.service.ts` to clarify in TSDoc and comments that APIs are catalog entries and queries are invocations, without yet renaming public types.
+  - Add a concise "Current Queries behavior" section to `CONTEXT-SESSION.md` that describes the existing flat Queries view, parameter model, and telemetry events for use as a regression baseline.
 
-- **Extend QueryStateService for global + per-query params**
-  - Extend `QueryStateSnapshot` to include:
-    - `globalParams: QueryParameterValues` (defaults for all queries).
-    - `queryParams: Record<string, QueryParameterValues>` (per-query overrides).
-    - `queryRunFlags: Record<string, boolean>` (per-query `Run` checkbox state for batch runs).
-  - Add helpers:
-    - `getGlobalParams() / setGlobalParams(values: QueryParameterValues)`.
-    - `getQueryParams(queryId) / setQueryParams(queryId, values)`.
-    - `getQueryRunFlag(queryId) / setQueryRunFlag(queryId, value)`.
-    - `getEffectiveParams(query, mode: "global" | "unique"): ExecuteQueryParams` that maps `QueryParameterValues` into the existing `ExecuteQueryParams` shape.
-
-- **Persist per user + workbook**
-  - Add a light-weight persistence layer inside `QueryStateService` using `localStorage` keys such as:
-    - `excel-ext:queries:globalParams`.
-    - `excel-ext:queries:queryParams`.
-    - `excel-ext:queries:runFlags`.
-  - On service construction, hydrate from storage with defensive parsing.
-  - Whenever global/query params or run flags are updated, write the updated slice back to storage.
-  - Keep the storage access encapsulated so it can later be swapped for workbook-level metadata (e.g., a dedicated worksheet or custom properties).
-
-- **Global parameter UI on Queries view**
-  - In `QueryHomeComponent`, introduce a `globalParams: QueryParameterValues` property bound to `QueryStateService.getGlobalParams()`.
-  - Add a top-of-view UI section (using `SectionComponent`, `DropdownComponent`, and standard inputs) to edit:
-    - `StartDate` / `EndDate`: date inputs bound to ISO strings.
-    - `Group` / `SubGroup`: dropdowns backed by placeholder `UiDropdownItem[]` options (to be replaced later by real, data-driven lists).
-  - On change, call `setGlobalParams` so the state and storage are updated immediately.
-
-- **Per-query Run checkbox and details/overrides**
-  - Add a `Run` checkbox to each query row:
-    - Bound to `getQueryRunFlag(query.id)`.
-    - Disabled when the user cannot run that query or when `!excel.isExcel`.
-    - Toggle handler calls `setQueryRunFlag`.
-  - Reuse the existing `show-details` action in `QueryUiConfig` to open a per-query details panel within `QueryHomeComponent` (for now):
-    - Track `selectedQuery: QueryDefinition | null` and `selectedQueryParams: QueryParameterValues`.
-    - Load overrides via `getQueryParams(query.id)` when opening details.
-    - Render editors for the same parameter set, scoped to the selected query.
-    - Persist changes via `setQueryParams(selectedQuery.id, values)`.
-
-- **New Run flows (global vs unique)**
-  - Add two top-level Run buttons in `QueryHomeComponent`:
-    - `onRunAllGlobal()`:
-      - Collect all queries where `queryRunFlags[query.id]` is true and `canRun(query)`.
-      - For each, compute `params = getEffectiveParams(query, "global")`.
-      - Call a shared `runSingle(query, params, "global")` helper that wraps the existing `runQuery` logic.
-    - `onRunAllUnique()`:
-      - Same as above, but use `getEffectiveParams(query, "unique")` based on per-query overrides.
-  - Refactor the existing per-row Run behavior to go through the same helper (likely with `mode: "unique"` and query-specific params), so telemetry and error handling are consistent.
-
-- **Telemetry integration**
-  - For each run path (per-row and batch/global/unique), emit enriched telemetry events via `TelemetryService`:
-    - Batch events: `query.batch.run.requested/completed/failed` with context including:
-      - `mode: "global" | "unique"`.
-      - `queryIds: string[]`.
-      - Optionally, a summarized parameter snapshot.
-    - Single-query events: continue to use `query.run.*` events, but extend context to include `mode` and the effective parameters for that query.
-  - Ensure telemetry respects existing settings (console vs workbook logging) and keeps parameter payloads reasonably compact.
-
-- **Tests and TSDoc**
-  - Extend or add specs for `QueryStateService`:
-    - Verify default/empty state for new fields.
-    - Verify set/get behavior for global and per-query parameters and run flags.
-    - Verify effective param resolution for both modes.
-    - Verify localStorage hydration and persistence logic.
-  - Extend `QueryHomeComponent` specs to cover:
-    - Guard behavior when Excel is not detected or user lacks roles (existing patterns).
-    - New Run buttons and run-checkbox behaviors (which queries are included).
-    - That telemetry is invoked with correct `mode`, `queryIds`, and parameter snapshots.
-  - Add or refine TSDoc for new types and methods introduced as part of this work so they align with the repo’s strict typing and documentation standards.
+- **Phase 1: Safety copy of existing Queries feature**
+  - Create a `QueryHomeOldComponent` (or similarly named component) by copying the current `QueryHomeComponent` and its HTML/CSS/spec into a `queries-old` subfolder under `src/app/features/queries`.
+  - Duplicate any local view-model helpers or config objects needed so `queries-old` compiles independently of the new refactor while continuing to rely on shared services like `QueryStateService` and `QueryApiMockService`.
+  - Add an internal-only route in `src/app/core/app.routes.ts` (e.g., `/queries-old`) pointing to `QueryHomeOldComponent` but do not expose it in the main navigation.
+  - Run the Angular test suite (`npm test -- --watch=false --browsers=ChromeHeadless`) and perform basic Excel smoke tests to confirm that the primary Queries view remains unchanged and that the `/queries-old` route renders the copied experience correctly.
 
 ### Manual validation scenarios (for this focus)
 
 - Start the dev server and sideload the add-in into Excel.
-- On the Queries view:
-  - Set global `StartDate`/`EndDate` and `Group`/`SubGroup` values; reload the page and confirm they persist.
-  - For a given query, open the details panel and set per-query overrides; reload and confirm they persist separately from global defaults.
-  - Use the `Run` checkbox to select a subset of queries and click "Run – Use Global Params"; confirm only selected queries run and that they use the global parameters.
-  - Click "Run – Use Unique Parameters" and confirm that per-query overrides are respected (e.g., by inspecting written tables or telemetry logs).
-  - Inspect the telemetry console and/or workbook log table to confirm that each run records mode, query ids, and parameter snapshots.
-- Toggle Excel/host state (e.g., run outside Excel) and confirm that Run buttons and checkboxes are disabled or guarded appropriately.
+- Navigate to the existing Queries view and confirm:
+  - The list of queries, parameter behavior, and telemetry appear unchanged compared to the previous branch.
+- Manually browse to the internal `/queries-old` route (once added) and verify:
+  - The UI matches the existing Queries view closely enough to serve as a reference.
+  - Running a query from `queries-old` still writes data into Excel tables and logs telemetry as expected.
+- After creating `queries-old`, run:
+
+  ```bash
+  npm test -- --watch=false --browsers=ChromeHeadless
+  ```
+
+  and confirm that tests still execute and any failures are unrelated to the new safety copy.
 
 <!-- END:CURRENT-FOCUS -->

@@ -2,14 +2,24 @@ import { Injectable } from "@angular/core";
 import { QueryDefinition, QueryParameter } from "./query-model";
 import { QueryUiConfig } from "../types/ui/primitives.types";
 
+/**
+ * Concrete parameter values supplied when invoking a query against a
+ * particular API definition.
+ */
 export interface ExecuteQueryParams {
   [key: string]: string | number | boolean | Date | null | undefined;
 }
 
+/**
+ * A single row returned from a query invocation against an API.
+ */
 export interface ExecuteQueryResultRow {
   [column: string]: string | number | boolean | Date | null;
 }
 
+/**
+ * Result of executing a query against an API definition.
+ */
 export interface ExecuteQueryResult {
   query: QueryDefinition;
   rows: ExecuteQueryResultRow[];
@@ -61,6 +71,13 @@ export class QueryApiMockService {
     };
   }
 
+  /**
+   * Master catalog of API definitions that can be invoked as queries.
+   *
+   * Each {@link QueryDefinition} describes an API; individual query runs
+   * are represented by a definition + parameter values in state/services
+   * such as QueryStateService.
+   */
   private readonly queries: QueryDefinition[] = [
     {
       id: "sales-summary",
@@ -147,10 +164,17 @@ export class QueryApiMockService {
     },
   ];
 
+  /**
+   * Returns the master catalog of available API definitions. Callers treat
+   * these as "queries" when invoking them with specific parameters.
+   */
   getQueries(): QueryDefinition[] {
     return this.queries;
   }
 
+  /**
+   * Looks up a single API definition by id from the catalog.
+   */
   getQueryById(id: string): QueryDefinition | undefined {
     return this.queries.find((q) => q.id === id);
   }
@@ -162,6 +186,11 @@ export class QueryApiMockService {
     };
   }
 
+  /**
+   * Executes a query invocation against a given API definition using the
+   * supplied parameters. This is a mock implementation that either loads
+   * local JSON fixtures or synthesizes rows.
+   */
   async executeQuery(
     queryId: string,
     params: ExecuteQueryParams = {}

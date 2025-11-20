@@ -622,22 +622,37 @@ Going forward, **every new feature or meaningful code change must include TSDoc 
   - [x] Content more organized and easier to work with.
   - [x] Expand on this concept before you get started (just rough draft notes).
 
-- [ ] **Add new Query feature Where all Available Queries exist, User Can Select which Queries to Add to Workbook, and Users Can Save/Edit/Load Configurations**
-  - [ ] This will be a sub-feature within queries itself
-  - [ ] Queries Page no longer shows a list of all available queries, it's instead of a list of Queries User wants to have within the workbook based on the master list of available queries.
-  - [ ] The same query can be loaded more than once and have different parameters
-  - [ ] When a new query is added, a mini-form appears to allow user to define 1. Source Query, 2. Parameters, Target Tab name, Target Table Name
-  - [ ] Once a query is added to the workbook, it appears in the list of queries for that workbook.
-  - [ ] When users want to modify the query config, they can click on details and make the approriate change(s)
-  - [ ] User can Name, Save, Rename, Modify and Delete Query Configuration(s), which are a collection of queries against existing API Endpoints that are customized based on user's need.
-  - [ ] We'll need to design a `QueryConfiguration` model that captures a named set of query selections, parameter values (global + per-query), and rerun behaviors (overwrite) so a “report configuration” can be reused.
-  - [ ] Implement local storage of configurations keyed by user and workbook context, leveraging the existing auth state to keep configurations scoped to the signed-in user.
-  - [ ] Add UI affordance's to create, rename, “save as”, delete, and restore configurations (soft-delete), making it easy to manage multiple report presets.
-  - [ ] Prepare the configuration layer for a future backend API by isolating storage concerns behind a service (e.g., `QueryConfigurationService`) with a clear interface that can later be backed by HTTP instead of local storage.
-  - [ ] Ensure that loading a configuration updates the query list, parameter panels, and any Excel tables in a predictable, observable way, and that failures are logged and surfaced via the host-status/banner UX.
-  - [ ] Use existing UI Components for this design, like Cards, Buttons, List, status-banner, table, etc. We may need to make like for the form.
-
 ### 12. Queries Refactor: Configuration & Workbook Selection
+
+- [ ] **Refactor Queries feature into API-centric configuration model without breaking existing behavior**
+  - [x] PHASE 0: Capture current state and terms
+    - [x] Review current query-related types in `src/app/types/query.types.ts` and `src/app/shared/query-model.ts` to document the distinction between APIs (catalog entries) and queries (invocations) without changing public type names yet.
+    - [x] Tighten terminology and TSDoc in `src/app/shared/query-api-mock.service.ts` so the mock data and helpers clearly model a "query" as a call against an "api" while keeping the public API stable.
+    - [x] Add a short "Current Queries behavior" section to `CONTEXT-SESSION.md` describing the existing flat Queries view, parameter management, and telemetry events as a regression baseline.
+  - [ ] PHASE 1: Safety copy of existing feature
+    - [x] Create a `queries-old` feature surface (for example, `QueryHomeOldComponent`) by copying the current `QueryHomeComponent` and its template/style/spec from `src/app/features/queries` into a dedicated `queries-old` folder.
+    - [x] Duplicate any tightly coupled helpers or view-model logic (such as local view-model interfaces or config objects) that `QueryHomeOldComponent` relies on so it can compile independently of the new refactor.
+    - [x] Add an internal-only route (e.g., `/queries-old`) in `src/app/core/app.routes.ts` that points to `QueryHomeOldComponent`, without exposing it in the main navigation.
+    - [x] Run `npm test -- --watch=false --browsers=ChromeHeadless` and perform a minimal Excel smoke test to confirm the primary Queries view behaves exactly as before and that the new `/queries-old` route is functional.
+  - [ ] PHASE 2: Introduce master catalog and per-workbook selected items
+    - [ ] Update the Queries feature to show a master **API catalog** and a per-workbook **selected queries** list instead of a flat list of all queries.
+    - [ ] Ensure the same API can be selected multiple times with different query parameters and targets.
+    - [ ] When a new selected query is added, show a mini-form to define: 1) Source API, 2) Query parameters, 3) Target tab name, 4) Target table name, 5) Write mode.
+    - [ ] Once a selected query is added to the workbook, display it in the per-workbook list, separate from the master catalog.
+    - [ ] Allow users to click Details on a selected query to modify parameters, targets, write mode, and display name without breaking existing telemetry or Excel ownership behavior.
+  - [ ] PHASE 3: Named configurations and storage
+    - [ ] Design and implement a `QueryConfiguration` model that captures a named set of selected queries, parameter values (global + per-query), and rerun behaviors so a "report configuration" can be reused.
+    - [ ] Implement local storage of configurations keyed by user and workbook context, leveraging the existing auth state to keep configurations scoped to the signed-in user.
+    - [ ] Add UI affordances to create, rename, "save as", delete, and restore configurations (soft-delete) using existing UI primitives (cards, buttons, lists, status banner, table, etc.).
+    - [ ] Ensure that loading a configuration updates the selected-queries list, parameter panels, and any managed Excel tables in a predictable, observable way, with failures logged and surfaced via the host-status/banner UX.
+    - [ ] Prepare the configuration layer for a future backend API by isolating storage concerns behind a `QueryConfigurationService` (or similar) interface that can later be backed by HTTP instead of local storage.
+  - [ ] PHASE 4: Queued execution and resource management
+    - [ ] Design and implement a simple query execution queue so that only one query runs at a time, preventing resource contention in Excel and the browser.
+    - [ ] Introduce pagination and general resource-management options (for example, max rows per run, backoff/spacing between runs) to keep query execution stable under constrained environments.
+    - [ ] Integrate the queue with existing telemetry so run order, wait times, and any throttling decisions are observable for troubleshooting.
+  - [ ] PHASE 5: Cleanup and migration
+    - [ ] Decide when to retire `queries-old` once parity and stability are confirmed, and remove or archive it accordingly.
+    - [ ] Update `Query_Refactor.md`, `CONTEXT-SESSION.md`, and this section of `TODO.md` to reflect the final architecture and any follow-on work.
 
 ### 13. Resolve NPM I Issues
 

@@ -15,10 +15,10 @@ import { WorkbookTableInfo } from "../../types";
   selector: "app-query-home",
   standalone: true,
   imports: [CommonModule, DropdownComponent, ButtonComponent],
-  templateUrl: "./query-home.component.html",
-  styleUrl: "./query-home.component.css",
+  templateUrl: "./query-home-old.component.html",
+  styleUrl: "./query-home-old.component.css",
 })
-export class QueryHomeComponent implements OnInit {
+export class QueryHomeOldComponent implements OnInit {
   queries: QueryDefinition[] = [];
   roleFilterItems: UiDropdownItem[] = [];
   selectedRoleFilter: string | null = null;
