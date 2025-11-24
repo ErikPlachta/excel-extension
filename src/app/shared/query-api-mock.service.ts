@@ -1,6 +1,7 @@
 import { Injectable } from "@angular/core";
 import { QueryDefinition, QueryParameter } from "./query-model";
 import { QueryUiConfig } from "../types/ui/primitives.types";
+import { ApiCatalogService } from './api-catalog.service';
 
 /**
  * Concrete parameter values supplied when invoking a query against a
@@ -32,6 +33,8 @@ export interface GroupingOptionsResult {
 
 @Injectable({ providedIn: "root" })
 export class QueryApiMockService {
+  constructor(private apiCatalog: ApiCatalogService) {}
+
   private createStandardQueryUiConfig(options?: { adminOnly?: boolean }): QueryUiConfig {
     const isAdminOnly = options?.adminOnly ?? false;
 
@@ -138,18 +141,6 @@ export class QueryApiMockService {
       uiConfig: this.createStandardQueryUiConfig(),
     },
     {
-      id: "user-audit",
-      name: "User Access Audit",
-      description: "Admin-only report of users and their roles.",
-      parameterKeys: [],
-      parameters: [],
-      defaultSheetName: "User_Audit",
-      defaultTableName: "tbl_UserAudit",
-      writeMode: "overwrite",
-      allowedRoles: ["admin"],
-      uiConfig: this.createStandardQueryUiConfig({ adminOnly: true }),
-    },
-    {
       id: "jsonapi-example",
       name: "JSONPlaceholder Users",
       description:
@@ -228,6 +219,8 @@ export class QueryApiMockService {
   /**
    * Returns the master catalog of available API definitions. Callers treat
    * these as "queries" when invoking them with specific parameters.
+   *
+   * @deprecated Use ApiCatalogService.getApis() instead. This method remains for backward compatibility.
    */
   getQueries(): QueryDefinition[] {
     return this.queries;
@@ -235,6 +228,8 @@ export class QueryApiMockService {
 
   /**
    * Looks up a single API definition by id from the catalog.
+   *
+   * @deprecated Use ApiCatalogService.getApiById() instead. This method remains for backward compatibility.
    */
   getQueryById(id: string): QueryDefinition | undefined {
     return this.queries.find((q) => q.id === id);
@@ -248,9 +243,47 @@ export class QueryApiMockService {
   }
 
   /**
+   * Execute an API with given parameters (NEW method for Phase 1).
+   *
+   * This is the NEW method that separates API execution from catalog management.
+   * It works with ApiDefinition IDs from ApiCatalogService, not QueryDefinition.
+   *
+   * @param apiId - API identifier from ApiCatalogService
+   * @param params - Parameter values for API execution
+   * @returns Promise of result rows
+   */
+  async executeApi(apiId: string, params: ExecuteQueryParams = {}): Promise<ExecuteQueryResultRow[]> {
+    // Validate API exists in catalog
+    const api = this.apiCatalog.getApiById(apiId);
+    if (!api) {
+      throw new Error(`API not found: ${apiId}`);
+    }
+
+    // Route to appropriate fetch method based on API ID
+    switch (apiId) {
+      case "jsonapi-example":
+        return await this.fetchJsonPlaceholderUsers();
+      case "user-demographics":
+        return await this.fetchUserDemographics();
+      case "large-dataset":
+        return await this.fetchLargeDataset();
+      case "product-catalog":
+        return await this.fetchProductCatalog();
+      case "mixed-dataset":
+        return await this.fetchMixedDataset();
+      case "synthetic-expansion":
+        return await this.fetchSyntheticExpansion();
+      default:
+        return await this.loadAndFilterMockRows(apiId, params);
+    }
+  }
+
+  /**
    * Executes a query invocation against a given API definition using the
    * supplied parameters. This is a mock implementation that either loads
    * local JSON fixtures or synthesizes rows.
+   *
+   * @deprecated Use executeApi() instead. This method remains for backward compatibility.
    */
   async executeQuery(
     queryId: string,
@@ -261,31 +294,8 @@ export class QueryApiMockService {
       throw new Error(`Query not found: ${queryId}`);
     }
 
-    let rows: ExecuteQueryResultRow[];
-
-    // Route to appropriate fetch method based on query ID
-    switch (query.id) {
-      case "jsonapi-example":
-        rows = await this.fetchJsonPlaceholderUsers();
-        break;
-      case "user-demographics":
-        rows = await this.fetchUserDemographics();
-        break;
-      case "large-dataset":
-        rows = await this.fetchLargeDataset();
-        break;
-      case "product-catalog":
-        rows = await this.fetchProductCatalog();
-        break;
-      case "mixed-dataset":
-        rows = await this.fetchMixedDataset();
-        break;
-      case "synthetic-expansion":
-        rows = await this.fetchSyntheticExpansion();
-        break;
-      default:
-        rows = await this.loadAndFilterMockRows(query.id, params);
-    }
+    // Call new executeApi method
+    const rows = await this.executeApi(queryId, params);
 
     return { query, rows };
   }
@@ -325,8 +335,6 @@ export class QueryApiMockService {
           raw = (await import("./mock-data/inventory-status.json"))
             .default as ExecuteQueryResultRow[];
           break;
-        case "user-audit":
-          return this.buildUserAuditRows();
         default:
           return [];
       }
@@ -384,186 +392,6 @@ export class QueryApiMockService {
     }
 
     return rows;
-  }
-
-  // Legacy procedural builders kept for reference; not used now that
-  // JSON-backed mock data is loaded via `loadAndFilterMockRows`.
-  private buildSalesSummaryRows(params: ExecuteQueryParams): ExecuteQueryResultRow[] {
-    const regions = ["North", "South", "East", "West"];
-    const groups = ["Consumer", "Enterprise", "Government"];
-
-    const startDateRaw = params["StartDate"];
-    const endDateRaw = params["EndDate"];
-    const groupFilter = typeof params["Group"] === "string" ? (params["Group"] as string) : "";
-    const subGroupFilter =
-      typeof params["SubGroup"] === "string" ? (params["SubGroup"] as string) : "";
-
-    const baseDate = new Date();
-    baseDate.setMonth(0, 1);
-
-    const startDate =
-      typeof startDateRaw === "string" && startDateRaw
-        ? new Date(startDateRaw)
-        : new Date(baseDate.getFullYear(), 0, 1);
-    const endDate =
-      typeof endDateRaw === "string" && endDateRaw
-        ? new Date(endDateRaw)
-        : new Date(baseDate.getFullYear(), 11, 31);
-
-    const rows: ExecuteQueryResultRow[] = [];
-    const maxRows = 5000;
-
-    // Walk day-by-day and emit 10-20 randomized rows per day.
-    for (
-      let asOfDate = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
-      asOfDate <= endDate;
-      asOfDate = new Date(asOfDate.getFullYear(), asOfDate.getMonth(), asOfDate.getDate() + 1)
-    ) {
-      const perDayCount = 10 + Math.floor(Math.random() * 11); // 10-20 rows per day
-
-      for (let i = 0; i < perDayCount; i += 1) {
-        const group = groups[Math.floor(Math.random() * groups.length)];
-        const region = regions[Math.floor(Math.random() * regions.length)];
-
-        if (groupFilter && group !== groupFilter) {
-          continue;
-        }
-        if (subGroupFilter && region !== subGroupFilter) {
-          continue;
-        }
-
-        if (rows.length >= maxRows) {
-          return rows;
-        }
-
-        rows.push({
-          AsOfDate: asOfDate,
-          Group: group,
-          SubGroup: region,
-          Region: region,
-          Year: asOfDate.getFullYear(),
-          Month: asOfDate.getMonth() + 1,
-          Day: asOfDate.getDate(),
-          Sales: 10000 + asOfDate.getMonth() * 2500 + asOfDate.getDate() * 10 + i,
-        });
-      }
-    }
-
-    return rows;
-  }
-
-  private buildTopCustomersRows(params: ExecuteQueryParams): ExecuteQueryResultRow[] {
-    const topNRaw = params["topN"];
-    const topN = typeof topNRaw === "number" && topNRaw > 0 ? Math.min(topNRaw, 200) : 50;
-
-    const groups = ["Consumer", "Enterprise", "Government"];
-    const subGroups = ["North", "South", "East", "West"];
-
-    const groupFilter = typeof params["Group"] === "string" ? (params["Group"] as string) : "";
-    const subGroupFilter =
-      typeof params["SubGroup"] === "string" ? (params["SubGroup"] as string) : "";
-
-    const rows: ExecuteQueryResultRow[] = [];
-
-    let rank = 1;
-    for (
-      let asOfDate = new Date();
-      rank <= topN;
-      asOfDate = new Date(asOfDate.getFullYear(), asOfDate.getMonth(), asOfDate.getDate() + 1)
-    ) {
-      const perDayCount = 10 + Math.floor(Math.random() * 11);
-
-      for (let i = 0; i < perDayCount && rank <= topN; i += 1) {
-        const group = groups[Math.floor(Math.random() * groups.length)];
-        const subGroup = subGroups[Math.floor(Math.random() * subGroups.length)];
-
-        if (groupFilter && group !== groupFilter) {
-          continue;
-        }
-        if (subGroupFilter && subGroup !== subGroupFilter) {
-          continue;
-        }
-
-        rows.push({
-          Rank: rank,
-          Customer: `Customer ${rank}`,
-          Revenue: 50000 - rank * 100,
-          AsOfDate: asOfDate,
-          Group: group,
-          SubGroup: subGroup,
-        });
-
-        rank += 1;
-      }
-    }
-
-    return rows;
-  }
-
-  private buildInventoryStatusRows(params: ExecuteQueryParams): ExecuteQueryResultRow[] {
-    const products = ["Widget A", "Widget B", "Widget C", "Widget D", "Widget E", "Widget F"];
-    const groups = ["Consumer", "Enterprise", "Government"];
-    const subGroups = ["North", "South", "East", "West"];
-
-    const groupFilter = typeof params["Group"] === "string" ? (params["Group"] as string) : "";
-    const subGroupFilter =
-      typeof params["SubGroup"] === "string" ? (params["SubGroup"] as string) : "";
-
-    const rows: ExecuteQueryResultRow[] = [];
-    const maxRows = 5000;
-
-    // Walk day-by-day and emit 10-20 randomized rows per day across products,
-    // with a hard cap to keep Excel responsive.
-    for (
-      let asOfDate = new Date();
-      rows.length < maxRows;
-      asOfDate = new Date(asOfDate.getFullYear(), asOfDate.getMonth(), asOfDate.getDate() + 1)
-    ) {
-      const perDayCount = 10 + Math.floor(Math.random() * 11);
-
-      for (let i = 0; i < perDayCount; i += 1) {
-        const product = products[Math.floor(Math.random() * products.length)];
-        const group = groups[Math.floor(Math.random() * groups.length)];
-        const subGroup = subGroups[Math.floor(Math.random() * subGroups.length)];
-
-        if (groupFilter && group !== groupFilter) {
-          continue;
-        }
-        if (subGroupFilter && subGroup !== subGroupFilter) {
-          continue;
-        }
-
-        if (rows.length >= maxRows) {
-          return rows;
-        }
-
-        rows.push({
-          AsOfDate: asOfDate,
-          Group: group,
-          SubGroup: subGroup,
-          Product: product,
-          SKU: `SKU-${product.replace(/\D/g, "") || "1000"}`,
-          OnHand: 100 - asOfDate.getMonth() * 5 - asOfDate.getDate(),
-          ReorderLevel: 40,
-        });
-      }
-    }
-
-    return rows;
-  }
-
-  private buildUserAuditRows(): ExecuteQueryResultRow[] {
-    const users = [
-      { name: "Analyst One", email: "analyst@example.com", roles: "analyst" },
-      { name: "Admin One", email: "admin@example.com", roles: "admin" },
-    ];
-
-    return users.map((u, index) => ({
-      Id: index + 1,
-      Name: u.name,
-      Email: u.email,
-      Roles: u.roles,
-    }));
   }
 
   private buildJsonApiExampleRows(params: ExecuteQueryParams): ExecuteQueryResultRow[] {
@@ -704,6 +532,7 @@ export class QueryApiMockService {
   /**
    * Fetches data in multiple batches using different seeds.
    * Returns 10k rows with 30 columns from multiple paginated API calls.
+   *
    */
   private async fetchLargeDataset(): Promise<ExecuteQueryResultRow[]> {
     try {

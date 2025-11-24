@@ -13,6 +13,7 @@ import { ButtonComponent } from "../../shared/ui/button.component";
 import { ProgressIndicatorComponent } from "../../shared/ui/progress-indicator.component";
 import { QueryConfigurationService } from "../../shared/query-configuration.service";
 import { QueryQueueService } from "../../shared/query-queue.service";
+import { ApiCatalogService } from "../../shared/api-catalog.service";
 
 export interface QueryConfigurationItem {
   id: string;
@@ -98,12 +99,20 @@ export class QueriesComponent {
     public readonly excel: ExcelService,
     private readonly auth: AuthService,
     private readonly api: QueryApiMockService,
+    private readonly apiCatalog: ApiCatalogService,
     private readonly state: QueryStateService,
     private readonly telemetry: TelemetryService,
     private readonly configs: QueryConfigurationService,
     private readonly queue: QueryQueueService
   ) {
-    this.apis = this.api.getQueries();
+    // Phase 1: Use ApiCatalogService with role filtering instead of QueryApiMockService
+    this.apis = this.api.getQueries(); // Keep for backward compat
+    // Filter APIs by user roles
+    const userRoles = this.auth.roles || [];
+    const allowedApis = this.apiCatalog.getApisByRole(userRoles as any);
+    // Map to QueryDefinition structure for existing UI (temporary Phase 1 compat)
+    const allowedApiIds = new Set(allowedApis.map(a => a.id));
+    this.apis = this.apis.filter(q => allowedApiIds.has(q.id));
     this.addApiItems = this.apis.map((q) => ({ value: q.id, label: q.name }));
 
     this.configs.configs$.subscribe((all) => {

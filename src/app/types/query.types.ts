@@ -96,3 +96,61 @@ export interface QueryRun {
   /** Where in Excel this run wrote data (if in Excel). */
   location?: QueryRunLocation;
 }
+
+/**
+ * Query Instance - Single instance of a configured query (Phase 1).
+ *
+ * Represents a query with specific parameters, targeting a specific Excel location.
+ * This is the NEW type that separates query execution instances from the API catalog.
+ * Named QueryInstance to avoid collision with existing QueryConfiguration (collection type).
+ *
+ * @example
+ * ```typescript
+ * const salesQuery: QueryInstance = {
+ *   id: 'sales-q1-2024',
+ *   apiId: 'sales-summary-api',
+ *   displayName: 'Q1 2024 Sales',
+ *   parameterValues: { StartDate: '2024-01-01', EndDate: '2024-03-31' },
+ *   targetSheetName: 'Sales_Q1',
+ *   targetTableName: 'tbl_sales_q1',
+ *   writeMode: 'overwrite',
+ *   includeInBatch: true,
+ *   createdAt: Date.now(),
+ *   modifiedAt: Date.now()
+ * };
+ * ```
+ */
+export interface QueryInstance {
+  /** Unique query instance ID */
+  id: string;
+
+  /** Reference to API definition (from ApiCatalogService) */
+  apiId: string;
+
+  /** Display name override (defaults to API name if not provided) */
+  displayName?: string;
+
+  /** Parameter values for this query instance */
+  parameterValues: Record<string, any>;
+
+  /** Target Excel sheet name */
+  targetSheetName: string;
+
+  /** Target Excel table name */
+  targetTableName: string;
+
+  /** How to write data (overwrite/append) */
+  writeMode: QueryWriteMode;
+
+  /** Include in batch runs */
+  includeInBatch: boolean;
+
+  /** UI configuration for query list display */
+  uiConfig?: QueryUiConfig;
+
+  /** Timestamp when config was created */
+  createdAt: number;
+
+  /** Timestamp when config was last modified */
+  modifiedAt: number;
+}
