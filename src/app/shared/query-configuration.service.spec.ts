@@ -1,18 +1,31 @@
 import { QueryConfigurationService } from "./query-configuration.service";
 import { QueryConfiguration } from "../types";
 import { AuthService } from "../core/auth.service";
+import { ApiCatalogService } from "./api-catalog.service";
 
 class AuthServiceStub {
   state = { user: { id: "user-1" } } as unknown as AuthService["state"];
 }
 
+class ApiCatalogServiceStub {
+  getApiById(id: string) {
+    // Return a stub API for any ID to allow tests to pass
+    return { id, name: `API ${id}`, parameters: [] };
+  }
+}
+
 describe("QueryConfigurationService", () => {
   let service: QueryConfigurationService;
   let authStub: AuthServiceStub;
+  let apiCatalogStub: ApiCatalogServiceStub;
 
   beforeEach(() => {
     authStub = new AuthServiceStub();
-    service = new QueryConfigurationService(authStub as unknown as AuthService);
+    apiCatalogStub = new ApiCatalogServiceStub();
+    service = new QueryConfigurationService(
+      authStub as unknown as AuthService,
+      apiCatalogStub as unknown as ApiCatalogService
+    );
 
     // Clear any persisted state for a predictable test environment.
     if (typeof window !== "undefined" && window.localStorage) {

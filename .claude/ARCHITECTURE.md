@@ -55,15 +55,37 @@ Angular 20 task-pane add-in for Excel. Standalone components, Office.js wrapper,
 - `hostStatus` → `{isExcel, isOnline}`
 - `getAuthSummary()` → `{isAuthenticated, displayName, roles}`
 
+## API vs Query Architecture (Phase 1)
+
+**Key Distinction:**
+- **ApiDefinition** (`src/app/types/api.types.ts`) = Catalog entry describing available data source
+- **QueryInstance** (`src/app/types/query.types.ts`) = Configured instance with specific parameters + Excel target
+- **QueryConfiguration** (`src/app/types/query-configuration.types.ts`) = Collection of QueryInstances (saved report)
+
+**Flow:**
+1. User browses **API Catalog** (available data sources)
+2. User creates **Query Instance** from API with specific parameters
+3. User optionally saves multiple instances as **Query Configuration** (reusable report)
+
 ## Query Services
 
-### QueryApiMockService (`src/app/shared/query-api-mock.service.ts`)
-**Mock API definitions**
+### ApiCatalogService (`src/app/shared/api-catalog.service.ts`) - NEW Phase 1
+**API catalog management**
 
-- `getQueries()` → `QueryDefinition[]` (alias `ApiDefinition`)
-- `getQueryById(id)` → `QueryDefinition | undefined`
-- `executeQuery(id, params)` → `Promise<any[]>`
+- `getApis()` → `ApiDefinition[]` (all available APIs)
+- `getApiById(id)` → `ApiDefinition | undefined`
+- `getApisByRole(roles)` → `ApiDefinition[]` (filtered by user roles)
+- Read-only catalog, hardcoded in Phase 1 (Phase 2: loads from config)
+- Separates API definitions from execution logic
+
+### QueryApiMockService (`src/app/shared/query-api-mock.service.ts`)
+**API execution (mock implementation)**
+
+- `executeApi(apiId, params)` → `Promise<any[]>` **[NEW Phase 1]**
+- `executeQuery(id, params)` → `Promise<{query, rows}>` **[DEPRECATED - use executeApi]**
+- `getQueries()`, `getQueryById()` **[DEPRECATED - use ApiCatalogService]**
 - In-process mock data, no HTTP
+- Injected `ApiCatalogService` for validation
 
 ### QueryStateService (`src/app/shared/query-state.service.ts`)
 **Parameters & runs**
@@ -82,6 +104,7 @@ Angular 20 task-pane add-in for Excel. Standalone components, Office.js wrapper,
 - `QueryConfiguration` – Named config with selected queries, parameter snapshots, workbook identity
 - `QueryConfigurationItem` – Selected query instance (apiId, params, target sheet/table)
 - CRUD operations, `localStorage` keyed by user + workbook
+- **Phase 1:** Validates apiIds against `ApiCatalogService` on save
 
 ### QueryQueueService (`src/app/shared/query-queue.service.ts`)
 **Sequential execution**
