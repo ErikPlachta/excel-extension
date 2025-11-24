@@ -1,120 +1,104 @@
-# Current Phase: Phase 2 - Config-Driven Completion
+# Current Phase: Phase 3 - Excel/Workbook Refactor
 
-**Sub-Branch:** `feat/config-finalization` (from `feat/finalize-concept`)
-**Status:** In Progress
+**Sub-Branch:** `feat/excel-workbook-cleanup` (from `feat/finalize-concept`)
+**Status:** Starting
 **Estimated:** 2-3 days
-**Priority:** HIGH (enables dynamic content)
-**Depends On:** Phase 1 (API/Query Separation) ✅
+**Priority:** MEDIUM (cleanup, not blocking)
+**Depends On:** Phase 2 (config-driven) ✅
 
 ---
 
 ## Goals
 
-1. Move API catalog into config system (load from AppConfig, not hardcoded)
-2. Unify text catalog with app-config (single source of truth)
-3. Add remote config loading with fallback to defaults
-4. Implement config validation layer
-5. Make config hot-reloadable
+1. Move ALL ownership logic to `WorkbookService`
+2. Extract `upsertQueryTable` complexity into focused helpers
+3. Define clear service boundaries (Excel = Office.js, Workbook = state/ownership)
+4. Expose ownership write helpers in `WorkbookService`
+5. Remove ownership code from `ExcelService`
 
 ---
 
-## Exit Criteria
+## Success Criteria
 
-- [ ] API catalog loadable from `AppConfig.apiCatalog`
-- [ ] Text merged into `AppConfig.text` structure
-- [ ] `app-text.ts` deleted (merged into config)
-- [ ] `ConfigValidatorService` validates configs
-- [ ] Remote config loading works with fallback to defaults
-- [ ] Config hot-reload updates UI without restart
-- [ ] All components use `AppConfigService.getConfig()` for text
-- [ ] Tests pass (100% for new services)
-- [ ] Documentation updated
+- [ ] `ExcelService` has zero ownership lookups (delegates to `WorkbookService`)
+- [ ] `WorkbookService` has `recordOwnership()`, `updateOwnership()`, `deleteOwnership()` methods
+- [ ] `upsertQueryTable()` uses `WorkbookService` for all ownership decisions
+- [ ] No `getWorkbookOwnership()` calls in `ExcelService` outside read helpers
+- [ ] Tests pass (ownership helpers unit tested)
+- [ ] TSDoc updated for service boundaries
 
 ---
 
 ## Implementation Steps
 
-### Step 1: Update AppConfig Types
+### Step 1: Add Ownership Write Helpers to WorkbookService
+- Add `recordOwnership(info)` → Creates/updates row in _Extension_Ownership
+- Add `updateOwnership(queryId, sheet, table)` → Updates lastTouchedUtc
+- Add `deleteOwnership(queryId, sheet, table)` → Removes ownership record
+- Add `getOrCreateManagedTableTarget(query)` → Returns safe target with conflict resolution
 
-- Add `apiCatalog?: ApiDefinition[]` to AppConfig interface
-- Add `text?: TextCatalog` to AppConfig interface
-- Define TextCatalog structure
+### Step 2: Add Low-Level Ownership Helpers to ExcelService
+- Add `writeOwnershipRecord(record)` → Low-level write to ownership table
+- Add `deleteOwnershipRecord(queryId, sheet, table)` → Low-level delete
+- Mark as low-level, callers should use WorkbookService
 
-### Step 2: Move API Catalog to Config
+### Step 3: Extract Helper Methods in ExcelService
+- Extract `computeHeaderAndValues(rows)` from upsertQueryTable
+- Extract `writeTableData(sheet, table, header, values, isNew)` from upsertQueryTable
+- Keep focused, single-responsibility methods
 
-- Read app-text.ts to extract all API definitions
-- Add apiCatalog array to app-config.default.ts
-- Move all 9 API definitions from ApiCatalogService
+### Step 4: Refactor upsertQueryTable
+- Use `workbook.getOrCreateManagedTableTarget(query)` for target resolution
+- Use extracted `computeHeaderAndValues(rows)` for data prep
+- Use extracted `writeTableData()` for Excel write
+- Use `workbook.recordOwnership()` or `updateOwnership()` for tracking
+- Remove all inline ownership logic
 
-### Step 3: Merge Text Catalog
+### Step 5: Update Tests
+- Add WorkbookService ownership tests
+- Update ExcelService tests to verify delegation
+- Ensure all tests pass
 
-- Read app-text.ts to extract all text strings
-- Add text object to app-config.default.ts
-- Delete app-text.ts
-
-### Step 4: Refactor ApiCatalogService
-
-- Inject AppConfigService
-- Subscribe to config.apiCatalog
-- Update methods to use observable pattern
-- Keep synchronous snapshot methods for compatibility
-
-### Step 5: Create ConfigValidatorService
-
-- Validate required fields (navItems, defaultViewId)
-- Validate apiCatalog structure
-- Validate text catalog structure
-- Return ValidationResult with errors array
-
-### Step 6: Add Remote Config Loading
-
-- Add HttpClient to AppConfigService
-- Implement loadRemoteConfig() with try/catch
-- Implement mergeConfigs() for deep merge
-- Add reloadConfig() for hot-reload
-- Mock endpoint will fail, falls back to defaults
-
-### Step 7: Update Components Using APP_TEXT
-
-- Find all imports of app-text.ts
-- Replace with AppConfigService injection
-- Update to subscribe to config.text
-
-### Step 8: Update Tests
-
-- ApiCatalogService.spec - handle observable APIs
-- Create ConfigValidatorService.spec
-- Update AppConfigService.spec for remote loading
-
-### Step 9: Update Documentation
-
-- .claude/ARCHITECTURE.md - add config loading flow
+### Step 6: Update Documentation
+- Update TSDoc for service boundaries
+- Update .claude/ARCHITECTURE.md with ownership flow
 
 ---
 
 ## File Changes
 
-### New
-
-- `src/app/core/config-validator.service.ts`
-- `src/app/core/config-validator.service.spec.ts`
-
 ### Modified
+- `src/app/core/workbook.service.ts` - Add ownership write methods + target resolution
+- `src/app/core/excel.service.ts` - Add low-level helpers, refactor upsertQueryTable
+- `src/app/core/workbook.service.spec.ts` - Add ownership write tests
+- `src/app/core/excel.service.spec.ts` - Update for delegation
+- `.claude/ARCHITECTURE.md` - Document service boundaries
 
-- `src/app/types/app-config.types.ts`
-- `src/app/shared/app-config.default.ts`
-- `src/app/core/config.services.ts`
-- `src/app/shared/api-catalog.service.ts`
-- `src/app/shared/api-catalog.service.spec.ts`
-- All components using APP_TEXT
-- `.claude/ARCHITECTURE.md`
+### No New Files
+All changes are refactors/enhancements to existing services
 
-### Deleted
+---
 
-- `src/app/shared/app-text.ts`
+## Service Boundaries (Target State)
+
+### ExcelService
+**Responsibility:** Low-level Office.js wrapper
+- Excel host detection
+- Office.js Excel.run() operations
+- Table/sheet creation/updates
+- Low-level ownership writes (writeOwnershipRecord)
+- **NO** ownership decisions or business logic
+
+### WorkbookService
+**Responsibility:** Workbook state & ownership management
+- Read workbook structure (sheets, tables)
+- Manage ownership tracking
+- Resolve table targets with conflict handling
+- Make ownership decisions
+- Delegate to ExcelService for actual writes
 
 ---
 
 ## Next Phase
 
-Phase 3: Excel/Workbook Refactor (clear service boundaries)
+Phase 4: Storage & Caching (IndexedDB, backup/restore)
