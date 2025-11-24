@@ -2,6 +2,7 @@ import { Injectable } from "@angular/core";
 import { BehaviorSubject } from "rxjs";
 import { QueryConfiguration } from "../types";
 import { AuthService } from "../core/auth.service";
+import { ApiCatalogService } from './api-catalog.service';
 
 /**
  * Simple local-storage backed store for named query configurations.
@@ -17,7 +18,10 @@ export class QueryConfigurationService {
 
   private static readonly STORAGE_KEY_PREFIX = "excel-ext:query-configs:";
 
-  constructor(private readonly auth: AuthService) {
+  constructor(
+    private readonly auth: AuthService,
+    private readonly apiCatalog: ApiCatalogService
+  ) {
     const initial = this.hydrateFromStorage();
     this.subject.next(initial);
   }
@@ -35,6 +39,16 @@ export class QueryConfigurationService {
   }
 
   save(config: QueryConfiguration): void {
+    // Validate all apiIds in items exist in catalog (Phase 1 addition)
+    if (config.items && config.items.length > 0) {
+      for (const item of config.items) {
+        const api = this.apiCatalog.getApiById(item.apiId);
+        if (!api) {
+          throw new Error(`Invalid apiId in item ${item.id}: ${item.apiId}. API not found in catalog.`);
+        }
+      }
+    }
+
     const existing = this.snapshot;
     const idx = existing.findIndex((c) => c.id === config.id);
     const next = idx === -1 ? [...existing, config] : existing.map((c, i) => (i === idx ? config : c));

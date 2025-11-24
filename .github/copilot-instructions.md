@@ -181,7 +181,7 @@ Fallback: If you are unsure where a new behavior or helper should live, propose 
 - Shared types: `src/app/types/**` (auth, queries, app config, UI, workbook models)
 - Add-in manifest: `dev-manifest.xml`, `prod-manifest.xml`
 - CI/CD: `.github/workflows/ci.yml`, `.github/workflows/deploy.yml`, `.github/actions/deploy/action.yml`
-- Documentation: `.claude/CLAUDE.md`, `CONTEXT-SESSION.md`, `TODO.md`, `README.md`
+- Documentation: `.claude/CLAUDE.md`, `PLAN_CURRENT.md`, `PLAN_FEAT-FINALIZE-CONCEPT.md`, `README.md`
 
 ## Practical Examples (Code Snippets)
 
