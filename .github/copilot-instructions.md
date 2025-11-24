@@ -150,7 +150,7 @@ Fallback: If you are unsure about style or conventions, mirror the dominant patt
 
 **What this section solves:** Keeps new behavior aligned with the existing Angular and Excel architecture.
 
-- Framework: Angular 20 with standalone components (no NgModules). Entry at `src/main.ts` bootstraps `AppComponent` with `provideRouter(routes)` in `src/app/core/app.config.ts`.
+- Framework: Angular 20 with standalone components (no NgModules). Entry at `src/main.ts` bootstraps `AppComponent` with Angular providers in `src/app/core/app.config.ts`; app-level configuration lives in `src/app/shared/app-config.default.ts`.
 - Excel integration: Office.js is loaded via script tag in `src/index.html` and `public/index.html`. `ExcelService` (`src/app/core/excel.service.ts`) wraps Office JS (`Excel.run`) and exposes an `isExcel` guard to safely detect host. `WorkbookService` (`src/app/core/workbook.service.ts`) provides shared, strongly typed helpers for getting tabs or sheets and tables so all features use a common, data-driven workbook abstraction.
 - UI/Routes: SPA shell in `AppComponent` under `src/app/core/` with feature views under `src/app/features/` (SSO home, home, worksheets, tables, user, queries). Routes are defined in `src/app/core/app.routes.ts` but in Excel the shell typically renders directly instead of navigating by URL.
 - Data flow: Components call `ExcelService` in lifecycle hooks and bind results to simple tables. Auth and roles flow through `AuthService`; query metadata and last runs flow through `QueryStateService`. Query execution is mocked via `QueryApiMockService`.
@@ -171,14 +171,17 @@ Fallback: If you are unsure where a new behavior or helper should live, propose 
 
 ## Key Files (Reference)
 
-- App bootstrap: `src/main.ts`, `src/app/core/app.config.ts`
+- App bootstrap: `src/main.ts`, Angular config in `src/app/core/app.config.ts`
+- App-level config: `src/app/shared/app-config.default.ts`, `src/app/shared/app-text.ts`
 - Routes: `src/app/core/app.routes.ts`
-- Core services or shell: `src/app/core/app.component.*`, `src/app/core/excel.service.ts`, `src/app/core/auth.service.ts`
+- Core services/shell: `src/app/core/app.component.*`, `src/app/core/excel.service.ts`, `src/app/core/auth.service.ts`, `src/app/core/workbook.service.ts`, `src/app/core/telemetry.service.ts`
 - Feature views: `src/app/features/**` (sso, home, worksheets, tables, user, queries)
-- Query domain: `src/app/shared/query-model.ts`, `src/app/shared/query-api-mock.service.ts`, `src/app/shared/query-state.service.ts`
-- Workbook helpers: `src/app/core/workbook.service.ts` centralizes workbook, tab, and table access for all features.
+- Query domain: `src/app/shared/query-model.ts`, `src/app/shared/query-api-mock.service.ts`, `src/app/shared/query-state.service.ts`, `src/app/shared/query-configuration.service.ts`, `src/app/shared/query-queue.service.ts`
+- UI primitives: `src/app/shared/ui/**` (button, banner, table, list, section, card, dropdown, icon)
+- Shared types: `src/app/types/**` (auth, queries, app config, UI, workbook models)
 - Add-in manifest: `dev-manifest.xml`, `prod-manifest.xml`
-- CI/CD: `.github/workflows/deploy.yml`, `.github/actions/deploy/action.yml`
+- CI/CD: `.github/workflows/ci.yml`, `.github/workflows/deploy.yml`, `.github/actions/deploy/action.yml`
+- Documentation: `.claude/CLAUDE.md`, `CONTEXT-SESSION.md`, `TODO.md`, `README.md`
 
 ## Practical Examples (Code Snippets)
 
@@ -193,7 +196,7 @@ Fallback: If you are unsure where a new behavior or helper should live, propose 
 
 - Adding a new routed view:
   - Create `foo.component.ts` as a standalone component with `templateUrl` and `styleUrl`.
-  - Add `{ path: 'foo', component: FooComponent }` to `routes` in `src/app/app.routes.ts`.
+  - Add `{ path: 'foo', component: FooComponent }` to `routes` in `src/app/core/app.routes.ts`.
   - Link via `<a routerLink="/foo">Foo</a>` in `app.component.html`.
 
 ## Session Workflow
@@ -218,8 +221,9 @@ Fallback: If verification cannot be run (for example, tools are unavailable), cl
 
 Fallback: If you are unsure about style or whether a file is generated, check for build scripts or comments indicating generated content and ask the user before editing.
 
-- Framework: Angular 20 with standalone components (no NgModules). Entry at `src/main.ts` bootstraps `AppComponent` with `provideRouter(routes)` in `src/app/core/app.config.ts`.
+- Framework: Angular 20 with standalone components (no NgModules). Entry at `src/main.ts` bootstraps `AppComponent` with Angular providers in `src/app/core/app.config.ts`; app-level configuration lives in `src/app/shared/app-config.default.ts`.
 - Excel integration: Office.js is loaded via script tag in `src/index.html` and `public/index.html`. `ExcelService` (`src/app/core/excel.service.ts`) wraps Office JS (`Excel.run`) and exposes an `isExcel` guard to safely detect host. `WorkbookService` (`src/app/core/workbook.service.ts`) provides shared, strongly typed helpers for getting tabs/sheets and tables so all features use a common, data-driven workbook abstraction.
+- Query architecture: Queries are data-driven with global + per-query parameters via `QueryStateService`, reusable configurations via `QueryConfigurationService`, and queued execution via `QueryQueueService`.
 - UI/Routes: SPA shell in `AppComponent` under `src/app/core/` with feature views under `src/app/features/` (SSO home, home, worksheets, tables, user, queries). Routes are defined in `src/app/core/app.routes.ts` but in Excel we typically render the shell directly instead of navigating by URL.
 - Deployment: GitHub Pages via workflow `.github/workflows/deploy.yml` and composite action `.github/actions/deploy/action.yml`. Build output published from `dist/excel-extension/browser` with base href `/excel-extension/`.
 - Add-in manifest: `dev-manifest.xml` points the Office task pane to the dev server (localhost) during development, and `prod-manifest.xml` points to the deployed site on GitHub Pages.
@@ -323,14 +327,17 @@ To run the task pane against your local dev server:
 
 ## Key Files
 
-- App bootstrap: `src/main.ts`, `src/app/core/app.config.ts`
+- App bootstrap: `src/main.ts`, Angular config in `src/app/core/app.config.ts`
+- App-level config: `src/app/shared/app-config.default.ts`, `src/app/shared/app-text.ts`
 - Routes: `src/app/core/app.routes.ts`
-- Core services/shell: `src/app/core/app.component.*`, `src/app/core/excel.service.ts`, `src/app/core/auth.service.ts`
+- Core services/shell: `src/app/core/app.component.*`, `src/app/core/excel.service.ts`, `src/app/core/auth.service.ts`, `src/app/core/workbook.service.ts`, `src/app/core/telemetry.service.ts`
 - Feature views: `src/app/features/**` (sso, home, worksheets, tables, user, queries)
-- Query domain: `src/app/shared/query-model.ts`, `src/app/shared/query-api-mock.service.ts`, `src/app/shared/query-state.service.ts`
-- Workbook helpers: `src/app/core/workbook.service.ts` centralizes workbook/tab/table access for all features.
+- Query domain: `src/app/shared/query-model.ts`, `src/app/shared/query-api-mock.service.ts`, `src/app/shared/query-state.service.ts`, `src/app/shared/query-configuration.service.ts`, `src/app/shared/query-queue.service.ts`
+- UI primitives: `src/app/shared/ui/**` (button, banner, table, list, section, card, dropdown, icon)
+- Shared types: `src/app/types/**` (auth, queries, app config, UI, workbook models)
 - Add-in manifest: `dev-manifest.xml`, `prod-manifest.xml`
-- CI/CD: `.github/workflows/deploy.yml`, `.github/actions/deploy/action.yml`
+- CI/CD: `.github/workflows/ci.yml`, `.github/workflows/deploy.yml`, `.github/actions/deploy/action.yml`
+- Documentation: See `.claude/` folder for Claude Code guidance; `CONTEXT-SESSION.md`, `TODO.md`, `README.md` for project context
 
 ## Practical Examples
 
@@ -345,7 +352,7 @@ To run the task pane against your local dev server:
 
 - Adding a new routed view:
   - Create `foo.component.ts` as standalone with `templateUrl/styleUrl`.
-  - Add `{ path: 'foo', component: FooComponent }` to `routes` in `src/app/app.routes.ts`.
+  - Add `{ path: 'foo', component: FooComponent }` to `routes` in `src/app/core/app.routes.ts`.
   - Link via `<a routerLink="/foo">Foo</a>` in `app.component.html`.
 
 ## Gotchas
