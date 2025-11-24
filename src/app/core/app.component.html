@@ -52,11 +52,22 @@
   ></app-worksheets>
   <app-tables *ngIf="currentView === 'tables' && authSummary.isAuthenticated"></app-tables>
   <app-user *ngIf="currentView === 'user' && authSummary.isAuthenticated"></app-user>
-  <app-query-home
+  <app-queries
     *ngIf="
       currentView === 'queries' &&
       authSummary.isAuthenticated &&
       auth.hasAnyRole(['analyst', 'admin'])
     "
+  ></app-queries>
+  <app-query-home
+    *ngIf="
+      currentView === 'queriesOld' &&
+      authSummary.isAuthenticated &&
+      auth.hasAnyRole(['analyst', 'admin'])
+    "
   ></app-query-home>
+  <app-debug-context
+    *ngIf="currentView === 'debug' && authSummary.isAuthenticated && auth.hasRole('admin')"
+  ></app-debug-context>
+  <app-settings *ngIf="currentView === 'settings' && authSummary.isAuthenticated"></app-settings>
 </section>

@@ -31,7 +31,7 @@ import { Component, Input } from "@angular/core";
     </ng-template>
   `,
 })
-export class TableComponent<T extends Record<string, unknown>> {
+export class TableComponent<T = Record<string, unknown>> {
   /** Column metadata describing which fields to render and their headers. */
   @Input() columns: { field: keyof T & string; header: string }[] = [];
   /** Row data; each row is a record indexed by the configured fields. */

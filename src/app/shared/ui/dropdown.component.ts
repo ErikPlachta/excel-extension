@@ -14,7 +14,7 @@ export interface UiDropdownItem {
   template: `
     <label class="dropdown">
       <span *ngIf="label" class="dropdown-label">{{ label }}</span>
-      <select [ngModel]="value" (ngModelChange)="onChange($event.target?.value ?? '')">
+      <select [ngModel]="value" (ngModelChange)="onChange($event)">
         <option value="" disabled selected *ngIf="placeholder">{{ placeholder }}</option>
         <option *ngFor="let item of items" [value]="item.value">{{ item.label }}</option>
       </select>

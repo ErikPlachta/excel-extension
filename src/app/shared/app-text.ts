@@ -4,7 +4,8 @@ export const APP_TEXT = {
     worksheets: "Worksheets",
     tables: "Tables",
     user: "User",
-    queries: "Queries",
+    queriesOld: "QueriesOld",
+    settings: "Settings",
   },
   auth: {
     signInAnalyst: "Sign in as analyst",

@@ -1,0 +1,25 @@
+<section>
+  <h2>Settings</h2>
+  <div class="tables-toolbar">
+    <button type="button" (click)="resetManagedTables()">
+      Reset extension-managed tables (dev)
+    </button>
+  </div>
+  <label>
+    <input
+      type="checkbox"
+      [checked]="settings.value.telemetry.enableWorkbookLogging"
+      (change)="onTelemetryWorkbookLoggingChange($event.target.checked)"
+    />
+    Enable in-workbook telemetry log table
+  </label>
+
+  <label>
+    <input
+      type="checkbox"
+      [checked]="settings.value.telemetry.enableConsoleLogging"
+      (change)="onTelemetryConsoleLoggingChange($event.target.checked)"
+    />
+    Enable console telemetry logging
+  </label>
+</section>

@@ -1,0 +1,14 @@
+<section>
+  <h2>Debug / Context State</h2>
+  <h3>Host</h3>
+  <pre>{{ appContext.hostStatus | json }}</pre>
+
+  <h3>Auth</h3>
+  <pre>{{ auth | json }}</pre>
+
+  <h3>Queries</h3>
+  <pre>{{ queries.getQueries() | json }}</pre>
+
+  <h3>Workbook (isExcel)</h3>
+  <pre>{{ workbook.isExcel }}</pre>
+</section>

@@ -1,4 +1,5 @@
 import { CommonModule } from "@angular/common";
+import { FormsModule } from "@angular/forms";
 import { Component } from "@angular/core";
 import { ExcelService, AuthService, AppContextService, AppHostStatus, AppAuthSummary } from ".";
 import { DEFAULT_APP_CONFIG, NavItemConfig, ViewId } from "../shared/app-config";
@@ -7,7 +8,10 @@ import { SsoHomeComponent } from "../features/sso/sso-home.component";
 import { WorksheetsComponent } from "../features/worksheets/worksheets.component";
 import { TablesComponent } from "../features/tables/tables.component";
 import { UserComponent } from "../features/user/user.component";
-import { QueryHomeComponent } from "../features/queries/query-home.component";
+import { QueryHomeOldComponent } from "../features/queries-old/query-home-old.component";
+import { QueriesComponent } from "../features/queries/queries.component";
+import { DebugContextComponent } from "../features/debug/debug-context.component";
+import { SettingsComponent } from "../features/settings/settings.component";
 import { ButtonComponent } from "../shared/ui/button.component";
 
 @Component({
@@ -15,12 +19,16 @@ import { ButtonComponent } from "../shared/ui/button.component";
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
     ButtonComponent,
     SsoHomeComponent,
     WorksheetsComponent,
     TablesComponent,
     UserComponent,
-    QueryHomeComponent,
+    QueryHomeOldComponent,
+    QueriesComponent,
+    DebugContextComponent,
+    SettingsComponent,
   ],
   templateUrl: "./app.component.html",
   styleUrl: "./app.component.css",
@@ -105,8 +113,10 @@ export class AppComponent {
         return this.text.nav.tables;
       case "nav.user":
         return this.text.nav.user;
-      case "nav.queries":
-        return this.text.nav.queries;
+      case "nav.queriesOld":
+        return this.text.nav.queriesOld;
+      case "nav.settings":
+        return this.text.nav.settings;
       default:
         return labelKey;
     }
