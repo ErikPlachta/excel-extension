@@ -296,6 +296,18 @@ export class ExcelService {
    * replacing all data body rows on rerun. Append mode is intentionally
    * not supported in this branch.
    *
+   * **Architectural Note (Phase 3):**
+   * This method currently contains ownership decision logic (lines
+   * 354-378) that duplicates {@link WorkbookService.getOrCreateManagedTableTarget}.
+   * The proper pattern is:
+   * 1. Features call `WorkbookService.getOrCreateManagedTableTarget(query)`
+   *    to determine the target location.
+   * 2. Features pass the result as `locationHint` to this method.
+   * 3. This method focuses only on writing data to the target.
+   *
+   * TODO(Phase 4): Extract ownership decision logic and require
+   * callers to use WorkbookService for target resolution.
+   *
    * Office.js side effects:
    * - May create new worksheets and tables.
    * - May delete and recreate an existing table when the header shape
@@ -308,7 +320,8 @@ export class ExcelService {
    * Excel table.
    * @param locationHint - Optional hint for the desired sheet/table
    * location; when omitted the ownership model and query defaults are
-   * used to choose a safe target.
+   * used to choose a safe target. **Prefer calling WorkbookService
+   * first and passing the result here.**
    *
    * @returns An {@link ExcelOperationResult} whose `value`, on
    * success, is the {@link QueryRunLocation} of the table that was
@@ -333,19 +346,16 @@ export class ExcelService {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return Excel!.run(async (ctx: any) => {
-      // Basic shape info for telemetry/logging.
-      const header = rows.length ? Object.keys(rows[0]) : [];
-      const values = rows.map((r) => header.map((h) => r[h] ?? null));
-      const effectiveHeader = header.length ? header : ["Value"];
-      const effectiveValues = values.length ? values : [[null]];
+      // Transform query result rows into Excel header/data format
+      const { header, values } = this.computeHeaderAndValues(rows);
 
       const writeMode = "overwrite";
 
       const debugContextBase = {
         queryId: query.id,
         writeMode,
-        headerLength: effectiveHeader.length,
-        rowCount: effectiveValues.length,
+        headerLength: header.length,
+        rowCount: values.length,
       } as const;
       this.telemetry.logEvent({
         category: "excel",
@@ -402,121 +412,8 @@ export class ExcelService {
           sheet = worksheets.add(sheetName);
         }
 
-        let table = ctx.workbook.tables.getItemOrNullObject(tableName);
-        table.load("name,worksheet,showHeaders");
-        await ctx.sync();
-
-        // Helper: create a new table with header + data starting at A1.
-        const createNewTable = () => {
-          const startCell = sheet.getRange("A1");
-          const totalRowCount = 1 + effectiveValues.length;
-          const totalColumnCount = effectiveHeader.length;
-          const dataRange = startCell.getResizedRange(totalRowCount - 1, totalColumnCount - 1);
-          dataRange.values = [effectiveHeader, ...effectiveValues];
-          const newTable = ctx.workbook.tables.add(dataRange, true /* hasHeaders */);
-          newTable.name = tableName;
-          return newTable;
-        };
-
-        if (table.isNullObject) {
-          this.telemetry.logEvent({
-            category: "excel",
-            name: "upsertQueryTable:createNewTable",
-            severity: "debug",
-            context: {
-              queryId: query.id,
-              sheetName,
-              tableName,
-              totalRowCount: 1 + effectiveValues.length,
-              totalColumnCount: effectiveHeader.length,
-            },
-          });
-          table = createNewTable();
-        } else {
-          // Existing table: work with header and data body using standard
-          // Excel patterns: header row stays fixed; overwrite clears and
-          // rewrites data rows, append adds rows at the bottom.
-          if (!table.showHeaders) {
-            table.showHeaders = true;
-          }
-
-          const headerRange = table.getHeaderRowRange();
-          headerRange.load("values,columnCount");
-          const dataBodyRange = table.getDataBodyRange();
-          dataBodyRange.load("rowCount,columnCount");
-          await ctx.sync();
-
-          const currentHeaderValues = (headerRange.values as unknown[][])[0] as string[];
-          const currentColumnCount = headerRange.columnCount as number;
-
-          // Basic header validation: if the new header shape differs, we fall
-          // back to creating a fresh table instead of trying to force a resize
-          // that can misalign the existing table.
-          const headerShapeMatches =
-            currentColumnCount === effectiveHeader.length &&
-            currentHeaderValues.length === effectiveHeader.length;
-
-          this.telemetry.logEvent({
-            category: "excel",
-            name: "upsertQueryTable:headerShape",
-            severity: "debug",
-            context: {
-              queryId: query.id,
-              currentColumnCount,
-              effectiveHeaderLength: effectiveHeader.length,
-              currentHeaderLength: currentHeaderValues.length,
-              headerShapeMatches,
-            },
-          });
-
-          if (!headerShapeMatches) {
-            this.telemetry.logEvent({
-              category: "excel",
-              name: "upsertQueryTable:headerMismatch_recreate",
-              severity: "debug",
-              context: {
-                queryId: query.id,
-                sheetName,
-                tableName,
-              },
-            });
-            table.delete();
-            table = createNewTable();
-          } else {
-            // Header shape matches: overwrite header text in place so
-            // labels stay aligned with the columns, then always
-            // overwrite data rows.
-            headerRange.values = [effectiveHeader];
-
-            // Overwrite: delete all existing data rows, then add new
-            // rows via table.rows.add so the array shape always
-            // matches.
-            const currentRowCount = dataBodyRange.rowCount;
-            if (currentRowCount > 0) {
-              const rowsCollection = table.rows;
-              rowsCollection.load("count");
-              await ctx.sync();
-
-              for (let i = rowsCollection.count - 1; i >= 0; i--) {
-                rowsCollection.getItemAt(i).delete();
-              }
-            }
-
-            if (effectiveValues.length > 0) {
-              this.telemetry.logEvent({
-                category: "excel",
-                name: "upsertQueryTable:overwrite",
-                severity: "debug",
-                context: {
-                  queryId: query.id,
-                  overwriteRowCount: effectiveValues.length,
-                  columnCount: effectiveHeader.length,
-                },
-              });
-              table.rows.add(null, effectiveValues);
-            }
-          }
-        }
+        // Delegate table creation/update to helper
+        await this.writeQueryTableData(ctx, sheet, tableName, header, values, query.id);
 
         await ctx.sync();
         this.telemetry.logEvent({
@@ -610,13 +507,13 @@ export class ExcelService {
   }
 
   /**
-   * Records or updates an ownership row in the `_Extension_Ownership`
-   * worksheet for the given table/query combination.
-   */
-  /**
-   * Ensures there is a single ownership row in `_Extension_Ownership`
-   * for the given table and query id, updating `lastTouchedUtc` on
-   * subsequent writes.
+   * Writes or updates an ownership record in the `_Extension_Ownership`
+   * worksheet.
+   *
+   * This low-level helper creates the ownership sheet if needed, then
+   * inserts or updates a single row for the given table/query
+   * combination. The `lastTouchedUtc` field is always updated to the
+   * current timestamp.
    *
    * Office.js side effects:
    * - May create the `_Extension_Ownership` sheet and its header row.
@@ -625,7 +522,7 @@ export class ExcelService {
    *
    * @param info - Identifiers for the managed table and owning query.
    */
-  private async recordOwnership(info: {
+  async writeOwnershipRecord(info: {
     tableName: string;
     sheetName: string;
     queryId: string;
@@ -686,6 +583,265 @@ export class ExcelService {
 
       await ctx.sync();
     });
+  }
+
+  /**
+   * Deletes an ownership record from the `_Extension_Ownership`
+   * worksheet.
+   *
+   * This low-level helper removes the row matching the given
+   * table/query combination. If no matching row exists, this is a
+   * no-op.
+   *
+   * Office.js side effects:
+   * - Deletes the row for the specified `(sheetName, tableName,
+   *   queryId)` combination if found.
+   *
+   * @param info - Identifiers for the managed table and owning query.
+   */
+  async deleteOwnershipRecord(info: {
+    tableName: string;
+    sheetName: string;
+    queryId: string;
+  }): Promise<void> {
+    if (!this.isExcel) return;
+    await this.ensureOfficeReady();
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await Excel!.run(async (ctx: any) => {
+      const sheets = ctx.workbook.worksheets;
+      const sheet = sheets.getItemOrNullObject("_Extension_Ownership");
+      sheet.load("name");
+      await ctx.sync();
+
+      if (sheet.isNullObject) {
+        return; // No ownership sheet means no records to delete
+      }
+
+      const usedRange = sheet.getUsedRangeOrNullObject();
+      await ctx.sync();
+
+      if (usedRange.isNullObject) {
+        return; // No data in ownership sheet
+      }
+
+      usedRange.load("values");
+      await ctx.sync();
+
+      const values: unknown[][] = (usedRange.values as unknown[][]) || [];
+      if (values.length <= 1) {
+        return; // Only header row, no data to delete
+      }
+
+      const headerOffset = 1;
+      let rowIndex = -1;
+
+      for (let i = headerOffset; i < values.length; i++) {
+        const row = values[i];
+        if (!row) continue;
+        const [sheetName, tableName, queryId] = row as string[];
+        if (
+          sheetName === info.sheetName &&
+          tableName === info.tableName &&
+          queryId === info.queryId
+        ) {
+          rowIndex = i;
+          break;
+        }
+      }
+
+      if (rowIndex === -1) {
+        return; // No matching record found
+      }
+
+      // Delete the row by shifting all rows below up
+      const range = sheet.getRange(`A${rowIndex + 1}:E${rowIndex + 1}`);
+      range.delete(Excel.DeleteShiftDirection.up);
+
+      await ctx.sync();
+    });
+  }
+
+  /**
+   * @deprecated Use writeOwnershipRecord() instead. This private method
+   * is kept for backward compatibility during refactoring.
+   */
+  private async recordOwnership(info: {
+    tableName: string;
+    sheetName: string;
+    queryId: string;
+  }): Promise<void> {
+    return this.writeOwnershipRecord(info);
+  }
+
+  /**
+   * Computes the header row and data values array from query result rows.
+   *
+   * This helper normalizes empty results to a single-column "Value"
+   * table with a null data row, ensuring Excel tables always have at
+   * least one column and one data row.
+   *
+   * @param rows - Query result rows as returned by the mock API.
+   * @returns An object with `header` (column names) and `values` (2D
+   * array of data rows).
+   */
+  private computeHeaderAndValues(rows: ExecuteQueryResultRow[]): {
+    header: string[];
+    values: unknown[][];
+  } {
+    const header = rows.length ? Object.keys(rows[0]) : [];
+    const values = rows.map((r) => header.map((h) => r[h] ?? null));
+    const effectiveHeader = header.length ? header : ["Value"];
+    const effectiveValues = values.length ? values : [[null]];
+
+    return {
+      header: effectiveHeader,
+      values: effectiveValues,
+    };
+  }
+
+  /**
+   * Writes or overwrites data in an Excel table for a query.
+   *
+   * This low-level helper encapsulates the complex table creation and
+   * update logic. It handles:
+   * - Creating new tables at A1 when none exist
+   * - Detecting header shape mismatches and recreating tables
+   * - Overwriting data rows while preserving the header row
+   *
+   * @param ctx - Office.js request context.
+   * @param sheet - The worksheet where the table should be created.
+   * @param tableName - The target table name.
+   * @param header - Column names for the table header row.
+   * @param values - 2D array of data rows to write.
+   * @param queryId - Query ID for telemetry.
+   * @returns The Office.js table object after writing data.
+   */
+  private async writeQueryTableData(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ctx: any,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    sheet: any,
+    tableName: string,
+    header: string[],
+    values: unknown[][],
+    queryId: string
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ): Promise<any> {
+    let table = ctx.workbook.tables.getItemOrNullObject(tableName);
+    table.load("name,worksheet,showHeaders");
+    await ctx.sync();
+
+    // Helper: create a new table with header + data starting at A1.
+    const createNewTable = () => {
+      const startCell = sheet.getRange("A1");
+      const totalRowCount = 1 + values.length;
+      const totalColumnCount = header.length;
+      const dataRange = startCell.getResizedRange(totalRowCount - 1, totalColumnCount - 1);
+      dataRange.values = [header, ...values];
+      const newTable = ctx.workbook.tables.add(dataRange, true /* hasHeaders */);
+      newTable.name = tableName;
+      return newTable;
+    };
+
+    if (table.isNullObject) {
+      this.telemetry.logEvent({
+        category: "excel",
+        name: "upsertQueryTable:createNewTable",
+        severity: "debug",
+        context: {
+          queryId,
+          tableName,
+          totalRowCount: 1 + values.length,
+          totalColumnCount: header.length,
+        },
+      });
+      table = createNewTable();
+    } else {
+      // Existing table: work with header and data body using standard
+      // Excel patterns: header row stays fixed; overwrite clears and
+      // rewrites data rows.
+      if (!table.showHeaders) {
+        table.showHeaders = true;
+      }
+
+      const headerRange = table.getHeaderRowRange();
+      headerRange.load("values,columnCount");
+      const dataBodyRange = table.getDataBodyRange();
+      dataBodyRange.load("rowCount,columnCount");
+      await ctx.sync();
+
+      const currentHeaderValues = (headerRange.values as unknown[][])[0] as string[];
+      const currentColumnCount = headerRange.columnCount as number;
+
+      // Basic header validation: if the new header shape differs, we fall
+      // back to creating a fresh table instead of trying to force a resize
+      // that can misalign the existing table.
+      const headerShapeMatches =
+        currentColumnCount === header.length && currentHeaderValues.length === header.length;
+
+      this.telemetry.logEvent({
+        category: "excel",
+        name: "upsertQueryTable:headerShape",
+        severity: "debug",
+        context: {
+          queryId,
+          currentColumnCount,
+          effectiveHeaderLength: header.length,
+          currentHeaderLength: currentHeaderValues.length,
+          headerShapeMatches,
+        },
+      });
+
+      if (!headerShapeMatches) {
+        this.telemetry.logEvent({
+          category: "excel",
+          name: "upsertQueryTable:headerMismatch_recreate",
+          severity: "debug",
+          context: {
+            queryId,
+            tableName,
+          },
+        });
+        table.delete();
+        table = createNewTable();
+      } else {
+        // Header shape matches: overwrite header text in place so
+        // labels stay aligned with the columns, then always
+        // overwrite data rows.
+        headerRange.values = [header];
+
+        // Overwrite: delete all existing data rows, then add new
+        // rows via table.rows.add so the array shape always
+        // matches.
+        const currentRowCount = dataBodyRange.rowCount;
+        if (currentRowCount > 0) {
+          const rowsCollection = table.rows;
+          rowsCollection.load("count");
+          await ctx.sync();
+
+          for (let i = rowsCollection.count - 1; i >= 0; i--) {
+            rowsCollection.getItemAt(i).delete();
+          }
+        }
+
+        if (values.length > 0) {
+          this.telemetry.logEvent({
+            category: "excel",
+            name: "upsertQueryTable:overwrite",
+            severity: "debug",
+            context: {
+              queryId,
+              overwriteRowCount: values.length,
+              columnCount: header.length,
+            },
+          });
+          table.rows.add(null, values);
+        }
+      }
+    }
+
+    return table;
   }
 
   /**

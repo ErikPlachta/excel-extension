@@ -7,22 +7,48 @@ Angular 20 task-pane add-in for Excel. Standalone components, Office.js wrapper,
 ### ExcelService (`src/app/core/excel.service.ts`)
 **Low-level Office.js wrapper**
 
+**Core Operations:**
 - `isExcel` – Guard for Excel host detection
-- `upsertQueryTable(query, rows, params)` – Create/update tables, returns `ExcelOperationResult<QueryRunLocation>`
+- `upsertQueryTable(query, rows, locationHint?)` – Create/update tables, returns `ExcelOperationResult<QueryRunLocation>`
 - `activateQueryLocation(location)` – Navigate to worksheet/table
 - `purgeExtensionManagedContent()` – Dev-only reset
+
+**Ownership Low-Level Helpers (Phase 3):**
+- `writeOwnershipRecord(info)` – Write/update ownership metadata row in `_Extension_Ownership`
+- `deleteOwnershipRecord(info)` – Remove ownership metadata row
+- Low-level operations called by `WorkbookService`, not features
+
+**Helper Methods (Phase 3):**
+- `computeHeaderAndValues(rows)` – Transform query result rows to Excel format
+- `writeQueryTableData(ctx, sheet, tableName, header, values, queryId)` – Handle table creation/update logic
+
+**Design:**
 - All methods gated by `isExcel`, return typed results (no throws)
 - Office.js types remain `any` at boundary
+- Focuses on Office.js API calls, delegates ownership decisions to `WorkbookService`
 
 ### WorkbookService (`src/app/core/workbook.service.ts`)
 **Workbook abstraction & ownership model**
 
-- `getSheets()` → `WorkbookTabInfo[]`
+**Read Operations:**
+- `getSheets()` → `string[]`
 - `getTables()` → `WorkbookTableInfo[]`
-- `getTableByName(name)` → `WorkbookTableInfo | null`
+- `getTableByName(name)` → `WorkbookTableInfo | undefined`
 - `getOwnership()` → `WorkbookOwnershipInfo[]`
 - `isExtensionManagedTable(table)` → `boolean`
 - `getManagedTablesForQuery(queryId)` → `WorkbookTableInfo[]`
+- `getManagedTableForQuery(queryId)` → `WorkbookTableInfo | undefined`
+- `getOrCreateManagedTableTarget(query)` → `{sheetName, tableName, existing?} | null`
+
+**Write Operations (Phase 3):**
+- `recordOwnership(info)` – Create/update ownership record for a table
+- `updateOwnership(queryId, sheetName, tableName)` – Update `lastTouchedUtc` timestamp
+- `deleteOwnership(queryId, sheetName, tableName)` – Remove ownership record
+
+**Design:**
+- Features call `WorkbookService` for ownership decisions, then pass results to `ExcelService`
+- All write operations delegate to `ExcelService` low-level helpers
+- Centralizes ownership business logic (conflict resolution, target selection)
 
 **Ownership:** Metadata stored in hidden `_Extension_Ownership` sheet. Extension only mutates managed tables. User table name conflicts → create suffixed alternate.
 
@@ -66,6 +92,44 @@ Angular 20 task-pane add-in for Excel. Standalone components, Office.js wrapper,
 1. User browses **API Catalog** (available data sources)
 2. User creates **Query Instance** from API with specific parameters
 3. User optionally saves multiple instances as **Query Configuration** (reusable report)
+
+## Excel/Workbook Service Boundaries (Phase 3)
+
+**Architectural Pattern:**
+
+**ExcelService** = Low-level Office.js wrapper
+- Wraps Office.js API calls with `isExcel` guards
+- Returns typed `ExcelOperationResult<T>` instead of throwing
+- Provides low-level helpers: `writeOwnershipRecord()`, `deleteOwnershipRecord()`
+- Extracted helpers: `computeHeaderAndValues()`, `writeQueryTableData()`
+- **Responsibility:** Office.js API execution only
+
+**WorkbookService** = High-level ownership & business logic
+- Ownership decisions: `getOrCreateManagedTableTarget()`
+- Ownership write operations: `recordOwnership()`, `updateOwnership()`, `deleteOwnership()`
+- Delegates low-level operations to `ExcelService`
+- **Responsibility:** Ownership model, conflict resolution, target selection
+
+**Proper Usage Pattern:**
+```typescript
+// Features call WorkbookService for ownership decisions
+const target = await this.workbook.getOrCreateManagedTableTarget(query);
+if (!target) return;
+
+// Then pass result to ExcelService for execution
+const result = await this.excel.upsertQueryTable(query, rows, {
+  sheetName: target.sheetName,
+  tableName: target.tableName,
+});
+```
+
+**Phase 3 Improvements:**
+- ✅ Added `WorkbookService` ownership write methods (`recordOwnership`, `updateOwnership`, `deleteOwnership`)
+- ✅ Added `ExcelService` low-level helpers (`writeOwnershipRecord`, `deleteOwnershipRecord`)
+- ✅ Extracted `ExcelService` helper methods (`computeHeaderAndValues`, `writeQueryTableData`)
+- ✅ Clear service boundary documentation
+- ✅ 6 new tests added (73 total tests passing)
+- 🔜 **TODO (Phase 4):** Extract ownership decision logic from `upsertQueryTable` (see TSDoc note)
 
 ## Query Services
 

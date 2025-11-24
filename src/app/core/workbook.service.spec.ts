@@ -10,6 +10,8 @@ describe("WorkbookService ownership helpers", () => {
     excelSpy = jasmine.createSpyObj<ExcelService>("ExcelService", [
       "getWorkbookOwnership",
       "getWorkbookTables",
+      "writeOwnershipRecord",
+      "deleteOwnershipRecord",
     ]);
 
     // Simulate running inside Excel so getOrCreateManagedTableTarget
@@ -185,6 +187,80 @@ describe("WorkbookService ownership helpers", () => {
         sheetName: "Sheet1",
         tableName: "tbl_Q1Sales_q1-sales",
       });
+    });
+  });
+
+  describe("recordOwnership", () => {
+    it("delegates to ExcelService.writeOwnershipRecord with ownership info", async () => {
+      excelSpy.writeOwnershipRecord.and.resolveTo();
+
+      await workbook.recordOwnership({
+        sheetName: "Sheet1",
+        tableName: "tbl_Sales",
+        queryId: "q1-sales",
+      });
+
+      expect(excelSpy.writeOwnershipRecord).toHaveBeenCalledWith({
+        sheetName: "Sheet1",
+        tableName: "tbl_Sales",
+        queryId: "q1-sales",
+      });
+    });
+
+    it("is a no-op when not in Excel", async () => {
+      (excelSpy as any).isExcel = false;
+
+      await workbook.recordOwnership({
+        sheetName: "Sheet1",
+        tableName: "tbl_Sales",
+        queryId: "q1-sales",
+      });
+
+      expect(excelSpy.writeOwnershipRecord).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("updateOwnership", () => {
+    it("delegates to ExcelService.writeOwnershipRecord to update timestamp", async () => {
+      excelSpy.writeOwnershipRecord.and.resolveTo();
+
+      await workbook.updateOwnership("q1-sales", "Sheet1", "tbl_Sales");
+
+      expect(excelSpy.writeOwnershipRecord).toHaveBeenCalledWith({
+        queryId: "q1-sales",
+        sheetName: "Sheet1",
+        tableName: "tbl_Sales",
+      });
+    });
+
+    it("is a no-op when not in Excel", async () => {
+      (excelSpy as any).isExcel = false;
+
+      await workbook.updateOwnership("q1-sales", "Sheet1", "tbl_Sales");
+
+      expect(excelSpy.writeOwnershipRecord).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("deleteOwnership", () => {
+    it("delegates to ExcelService.deleteOwnershipRecord", async () => {
+      excelSpy.deleteOwnershipRecord.and.resolveTo();
+
+      await workbook.deleteOwnership("q1-sales", "Sheet1", "tbl_Sales");
+
+      expect(excelSpy.deleteOwnershipRecord).toHaveBeenCalledWith({
+        queryId: "q1-sales",
+        sheetName: "Sheet1",
+        tableName: "tbl_Sales",
+      });
+    });
+
+    it("is a no-op when not in Excel", async () => {
+      (excelSpy as any).isExcel = false;
+
+      await workbook.deleteOwnership("q1-sales", "Sheet1", "tbl_Sales");
+
+      expect(excelSpy.deleteOwnershipRecord).not.toHaveBeenCalled();
     });
   });
 });
