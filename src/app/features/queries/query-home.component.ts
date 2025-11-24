@@ -2,6 +2,7 @@ import { CommonModule } from "@angular/common";
 import { Component, OnInit } from "@angular/core";
 import { ExcelService, AuthService } from "../../core";
 import { QueryApiMockService } from "../../shared/query-api-mock.service";
+import { QueryApiLargeDatasetService } from "../../shared/query-api-large-dataset.service";
 import { QueryStateService } from "../../shared/query-state.service";
 import { QueryDefinition } from "../../shared/query-model";
 import { ListComponent, UiListItem } from "../../shared/ui/list.component";
@@ -26,6 +27,7 @@ export class QueryHomeComponent implements OnInit {
     public readonly excel: ExcelService,
     private readonly auth: AuthService,
     private readonly api: QueryApiMockService,
+    private readonly largeDatasetApi: QueryApiLargeDatasetService,
     private readonly state: QueryStateService
   ) {}
 
@@ -95,7 +97,15 @@ export class QueryHomeComponent implements OnInit {
     this.error = null;
     try {
       const lastParams = this.state.getLastParams(query.id) ?? {};
-      const result = await this.api.executeQuery(query.id, lastParams as any);
+
+      // Try large dataset API first, then fall back to regular API
+      let result;
+      if (this.largeDatasetApi.getQueryById(query.id)) {
+        result = await this.largeDatasetApi.executeQuery(query.id, lastParams as any);
+      } else {
+        result = await this.api.executeQuery(query.id, lastParams as any);
+      }
+
       const location = await this.excel.upsertQueryTable(query, result.rows);
 
       this.state.setLastRun(query.id, {
