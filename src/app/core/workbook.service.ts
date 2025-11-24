@@ -156,4 +156,57 @@ export class WorkbookService {
       tableName: defaultTableName,
     };
   }
+
+  /**
+   * Records ownership for a table, creating or updating the ownership
+   * metadata in `_Extension_Ownership`.
+   *
+   * This marks the table as extension-managed and associates it with
+   * the given query ID. Subsequent calls update the `lastTouchedUtc`
+   * timestamp.
+   *
+   * @param info - Ownership information including sheet name, table name,
+   * and query ID.
+   */
+  async recordOwnership(info: {
+    sheetName: string;
+    tableName: string;
+    queryId: string;
+  }): Promise<void> {
+    if (!this.isExcel) return;
+    await this.excel.writeOwnershipRecord(info);
+  }
+
+  /**
+   * Updates the `lastTouchedUtc` timestamp for an existing ownership
+   * record without changing other fields.
+   *
+   * This is useful when a table is modified but ownership details
+   * remain the same.
+   *
+   * @param queryId - The query ID that owns the table.
+   * @param sheetName - The worksheet containing the table.
+   * @param tableName - The table name.
+   */
+  async updateOwnership(queryId: string, sheetName: string, tableName: string): Promise<void> {
+    if (!this.isExcel) return;
+    await this.excel.writeOwnershipRecord({ queryId, sheetName, tableName });
+  }
+
+  /**
+   * Removes the ownership record for a table, unmarking it as
+   * extension-managed.
+   *
+   * This does not delete the table itself; it only removes the
+   * ownership metadata. Use this when the extension no longer manages
+   * a table or when cleaning up after table deletion.
+   *
+   * @param queryId - The query ID that owns the table.
+   * @param sheetName - The worksheet containing the table.
+   * @param tableName - The table name.
+   */
+  async deleteOwnership(queryId: string, sheetName: string, tableName: string): Promise<void> {
+    if (!this.isExcel) return;
+    await this.excel.deleteOwnershipRecord({ queryId, sheetName, tableName });
+  }
 }
