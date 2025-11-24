@@ -1,6 +1,7 @@
 import { Injectable } from "@angular/core";
 import { BehaviorSubject } from "rxjs";
 import { ExecuteQueryParams, QueryApiMockService } from "./query-api-mock.service";
+import { QueryApiLargeDatasetService } from "./query-api-large-dataset.service";
 import { QueryDefinition, QueryRun } from "./query-model";
 
 export interface QueryStateSnapshot {
@@ -14,8 +15,12 @@ export class QueryStateService {
   private readonly stateSubject: BehaviorSubject<QueryStateSnapshot>;
   readonly state$;
 
-  constructor(private readonly api: QueryApiMockService) {
-    const queries = this.api.getQueries();
+  constructor(
+    private readonly api: QueryApiMockService,
+    private readonly largeDatasetApi: QueryApiLargeDatasetService
+  ) {
+    // Combine queries from both services
+    const queries = [...this.api.getQueries(), ...this.largeDatasetApi.getQueries()];
     this.stateSubject = new BehaviorSubject<QueryStateSnapshot>({
       queries,
       lastParams: {},
