@@ -1,20 +1,225 @@
 # Copilot Instructions: excel-extension
 
-Purpose: Enable AI coding agents to be productive immediately in this Angular-based Excel task pane app.
+## Core Principles
 
-## Core Guidelines
+**What this section solves:** Defines the global rules and safety rails for Copilot in this repo.
 
-1. Understand the app is an Angular 20 task pane for Excel using standalone components and Office.js, with Excel integration wrapped in `ExcelService` and guarded by `isExcel`.
+- **Purpose:** Enable AI coding agents to be productive immediately in this Angular-based Excel task pane app, with an emphasis on complete, end-to-end passes over requested work instead of partial or piecemeal edits.
+- **Single source of truth:** `TODO.md`, `CONTEXT-SESSION.md`, and `CONTEXT-CURRENT.md` track tasks and narrative; `CHANGELOG.md` records verified history.
+- **Language and stack:** Use American English; all new app code is TypeScript/Angular 20; Office integration goes through `ExcelService` and `WorkbookService` and is guarded by `isExcel`.
+- **Safety defaults:** On conflicting instructions or missing context, pause, surface the conflict, and ask for clarification instead of guessing.
+
+**Instructions (Core Principles in practice):**
+
+1. Understand the app is an Angular 20 task pane for Excel using standalone components and Office.js, with Excel integration wrapped in `ExcelService` and guarded by `isExcel`, and workbook-level access exposed through a shared `WorkbookService` instead of ad hoc calls in individual components.
 2. Focus on manifest compliance with the Office Add-ins Development Kit, prioritizing `dev-manifest.xml` for local development and sideloading in Excel.
 3. Use `_TEMPLATES/` Dev Kit sample manifests as canonical references for structure, especially `<Resources>`, icon definitions, and HTTPS requirements.
 4. Ensure any changes to `dev-manifest.xml` maintain localhost for `SourceLocation` to facilitate easy local sideloading.
-5. Keep `CONTEXT-SESSION.md` updated with the current state snapshot, manifest validation findings, and a focused TODO checklist. You should make the changes there as the source of truth for ongoing work. (Don't ask me to do this; just do it.)
-6. You can and should defer to running scripts that require me to provide you the results of the command (e.g., manifest validation) rather than trying to simulate or guess the output yourself.
+5. Treat the three planning files as follows, and keep them in sync:
+   - `TODO.md` → the single source of truth for **actionable tasks and subtasks** (every concrete piece of work is a checkbox, and completed work is marked `[x]` with wording updated to reflect reality).
+   - `CONTEXT-SESSION.md` → the **branch/session-level narrative**, describing overall goals, architecture, and how major features fit together; no granular task tracking here.
+   - `CONTEXT-CURRENT.md` → the **current-focus sandbox**, a zoomed-in view for the active subset of work (goals, snapshot, active refinement notes, manual validation scenarios) tied to one or more unchecked TODOs.
+   - When asked to update planning/checklist docs (like `TODO.md`, `CONTEXT-SESSION.md`, or `CONTEXT-CURRENT.md`), prefer a single comprehensive pass over the requested scope (for example, an entire section) rather than touching only the immediately adjacent bullets.
+   - Parent or child semantics for checklists: do **not** mark a parent-level checklist item as completed (`[x]`) until **all** of its direct child tasks are `[x]`, unless the user explicitly says otherwise in the current session. Treat parent items as epics and child items as the source of truth for actual work.
+6. You can and should defer to running scripts that require the user to provide you the results of the command (for example, manifest validation) rather than trying to simulate or guess the output yourself.
+7. Do not re-explain or re-summarize content that was already clearly stated in the immediately preceding turn unless the user explicitly asks for a recap or clarification.
+8. When the user says "proceed", "continue", or "next" after you have proposed a plan or options, treat that as approval to **execute the previously proposed next steps immediately**, without asking again.
 
-## Big Picture
+Fallback: If a requested action appears to violate these principles (for example, bypassing `WorkbookService`, editing generated artifacts, or ignoring `TODO.md`/`CONTEXT-*`/`CHANGELOG.md`), stop, describe the conflict, and ask the user how to proceed.
+
+## Scope Rules (Logical Areas → Paths)
+
+**What this section solves:** Explains how Copilot should behave differently depending on what kind of artifact it is touching.
+
+### Scope Mapping (this repo)
+
+- **Runtime Code Area →**
+  - `src/app/**`
+  - `src/middle-tier/**`
+  - `src/helpers/**`
+- **Documentation Area →**
+  - `README.md`
+  - `RESOURCES.MD`
+  - `CONTEXT-SESSION.md`
+  - `CONTEXT-CURRENT.md`
+  - `TODO.md` (when editing narrative, not checkbox state)
+- **Generated Output Area →**
+  - `coverage/**`
+- **Tooling / Ops Area →**
+  - `.github/**`
+  - `scripts/**`
+  - Root-level config files (for example, `angular.json`, `tsconfig*.json`, `package.json`)
+
+### Area-specific rules
+
+- **Runtime Code Area:**
+  - Maintain strict typing and follow existing Angular and Office patterns (services, features, shared helpers).
+  - Prefer `WorkbookService` and `ExcelService` over direct Office.js calls.
+  - Require at least `npm test` and, when appropriate, `npm run build` (or more specific commands agreed with the user) before considering work “done”.
+
+- **Documentation Area:**
+  - Keep language concise, American English, and cross-link to other sections instead of duplicating rules.
+  - Never introduce runtime logic here.
+
+- **Generated Output Area:**
+  - Never edit by hand; regenerate via the appropriate build or test commands.
+
+- **Tooling / Ops Area:**
+  - Keep scripts typed where possible and well-documented.
+  - Reuse existing workflows and scripts rather than introducing new ad hoc commands.
+
+Fallback: If the logical area for a change is unclear, treat it as Runtime Code Area, apply the strictest verification rules, and ask the user to confirm the area and paths.
+
+## Decision Tree (Execution Flow)
+
+**What this section solves:** Ensures Copilot always knows the next correct action and does not skip planning, tests, or logging.
+
+1. **Path or Area Guard:** Decide whether the request touches runtime code, docs, generated output, or tooling, using the Scope Mapping above.
+2. **Classify Request:** Feature, bugfix, refactor, docs update, or analysis.
+3. **Align with Tasks:** Map work to an existing TODO; if none exists and creation is allowed, add an entry to `TODO.md` (or confirm with the user).
+4. **Plan Minimal Steps:** Draft a short, high-value plan before editing, linked to the relevant TODO items.
+5. **Check Prerequisites:** When in doubt, prefer `npm test` or `npm run build` as a quick health check before large changes.
+6. **Resolve Ambiguity:** If requirements or constraints are unclear, ask for clarification and pause modifications.
+7. **Execute Focused Changes:** Make the smallest safe increment, respecting Angular/Excel architecture and existing patterns.
+8. **Verify:** Run the most specific relevant commands (for example, `npm test` for unit tests, `npm run build` for production build).
+9. **Record:** Propose or update a `CHANGELOG.md` entry and reconcile any impacted TODO items and `CONTEXT-*` files.
+10. **Close or Escalate:** Only treat a request as complete when verification and logging are addressed; otherwise, summarize remaining risks and ask how to proceed.
+
+Fallback: If you are unsure which step applies next, restart from Path or Area Guard and walk the Decision Tree sequentially until a clear branch applies.
+
+### Decision-Making and "Proceed" Semantics
+
+- When the user says "proceed", "continue", or "next" after you have proposed a plan or options, treat that as approval to **execute the previously proposed next steps immediately**, without asking again.
+- When a real choice is needed, present it explicitly and compactly, for example:
+  - Option A: brief description.
+  - Option B: brief description.
+  - Option A+B: brief description if combining is viable.
+- If the user does not pick an option but then says "proceed" or similar, choose the **safest, most incremental option** that keeps the checklist moving forward and clearly state which option you are executing.
+- Keep decision prompts rare and high-signal; do not pause for choices on trivial or obviously reversible details.
+
+Fallback: If the user’s intent about proceeding is ambiguous, summarize the options once and ask for clarification before acting.
+
+## Communication Protocols and Checklist Strategy
+
+**What this section solves:** Defines how Copilot narrates its work and handles list-based tasks without creating noise.
+
+- Default cadence: post short micro-updates during active work, focused on deltas.
+- When the user asks for updates to checklists, TODOs, or planning sections (for example, `TODO.md` section 12), interpret the request as applying to the **entire explicitly mentioned scope**, not just the lines the user quoted.
+- Prefer doing **one full, consistent pass** over that scope so there are no leftover bullets that silently violate the requested pattern (for example, plain `-` bullets when the user asked for `- [ ]` / `- [x]`).
+- If the scope is ambiguous (for example, "some of the Excel TODOs"), ask for clarification once; if the scope is explicit (for example, "all items in section 12"), do not narrow it—treat it as exhaustive.
+- When converting narrative bullets into checkboxes, ensure **every discrete actionable task** is a checkbox, and that completion state (`[x]` versus `[ ]`) matches the actual codebase, not assumptions.
+- Avoid repeated micro-edits across many turns; instead, plan the full transformation, apply it in one or a small number of coherent edits, and then summarize what changed.
+- Do not repeat the same analysis, recap, or file-by-file description across consecutive answers; default to short delta-style updates that focus only on what changed since the last turn.
+- Whenever the user needs to perform manual steps (for example, run a command locally, test behavior in Excel, or change a setting), describe them under a `### Steps For User to Take` heading with numbered, concrete steps and expected outcomes.
+
+Fallback: If you are unsure whether to update a narrow slice or a whole section of a checklist, assume the user means the entire explicitly named scope and state that assumption in your response.
+
+## Tools and Integrations
+
+**What this section solves:** Shows the canonical commands and flows for building, testing, and running the app.
+
+- Install dependencies: `npm ci`
+- Local dev server (Angular): `npm start` (alias for `ng serve`) → <http://localhost:4200/>
+- Watch build: `npm run watch` (note: `npm run watch`, not `npm watch`)
+- Unit tests (Karma/Jasmine): `npm test` (alias for `ng test`)
+- Production build: `npm run build` (alias for `ng build`)
+- Deploy (GitHub Actions): push to `main` triggers `.github/workflows/deploy.yml`, which builds with `--base-href /excel-extension/` and publishes to `gh-pages`.
+
+### Running Inside Excel (Sideloading)
+
+- The add-in manifest `dev-manifest.xml` is configured for the GitHub Pages URL. To use a different host (for example, local dev), update:
+  - `<SourceLocation DefaultValue="http(s)://host/index.html"/>`
+  - Add corresponding `<AppDomain>` entries for the host.
+- Components and templates already guard on `excel.isExcel`; outside Excel the UI shows "Excel not detected" and service calls return empty arrays.
+
+Fallback: If the correct command or sideloading step is unclear, inspect `package.json`, `angular.json`, or manifest files for guidance, suggest the most likely steps, and ask the user to confirm. If commands cannot be executed in this environment, clearly state that limitation, describe what would normally be run, and flag the result as unverified.
+
+## Development Best Practices
+
+**What this section solves:** Aligns generated code with this repo’s quality bar.
+
+- Treat TSDoc and tests as non-optional for new work:
+  - When you add or materially change a service, component, or exported type or interface under `src/app/**`, also add or update TSDoc so intent and usage are clear.
+  - When you add or change behavior, extend or create matching unit tests (Karma/Jasmine) to exercise the new paths.
+- Prefer updating existing specs alongside code changes (for example, `*.spec.ts` next to the file you are touching) rather than adding untested behavior.
+- Avoid introducing `any` except at well-documented Office.js boundaries; keep types strict in app code and reflect that strictness in tests.
+
+Fallback: If you are unsure about style or conventions, mirror the dominant patterns found in nearby code files and mention this choice in your summary.
+
+## Design Patterns and Architecture
+
+**What this section solves:** Keeps new behavior aligned with the existing Angular and Excel architecture.
 
 - Framework: Angular 20 with standalone components (no NgModules). Entry at `src/main.ts` bootstraps `AppComponent` with `provideRouter(routes)` in `src/app/core/app.config.ts`.
-- Excel integration: Office.js is loaded via script tag in `src/index.html` and `public/index.html`. `ExcelService` (`src/app/core/excel.service.ts`) wraps Office JS (`Excel.run`) and exposes an `isExcel` guard to safely detect host.
+- Excel integration: Office.js is loaded via script tag in `src/index.html` and `public/index.html`. `ExcelService` (`src/app/core/excel.service.ts`) wraps Office JS (`Excel.run`) and exposes an `isExcel` guard to safely detect host. `WorkbookService` (`src/app/core/workbook.service.ts`) provides shared, strongly typed helpers for getting tabs or sheets and tables so all features use a common, data-driven workbook abstraction.
+- UI/Routes: SPA shell in `AppComponent` under `src/app/core/` with feature views under `src/app/features/` (SSO home, home, worksheets, tables, user, queries). Routes are defined in `src/app/core/app.routes.ts` but in Excel the shell typically renders directly instead of navigating by URL.
+- Data flow: Components call `ExcelService` in lifecycle hooks and bind results to simple tables. Auth and roles flow through `AuthService`; query metadata and last runs flow through `QueryStateService`. Query execution is mocked via `QueryApiMockService`.
+- Office JS access pattern (follow this):
+  - Always gate logic on `ExcelService.isExcel` before calling Excel APIs.
+  - Prefer using `WorkbookService` for workbook-level operations (get tabs or sheets, get tables) in features instead of calling `ExcelService` or Office.js directly.
+  - Use `Excel.run(ctx => { ...; return value; })` and `await ctx.sync()` after `load(...)` calls.
+  - Keep Office or Excel globals as declared `any` (see `excel.service.ts`). If you add new API calls, follow the same pattern or introduce types intentionally.
+
+- Conventions and patterns:
+  - Standalone components import `CommonModule` and use `styleUrl` and `templateUrl` sidecar files.
+  - Core or feature or shared structure:
+    - `src/app/core/` for the root shell, `ExcelService`, `WorkbookService`, `AuthService`, and app bootstrap and config.
+    - `src/app/features/` for views (SSO home, home, worksheets, tables, user, queries).
+    - `src/app/shared/` for query domain models or services, utilities, and shared UI or config that support data-driven design.
+
+Fallback: If you are unsure where a new behavior or helper should live, propose two or three candidate locations with rationale (for example, core service versus feature helper versus shared utility) and ask the user to choose.
+
+## Key Files (Reference)
+
+- App bootstrap: `src/main.ts`, `src/app/core/app.config.ts`
+- Routes: `src/app/core/app.routes.ts`
+- Core services or shell: `src/app/core/app.component.*`, `src/app/core/excel.service.ts`, `src/app/core/auth.service.ts`
+- Feature views: `src/app/features/**` (sso, home, worksheets, tables, user, queries)
+- Query domain: `src/app/shared/query-model.ts`, `src/app/shared/query-api-mock.service.ts`, `src/app/shared/query-state.service.ts`
+- Workbook helpers: `src/app/core/workbook.service.ts` centralizes workbook, tab, and table access for all features.
+- Add-in manifest: `dev-manifest.xml`, `prod-manifest.xml`
+- CI/CD: `.github/workflows/deploy.yml`, `.github/actions/deploy/action.yml`
+
+## Practical Examples (Code Snippets)
+
+- Guarding Excel usage in a component:
+
+  ```ts
+  async ngOnInit() {
+    if (!this.excel.isExcel) return;
+    this.tables = await this.excel.getTables();
+  }
+  ```
+
+- Adding a new routed view:
+  - Create `foo.component.ts` as a standalone component with `templateUrl` and `styleUrl`.
+  - Add `{ path: 'foo', component: FooComponent }` to `routes` in `src/app/app.routes.ts`.
+  - Link via `<a routerLink="/foo">Foo</a>` in `app.component.html`.
+
+## Session Workflow
+
+**What this section solves:** Describes the lifecycle for a unit of Copilot work in this repo.
+
+1. **Start:** Read `TODO.md`, skim `CONTEXT-SESSION.md`, and scan recent `CHANGELOG.md` entries.
+2. **Implement:** Follow Core Principles, Scope Rules, and the Decision Tree while making focused changes.
+3. **Verify:** Prefer `npm test` and `npm run build` (or more specific commands agreed with the user) for verification.
+4. **Record:** Propose updates to `CHANGELOG.md` and relevant TODOs and `CONTEXT-*` files to reflect what changed and how it was validated.
+
+Fallback: If verification cannot be run (for example, tools are unavailable), clearly state this, describe what would normally be run, and mark the changes as needing verification.
+
+## Language, Style, and Pitfalls
+
+- Use American English and concise, information-dense responses.
+- Avoid editing generated artifacts (for example, coverage output); regenerate instead.
+- Avoid bypassing `ExcelService` or `WorkbookService` for workbook interactions.
+- NPM scripts: use `npm run watch` (running `npm watch` will fail).
+- Base href: GitHub Pages requires `--base-href /excel-extension/`. The workflow already sets this; match it if running the action locally.
+- Tests: Office or Excel globals are undefined in Karma. The current pattern avoids calls when not in Excel; keep using `isExcel` guards or mock the globals if you add Office interactions in tests.
+
+Fallback: If you are unsure about style or whether a file is generated, check for build scripts or comments indicating generated content and ask the user before editing.
+
+- Framework: Angular 20 with standalone components (no NgModules). Entry at `src/main.ts` bootstraps `AppComponent` with `provideRouter(routes)` in `src/app/core/app.config.ts`.
+- Excel integration: Office.js is loaded via script tag in `src/index.html` and `public/index.html`. `ExcelService` (`src/app/core/excel.service.ts`) wraps Office JS (`Excel.run`) and exposes an `isExcel` guard to safely detect host. `WorkbookService` (`src/app/core/workbook.service.ts`) provides shared, strongly typed helpers for getting tabs/sheets and tables so all features use a common, data-driven workbook abstraction.
 - UI/Routes: SPA shell in `AppComponent` under `src/app/core/` with feature views under `src/app/features/` (SSO home, home, worksheets, tables, user, queries). Routes are defined in `src/app/core/app.routes.ts` but in Excel we typically render the shell directly instead of navigating by URL.
 - Deployment: GitHub Pages via workflow `.github/workflows/deploy.yml` and composite action `.github/actions/deploy/action.yml`. Build output published from `dist/excel-extension/browser` with base href `/excel-extension/`.
 - Add-in manifest: `dev-manifest.xml` points the Office task pane to the dev server (localhost) during development, and `prod-manifest.xml` points to the deployed site on GitHub Pages.
@@ -40,6 +245,41 @@ Purpose: Enable AI coding agents to be productive immediately in this Angular-ba
   - Add corresponding `<AppDomain>` entries for the host.
 - Components and templates already guard on `excel.isExcel`; outside Excel the UI shows "Excel not detected" and service calls return empty arrays.
 
+## Copilot Mindset & Checklist Strategy
+
+- When the user asks for updates to checklists, TODOs, or planning sections (like `TODO.md` section 12), interpret the request as applying to the **entire explicitly mentioned scope**, not just the lines the user quoted.
+- Prefer doing **one full, consistent pass** over that scope (for example: “all items in section 12”) so there are no leftover bullets that silently violate the requested pattern (e.g., plain `-` bullets when the user asked for `- [ ]` / `- [x]`).
+- If the scope is ambiguous (e.g., "some of the Excel TODOs"), ask for clarification once; if the scope is explicit ("all items in section 12"), do not narrow it—treat it as exhaustive.
+- When converting narrative bullets into checkboxes, ensure **every discrete actionable task** is a checkbox, and that completion state (`[x]` vs `[ ]`) matches the actual codebase, not assumptions.
+- Avoid repeated micro-edits across many turns; instead, plan the full transformation, apply it in one or a small number of coherent edits, and then summarize what changed.
+- Do not repeat the same analysis, recap, or file-by-file description across consecutive answers; default to short delta-style updates that focus only on what changed since the last turn.
+
+## Decision-Making & "Proceed" Semantics
+
+- When the user says "proceed", "continue", or "next" after you have proposed a plan or options, treat that as approval to **execute the previously proposed next steps immediately**, without asking again.
+- When a real choice is needed, present it explicitly and compactly, for example:
+  - Option A: brief description.
+  - Option B: brief description.
+  - Option A+B: brief description if combining is viable.
+- If the user does not pick an option but then says "proceed" or similar, choose the **safest, most incremental option** that keeps the checklist moving forward and clearly state which option you are executing.
+- Keep decision prompts rare and high-signal; do not pause for choices on trivial or obviously reversible details.
+
+## When the user must take action
+
+- Whenever the user needs to perform manual steps (e.g., run a command locally, test behavior in Excel, or change a setting), describe them in a dedicated section using this exact pattern:
+
+  ```markdown
+  ### Steps For User to Take
+
+  1. Do X (exact command or action), expect Y (what they should see), then report back any deviations or errors.
+  2. Do Z (next concrete step), expect W, report if different.
+  ```
+
+- Steps must be:
+  - Numbered, concrete, and copy-pastable where relevant (commands in fenced code blocks).
+  - Explicit about what to expect after each step and what to report back if the expectation is not met.
+  - Minimal and ordered—only the steps strictly necessary for the current diagnostic or verification.
+
 ### Local Excel sideload (localhost)
 
 To run the task pane against your local dev server:
@@ -60,7 +300,7 @@ To run the task pane against your local dev server:
 
 - Standalone components import `CommonModule` and use `styleUrl`/`templateUrl` sidecar files.
 - Core/feature/shared structure:
-  - `src/app/core/` for the root shell, `ExcelService`, `AuthService`, and app bootstrap/config.
+  - `src/app/core/` for the root shell, `ExcelService`, `WorkbookService`, `AuthService`, and app bootstrap/config.
   - `src/app/features/` for views (SSO home, home, worksheets, tables, user, queries).
   - `src/app/shared/` for query domain models/services, utilities, and shared UI/config that support data-driven design.
 - Routing & shell:
@@ -68,9 +308,18 @@ To run the task pane against your local dev server:
   - Inside Excel the shell uses an internal `currentView` state (no URL changes) to switch between feature views; outside Excel the router can be used as needed.
 - Office JS access pattern (follow this):
   - Always gate logic on `ExcelService.isExcel` before calling Excel APIs.
+  - Prefer using `WorkbookService` for workbook-level operations (get tabs/sheets, get tables) in features instead of calling `ExcelService` or Office.js directly.
   - Use `Excel.run(ctx => { ...; return value; })` and `await ctx.sync()` after `load(...)` calls.
   - Keep Office/Excel globals as declared `any` (see `excel.service.ts`). If you add new API calls, follow the same pattern or introduce types intentionally.
 - Data flow: Components call `ExcelService` in `ngOnInit` / lifecycle hooks and bind results to simple tables. Auth and roles flow through `AuthService`; query metadata and last runs flow through `QueryStateService`. No NgRx/HTTP involved; query execution is mocked via `QueryApiMockService`.
+
+## Documentation & Tests Expectations
+
+- Treat TSDoc and tests as non-optional for new work:
+  - When you add or materially change a service, component, or exported type/interface under `src/app/**`, also add or update TSDoc so intent and usage are clear.
+  - When you add or change behavior, extend or create matching unit tests (Karma/Jasmine) to exercise the new paths.
+- Prefer updating existing specs alongside code changes (e.g., `*.spec.ts` next to the file you’re touching) rather than adding untested behavior.
+- Avoid introducing `any` except at well-documented Office.js boundaries; keep types strict in app code and reflect that strictness in tests.
 
 ## Key Files
 
@@ -79,6 +328,7 @@ To run the task pane against your local dev server:
 - Core services/shell: `src/app/core/app.component.*`, `src/app/core/excel.service.ts`, `src/app/core/auth.service.ts`
 - Feature views: `src/app/features/**` (sso, home, worksheets, tables, user, queries)
 - Query domain: `src/app/shared/query-model.ts`, `src/app/shared/query-api-mock.service.ts`, `src/app/shared/query-state.service.ts`
+- Workbook helpers: `src/app/core/workbook.service.ts` centralizes workbook/tab/table access for all features.
 - Add-in manifest: `dev-manifest.xml`, `prod-manifest.xml`
 - CI/CD: `.github/workflows/deploy.yml`, `.github/actions/deploy/action.yml`
 

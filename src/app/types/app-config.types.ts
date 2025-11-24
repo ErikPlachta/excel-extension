@@ -22,7 +22,15 @@ export type RoleId = "analyst" | "admin";
  * Each view is responsible for a specific part of the user interface and user experience.
  * The views are designed to be modular and reusable across the application.
  */
-export type ViewId = "sso" | "worksheets" | "tables" | "user" | "queries";
+export type ViewId =
+  | "sso"
+  | "worksheets"
+  | "tables"
+  | "user"
+  | "queries"
+  | "queriesOld"
+  | "debug"
+  | "settings";
 
 /**
  * Supported navigation action types for shell nav items.

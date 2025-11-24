@@ -74,3 +74,45 @@ export interface UiLayoutHints {
   /** Optional variant hint for card-like primitives. */
   cardVariant?: "default" | "accent";
 }
+
+/**
+ * Supported semantic action types for query UI interactions.
+ *
+ * These are interpreted by the query UI layer (e.g., `QueryHomeComponent`)
+ * to trigger behaviors such as running a query or navigating to its table.
+ *
+ * @TODO add more types here as we start to refine the design.
+ */
+export type QueryUiActionType = "run-query" | "go-to-table" | "show-details";
+
+/**
+ * Configuration for a single query-level UI action.
+ *
+ * This is typically attached to a `QueryDefinition` via `uiConfig.actions`
+ * so that the feature UI can render buttons and dispatch actions based on
+ * data instead of hard-coded templates.
+ */
+export interface QueryUiActionConfig {
+  /** Stable identifier for this action within the query. */
+  id: string;
+  /** Semantic action type that the dispatcher understands. */
+  type: QueryUiActionType;
+  /** i18n/text key used to look up the button label. */
+  labelKey: string;
+  /** Optional button config driving variant/size/icon for this action. */
+  button?: UiButtonConfig;
+}
+
+/**
+ * Per-query UI configuration describing how the query should
+ * be presented (badges) and which actions are available.
+ */
+export interface QueryUiConfig {
+  /** Optional badge to show next to the query name. */
+  badgeLabelKey?: string;
+  /**
+   * Actions available for this query in the UI. These will
+   * typically be rendered as buttons in the query list/detail.
+   */
+  actions: QueryUiActionConfig[];
+}

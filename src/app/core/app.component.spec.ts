@@ -1,12 +1,22 @@
 import { TestBed } from "@angular/core/testing";
 import { provideRouter } from "@angular/router";
 import { AppComponent } from "./app.component";
+import { AppContextService } from "./app-context.service";
 
 describe("AppComponent", () => {
   beforeEach(async () => {
+    const appContextStub = {
+      get hostStatus() {
+        return { isExcel: false, isOnline: true };
+      },
+      getAuthSummary() {
+        return { isAuthenticated: false, displayName: "", roles: [] };
+      },
+    };
+
     await TestBed.configureTestingModule({
       imports: [AppComponent],
-      providers: [provideRouter([])],
+      providers: [provideRouter([]), { provide: AppContextService, useValue: appContextStub }],
     }).compileComponents();
   });
 
@@ -26,8 +36,7 @@ describe("AppComponent", () => {
     const fixture = TestBed.createComponent(AppComponent);
     fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
-    const status = compiled.querySelector(".status");
-    expect(status).toBeTruthy();
-    expect(status?.textContent).toMatch(/Excel|No Excel/);
+    const nav = compiled.querySelector("nav");
+    expect(nav).toBeTruthy();
   });
 });

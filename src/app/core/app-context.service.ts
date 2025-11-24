@@ -1,5 +1,4 @@
 import { Injectable } from "@angular/core";
-import { ExcelService } from "./excel.service";
 import { AuthService } from "./auth.service";
 
 export interface AppHostStatus {
@@ -18,11 +17,10 @@ export class AppContextService {
   readonly hostStatus: AppHostStatus;
 
   constructor(
-    private readonly excel: ExcelService,
     private readonly auth: AuthService
   ) {
     this.hostStatus = {
-      isExcel: this.excel.isExcel,
+      isExcel: typeof window !== "undefined" && !!(window as unknown as { Office?: unknown }).Office,
       isOnline: typeof navigator !== "undefined" ? navigator.onLine : true,
     };
   }
