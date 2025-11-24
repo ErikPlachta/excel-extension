@@ -1,9 +1,8 @@
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { Component } from "@angular/core";
-import { ExcelService, AuthService, AppContextService, AppHostStatus, AppAuthSummary } from ".";
-import { DEFAULT_APP_CONFIG, NavItemConfig, ViewId } from "../shared/app-config";
-import { APP_TEXT } from "../shared/app-text";
+import { ExcelService, AuthService, AppContextService, AppConfigService, AppHostStatus, AppAuthSummary } from ".";
+import { NavItemConfig, ViewId, TextCatalog } from "../shared/app-config";
 import { SsoHomeComponent } from "../features/sso/sso-home.component";
 import { WorksheetsComponent } from "../features/worksheets/worksheets.component";
 import { TablesComponent } from "../features/tables/tables.component";
@@ -34,10 +33,28 @@ import { ButtonComponent } from "../shared/ui/button.component";
   styleUrl: "./app.component.css",
 })
 export class AppComponent {
-  currentView: ViewId = DEFAULT_APP_CONFIG.defaultViewId;
-  readonly appConfig = DEFAULT_APP_CONFIG;
-  readonly text = APP_TEXT;
+  currentView: ViewId;
   readonly hostStatus: AppHostStatus;
+
+  get appConfig() {
+    return this.appConfigService.getConfig();
+  }
+
+  get text(): TextCatalog {
+    // Fallback to empty structure if text not defined in config
+    const emptyText: TextCatalog = {
+      nav: {},
+      auth: {},
+      query: {},
+      worksheet: {},
+      table: {},
+      user: {},
+      hostStatus: {},
+      userBanner: {},
+      ui: {},
+    };
+    return this.appConfigService.getConfig().text || emptyText;
+  }
 
   get authSummary(): AppAuthSummary {
     return this.appContext.getAuthSummary();
@@ -46,9 +63,11 @@ export class AppComponent {
   constructor(
     public excel: ExcelService,
     public auth: AuthService,
-    private readonly appContext: AppContextService
+    private readonly appContext: AppContextService,
+    private readonly appConfigService: AppConfigService
   ) {
     this.hostStatus = this.appContext.hostStatus;
+    this.currentView = this.appConfigService.getConfig().defaultViewId;
   }
 
   selectView(viewId: ViewId): void {
@@ -104,22 +123,15 @@ export class AppComponent {
   }
 
   getNavLabel(labelKey: string): string {
-    switch (labelKey) {
-      case "nav.ssoHome":
-        return this.text.nav.ssoHome;
-      case "nav.worksheets":
-        return this.text.nav.worksheets;
-      case "nav.tables":
-        return this.text.nav.tables;
-      case "nav.user":
-        return this.text.nav.user;
-      case "nav.queriesOld":
-        return this.text.nav.queriesOld;
-      case "nav.settings":
-        return this.text.nav.settings;
-      default:
-        return labelKey;
+    // labelKey format: "section.key" (e.g., "nav.ssoHome")
+    const [section, key] = labelKey.split('.');
+    if (section && key) {
+      const sectionData = (this.text as any)[section];
+      if (sectionData && typeof sectionData === 'object') {
+        return sectionData[key] || labelKey;
+      }
     }
+    return labelKey;
   }
 
   async signInAnalyst(): Promise<void> {

@@ -1,5 +1,6 @@
 import { TestBed } from "@angular/core/testing";
 import { provideRouter } from "@angular/router";
+import { provideHttpClient } from "@angular/common/http";
 import { AppComponent } from "./app.component";
 import { AppContextService } from "./app-context.service";
 
@@ -16,7 +17,11 @@ describe("AppComponent", () => {
 
     await TestBed.configureTestingModule({
       imports: [AppComponent],
-      providers: [provideRouter([]), { provide: AppContextService, useValue: appContextStub }],
+      providers: [
+        provideRouter([]),
+        provideHttpClient(),
+        { provide: AppContextService, useValue: appContextStub },
+      ],
     }).compileComponents();
   });
 

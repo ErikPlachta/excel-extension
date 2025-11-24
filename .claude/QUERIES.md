@@ -32,6 +32,7 @@ interface QueryDefinition {
 ```
 
 **Examples:**
+
 - `sales-summary` – Sales data
 - `top-customers` – Customer rankings
 - `inventory-status` – Stock levels
@@ -51,7 +52,7 @@ Returns `any[]` (mock data or HTTP response mapped to rows).
 ### Types
 
 ```typescript
-type QueryParameterKey = 'StartDate' | 'EndDate' | 'Group' | 'SubGroup';
+type QueryParameterKey = "StartDate" | "EndDate" | "Group" | "SubGroup";
 
 interface QueryParameterValues {
   StartDate?: string;
@@ -71,10 +72,10 @@ const global = queryState.getGlobalParams();
 
 // Set
 queryState.setGlobalParams({
-  StartDate: '2025-01-01',
-  EndDate: '2025-01-31',
-  Group: 'Sales',
-  SubGroup: 'West'
+  StartDate: "2025-01-01",
+  EndDate: "2025-01-31",
+  Group: "Sales",
+  SubGroup: "West",
 });
 ```
 
@@ -85,11 +86,11 @@ Override global params for individual queries.
 ```typescript
 // Set
 queryState.setQueryParams(queryId, {
-  StartDate: '2025-02-01' // Override global StartDate
+  StartDate: "2025-02-01", // Override global StartDate
 });
 
 // Get effective (global + overrides)
-const params = queryState.getEffectiveParams(queryId, 'unique');
+const params = queryState.getEffectiveParams(queryId, "unique");
 ```
 
 ### Modes
@@ -130,13 +131,13 @@ Selected query instance:
 
 ```typescript
 interface QueryConfigurationItem {
-  id: string;              // Unique instance ID
-  apiId: string;           // Links to QueryDefinition
-  name: string;            // Display name
+  id: string; // Unique instance ID
+  apiId: string; // Links to QueryDefinition
+  name: string; // Display name
   parameters: QueryParameterValues;
   targetSheet: string;
   targetTable: string;
-  writeMode: 'overwrite' | 'append';
+  writeMode: "overwrite" | "append";
   includeInBatch: boolean;
 }
 ```
@@ -147,22 +148,22 @@ interface QueryConfigurationItem {
 // Save
 const config: QueryConfiguration = {
   id: crypto.randomUUID(),
-  name: 'Monthly Sales Report',
+  name: "Monthly Sales Report",
   selectedQueries: [
     {
       id: crypto.randomUUID(),
-      apiId: 'sales-summary',
-      name: 'Sales Summary',
-      parameters: { Group: 'Sales' },
-      targetSheet: 'SalesData',
-      targetTable: 'tbl_Sales',
-      writeMode: 'overwrite',
-      includeInBatch: true
-    }
+      apiId: "sales-summary",
+      name: "Sales Summary",
+      parameters: { Group: "Sales" },
+      targetSheet: "SalesData",
+      targetTable: "tbl_Sales",
+      writeMode: "overwrite",
+      includeInBatch: true,
+    },
   ],
-  globalParameters: { StartDate: '2025-01-01', EndDate: '2025-01-31' },
+  globalParameters: { StartDate: "2025-01-01", EndDate: "2025-01-31" },
   createdAt: Date.now(),
-  modifiedAt: Date.now()
+  modifiedAt: Date.now(),
 };
 
 configService.saveConfiguration(config);
@@ -242,9 +243,9 @@ const result = await excelService.upsertQueryTable(query, rows, params);
 
 if (result.ok) {
   const location: QueryRunLocation = result.value;
-  console.log('Written to:', location.sheetName, location.tableName);
+  console.log("Written to:", location.sheetName, location.tableName);
 } else {
-  console.error('Failed:', result.error.message);
+  console.error("Failed:", result.error.message);
 }
 ```
 
@@ -286,6 +287,7 @@ if (lastRun?.location) {
 ### Context
 
 Events include:
+
 - `queryId`
 - `mode` ('global' / 'unique')
 - `rowCount`
@@ -297,6 +299,7 @@ Events include:
 ### Workbook Logging
 
 When enabled in Settings, events written to `_Extension_Log` table:
+
 - Timestamp
 - Level (info/error)
 - Operation (query.run, etc.)
@@ -317,7 +320,7 @@ interface QueryUiConfig {
 }
 
 interface QueryUiActionConfig {
-  type: 'run-query' | 'go-to-table' | 'show-details';
+  type: "run-query" | "go-to-table" | "show-details";
   labelKey: string;
   iconName?: UiIconName;
   variant?: UiButtonVariant;
@@ -328,16 +331,16 @@ interface QueryUiActionConfig {
 
 ```typescript
 const query: QueryDefinition = {
-  id: 'sales-summary',
+  id: "sales-summary",
   // ...
   uiConfig: {
-    badgeLabelKey: 'query.badge.adminOnly',
+    badgeLabelKey: "query.badge.adminOnly",
     actions: [
-      { type: 'run-query', labelKey: 'query.action.run', variant: 'primary' },
-      { type: 'go-to-table', labelKey: 'query.action.goToTable', variant: 'default' },
-      { type: 'show-details', labelKey: 'query.action.details', variant: 'default' }
-    ]
-  }
+      { type: "run-query", labelKey: "query.action.run", variant: "primary" },
+      { type: "go-to-table", labelKey: "query.action.goToTable", variant: "default" },
+      { type: "show-details", labelKey: "query.action.details", variant: "default" },
+    ],
+  },
 };
 ```
 

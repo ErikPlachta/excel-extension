@@ -5,6 +5,7 @@ Angular 20 task-pane add-in for Excel. Standalone components, Office.js wrapper,
 ## Core Services
 
 ### ExcelService (`src/app/core/excel.service.ts`)
+
 **Low-level Office.js wrapper**
 
 - `isExcel` – Guard for Excel host detection
@@ -15,6 +16,7 @@ Angular 20 task-pane add-in for Excel. Standalone components, Office.js wrapper,
 - Office.js types remain `any` at boundary
 
 ### WorkbookService (`src/app/core/workbook.service.ts`)
+
 **Workbook abstraction & ownership model**
 
 - `getSheets()` → `WorkbookTabInfo[]`
@@ -27,6 +29,7 @@ Angular 20 task-pane add-in for Excel. Standalone components, Office.js wrapper,
 **Ownership:** Metadata stored in hidden `_Extension_Ownership` sheet. Extension only mutates managed tables. User table name conflicts → create suffixed alternate.
 
 ### AuthService (`src/app/core/auth.service.ts`)
+
 **Mocked SSO & role management**
 
 - `isAuthenticated`, `user`, `roles`
@@ -35,6 +38,7 @@ Angular 20 task-pane add-in for Excel. Standalone components, Office.js wrapper,
 - `localStorage` persistence
 
 ### TelemetryService (`src/app/core/telemetry.service.ts`)
+
 **Centralized logging**
 
 - Console + optional in-workbook table
@@ -43,6 +47,7 @@ Angular 20 task-pane add-in for Excel. Standalone components, Office.js wrapper,
 - `normalizeError()` for Excel operations → `ExcelOperationResult`
 
 ### SettingsService (`src/app/core/settings.service.ts`)
+
 **App-wide settings**
 
 - `AppSettings.telemetry` → `TelemetrySettings`
@@ -50,35 +55,76 @@ Angular 20 task-pane add-in for Excel. Standalone components, Office.js wrapper,
 - `localStorage` persistence with defaults merge
 
 ### AppContextService (`src/app/core/app-context.service.ts`)
+
 **Host & auth context**
 
 - `hostStatus` → `{isExcel, isOnline}`
 - `getAuthSummary()` → `{isAuthenticated, displayName, roles}`
 
+### AppConfigService (`src/app/core/app-config.service.ts`) - NEW Phase 2
+
+**Observable config management with remote loading**
+
+- `config$: Observable<AppConfig>` – Reactive config stream (BehaviorSubject)
+- `getConfig()` → `AppConfig` – Synchronous snapshot
+- `setConfig(config)` – Replace entire config
+- `mergeConfig(partial)` – Shallow merge partial config
+- `loadRemoteConfig(url)` → `Promise<boolean>` – HTTP fetch + validate + merge
+- `reloadConfig(url)` → `Promise<boolean>` – Hot-reload from remote endpoint
+
+**Features:**
+- Validates config via `ConfigValidatorService` before applying
+- Deep merges nested structures (apiCatalog, text)
+- Falls back to defaults on fetch/validation failure
+- Enables hot-reload without app restart
+- All services subscribe to `config$` for reactive updates
+
+### ConfigValidatorService (`src/app/core/config-validator.service.ts`) - NEW Phase 2
+
+**Config validation**
+
+- `validate(config)` → `ValidationResult` – Check required fields + structure
+- `validateOrThrow(config)` – Fail-fast validation
+
+**Validates:**
+- Required fields: `defaultViewId`, `navItems`, `roles`, `rootIdsAndClasses`
+- NavItems structure: `id`, `labelKey`, `actionType` present
+- ApiCatalog structure: `id`, `name`, `parameters[]` present
+- Text catalog structure: required sections exist
+
 ## API vs Query Architecture (Phase 1)
 
 **Key Distinction:**
+
 - **ApiDefinition** (`src/app/types/api.types.ts`) = Catalog entry describing available data source
 - **QueryInstance** (`src/app/types/query.types.ts`) = Configured instance with specific parameters + Excel target
 - **QueryConfiguration** (`src/app/types/query-configuration.types.ts`) = Collection of QueryInstances (saved report)
 
 **Flow:**
+
 1. User browses **API Catalog** (available data sources)
 2. User creates **Query Instance** from API with specific parameters
 3. User optionally saves multiple instances as **Query Configuration** (reusable report)
 
 ## Query Services
 
-### ApiCatalogService (`src/app/shared/api-catalog.service.ts`) - NEW Phase 1
-**API catalog management**
+### ApiCatalogService (`src/app/shared/api-catalog.service.ts`) - Phase 1 + Phase 2
 
-- `getApis()` → `ApiDefinition[]` (all available APIs)
-- `getApiById(id)` → `ApiDefinition | undefined`
-- `getApisByRole(roles)` → `ApiDefinition[]` (filtered by user roles)
-- Read-only catalog, hardcoded in Phase 1 (Phase 2: loads from config)
-- Separates API definitions from execution logic
+**API catalog management (config-driven)**
+
+- `apis$: Observable<ApiDefinition[]>` – Reactive API stream from config **[Phase 2]**
+- `getApis()` → `ApiDefinition[]` – Synchronous snapshot from config **[Phase 2]**
+- `getApiById(id)` → `ApiDefinition | undefined` – Lookup by ID
+- `getApisByRole(roles)` → `ApiDefinition[]` – Filter by user roles (synchronous)
+- `getApisByRole$(roles)` → `Observable<ApiDefinition[]>` – Filter by roles (reactive) **[Phase 2]**
+
+**Phase 2 changes:**
+- Loads APIs from `AppConfigService.config$.apiCatalog` instead of hardcoded array
+- Reactive updates when config changes (hot-reload support)
+- Kept synchronous methods for backward compatibility
 
 ### QueryApiMockService (`src/app/shared/query-api-mock.service.ts`)
+
 **API execution (mock implementation)**
 
 - `executeApi(apiId, params)` → `Promise<any[]>` **[NEW Phase 1]**
@@ -88,6 +134,7 @@ Angular 20 task-pane add-in for Excel. Standalone components, Office.js wrapper,
 - Injected `ApiCatalogService` for validation
 
 ### QueryStateService (`src/app/shared/query-state.service.ts`)
+
 **Parameters & runs**
 
 - `globalParams` – Shared parameters (StartDate, EndDate, Group, SubGroup)
@@ -99,6 +146,7 @@ Angular 20 task-pane add-in for Excel. Standalone components, Office.js wrapper,
 - `localStorage` persistence
 
 ### QueryConfigurationService (`src/app/shared/query-configuration.service.ts`)
+
 **Reusable configurations**
 
 - `QueryConfiguration` – Named config with selected queries, parameter snapshots, workbook identity
@@ -107,6 +155,7 @@ Angular 20 task-pane add-in for Excel. Standalone components, Office.js wrapper,
 - **Phase 1:** Validates apiIds against `ApiCatalogService` on save
 
 ### QueryQueueService (`src/app/shared/query-queue.service.ts`)
+
 **Sequential execution**
 
 - Runs queries one at a time (prevent resource contention)
@@ -138,6 +187,7 @@ User → QueryHomeComponent
 ## Navigation
 
 State-based in `AppComponent`:
+
 - `currentView: ViewId` – No URL changes in Excel
 - Routes in `src/app/core/app.routes.ts` for browser usage
 - Nav driven by `AppConfig.navItems` from `src/app/shared/app-config.default.ts`
@@ -145,6 +195,7 @@ State-based in `AppComponent`:
 ## UI Primitives
 
 `src/app/shared/ui/`:
+
 - `ButtonComponent` – `variant`, `size`, `iconName`
 - `StatusBannerComponent` – `type`, `title`, `message`
 - `TableComponent` – `columns: UiTableColumnDef[]`, `rows: T[]`
@@ -156,21 +207,35 @@ State-based in `AppComponent`:
 
 ## Data-Driven Config
 
-### AppConfig (`src/app/shared/app-config.default.ts`)
+### AppConfig (`src/app/shared/app-config.default.ts`) - Phase 2 Enhanced
+
+**Structure-driven shell configuration:**
+
 - `navItems: NavItemConfig[]` – Nav structure, roles, actions
 - `defaultViewId` – Initial view
 - `rootIdsAndClasses` – DOM IDs/classes for shell elements
 - `ui.viewLayout` – Per-view layout hints
+- `apiCatalog?: ApiDefinition[]` – Available APIs for queries **[Phase 2]**
+- `text?: TextCatalog` – All UI strings **[Phase 2]**
 
-### APP_TEXT (`src/app/shared/app-text.ts`)
-- `nav` – Nav labels
-- `auth` – Sign-in/out button text
-- `userBanner` – User banner fallback
-- `hostStatus` – Excel detection messages
+**Phase 2: Text Catalog (`AppConfig.text`)**
+
+Replaced standalone `APP_TEXT` with nested config structure:
+
+- `text.nav` – Nav labels (e.g., "ssoHome", "worksheets")
+- `text.auth` – Sign-in/out button text
+- `text.query`, `text.worksheet`, `text.table`, `text.user` – Feature-specific text
+- `text.hostStatus` – Excel detection messages
+- `text.userBanner` – User banner fallback
+- `text.role` – Role definitions (analyst, admin)
+- `text.ui` – General UI text
+
+**Access:** Components use `AppConfigService.getConfig().text` instead of importing `APP_TEXT`
 
 ## Types
 
 `src/app/types/`:
+
 - `auth.types.ts` – `AuthState`, role types
 - `query.types.ts` – `QueryDefinition`, `QueryParameter`, `QueryRun`, `QueryRunLocation`
 - `app-config.types.ts` – `AppConfig`, `NavItemConfig`, `RoleDefinition`, `ViewId`, `RoleId`
@@ -181,6 +246,7 @@ State-based in `AppComponent`:
 ## Office.js Integration
 
 **Pattern:**
+
 ```typescript
 async ngOnInit() {
   if (!this.excel.isExcel) return;
@@ -192,6 +258,7 @@ async ngOnInit() {
 ```
 
 **Rules:**
+
 - Always gate on `ExcelService.isExcel`
 - Prefer `WorkbookService` for workbook operations
 - Use `Excel.run(ctx => ...)` with `ctx.sync()` after `load()`

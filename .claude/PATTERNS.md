@@ -3,6 +3,7 @@
 ## Adding a Nav Item
 
 1. **Update config** (`src/app/shared/app-config.default.ts`):
+
 ```typescript
 {
   id: 'foo',
@@ -16,43 +17,48 @@
 ```
 
 2. **Add text** (`src/app/shared/app-text.ts`):
+
 ```typescript
 nav: {
   // ...
-  foo: 'Foo View'
+  foo: "Foo View";
 }
 ```
 
 3. **Create component** (`src/app/features/foo/foo.component.ts`):
+
 ```typescript
-import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component } from "@angular/core";
+import { CommonModule } from "@angular/common";
 
 @Component({
-  selector: 'app-foo',
+  selector: "app-foo",
   standalone: true,
   imports: [CommonModule],
-  templateUrl: './foo.component.html',
-  styleUrl: './foo.component.css'
+  templateUrl: "./foo.component.html",
+  styleUrl: "./foo.component.css",
 })
 export class FooComponent {}
 ```
 
 4. **Wire to shell** (`src/app/core/app.component.ts`):
-Add case to `selectView()` switch or template.
+   Add case to `selectView()` switch or template.
 
 ## Adding a Routed View
 
 1. Create standalone component with `templateUrl`/`styleUrl`
 2. Add route to `src/app/core/app.routes.ts`:
+
 ```typescript
 { path: 'foo', component: FooComponent }
 ```
+
 3. Link via `<a routerLink="/foo">Foo</a>`
 
 ## Excel Operations
 
 ### Safe Query Execution
+
 ```typescript
 async runQuery(query: QueryDefinition) {
   if (!this.excel.isExcel) {
@@ -77,6 +83,7 @@ async runQuery(query: QueryDefinition) {
 ```
 
 ### Navigation
+
 ```typescript
 async goToTable(queryId: string) {
   if (!this.excel.isExcel) return;
@@ -91,30 +98,28 @@ async goToTable(queryId: string) {
 ## Telemetry
 
 ### Log Event
+
 ```typescript
 this.telemetry.logEvent({
-  category: 'query',
-  name: 'run',
-  severity: 'info',
+  category: "query",
+  name: "run",
+  severity: "info",
   message: `Query ${query.id} executed successfully`,
   context: {
     queryId: query.id,
     rowCount: rows.length,
-    mode: 'global'
-  }
+    mode: "global",
+  },
 });
 ```
 
 ### Error Normalization
+
 ```typescript
 try {
   // Excel operation
 } catch (error) {
-  const result = this.telemetry.normalizeError(
-    error,
-    'upsertQueryTable',
-    { queryId: query.id }
-  );
+  const result = this.telemetry.normalizeError(error, "upsertQueryTable", { queryId: query.id });
   console.error(result.error.message);
 }
 ```
@@ -122,6 +127,7 @@ try {
 ## UI Primitives
 
 ### Button
+
 ```typescript
 <app-button
   [label]="text.nav.queries"
@@ -134,6 +140,7 @@ try {
 ```
 
 ### Table
+
 ```typescript
 columns: UiTableColumnDef[] = [
   { key: 'name', label: 'Name', sortable: true },
@@ -148,6 +155,7 @@ columns: UiTableColumnDef[] = [
 ```
 
 ### Section
+
 ```typescript
 <app-section
   [title]="'Global Parameters'"
@@ -157,6 +165,7 @@ columns: UiTableColumnDef[] = [
 ```
 
 ### Status Banner
+
 ```typescript
 <app-status-banner
   [type]="'warning'"
@@ -168,6 +177,7 @@ columns: UiTableColumnDef[] = [
 ## Role Checks
 
 ### Component
+
 ```typescript
 ngOnInit() {
   this.canRun = this.auth.hasAnyRole(['analyst', 'admin']);
@@ -175,6 +185,7 @@ ngOnInit() {
 ```
 
 ### Template
+
 ```html
 <div *ngIf="auth.hasRole('admin')">
   <!-- Admin-only content -->
@@ -184,63 +195,67 @@ ngOnInit() {
 ## Parameter Management
 
 ### Global Parameters
+
 ```typescript
 // Get
 const global = this.queryState.getGlobalParams();
 
 // Set
 this.queryState.setGlobalParams({
-  StartDate: '2025-01-01',
-  EndDate: '2025-01-31',
-  Group: 'Sales',
-  SubGroup: 'West'
+  StartDate: "2025-01-01",
+  EndDate: "2025-01-31",
+  Group: "Sales",
+  SubGroup: "West",
 });
 ```
 
 ### Per-Query Overrides
+
 ```typescript
 // Get effective params (global + overrides)
-const params = this.queryState.getEffectiveParams(queryId, 'unique');
+const params = this.queryState.getEffectiveParams(queryId, "unique");
 
 // Set override
 this.queryState.setQueryParams(queryId, {
-  StartDate: '2025-02-01'
+  StartDate: "2025-02-01",
 });
 ```
 
 ## Configuration Management
 
 ### Create Configuration
+
 ```typescript
 const config: QueryConfiguration = {
   id: crypto.randomUUID(),
-  name: 'Monthly Sales Report',
-  description: 'Sales queries for monthly review',
+  name: "Monthly Sales Report",
+  description: "Sales queries for monthly review",
   selectedQueries: [
     {
       id: crypto.randomUUID(),
-      apiId: 'sales-summary',
-      name: 'Sales Summary',
-      parameters: { Group: 'Sales' },
-      targetSheet: 'SalesData',
-      targetTable: 'tbl_Sales',
-      writeMode: 'overwrite',
-      includeInBatch: true
-    }
+      apiId: "sales-summary",
+      name: "Sales Summary",
+      parameters: { Group: "Sales" },
+      targetSheet: "SalesData",
+      targetTable: "tbl_Sales",
+      writeMode: "overwrite",
+      includeInBatch: true,
+    },
   ],
   globalParameters: this.queryState.getGlobalParams(),
-  workbookIdentity: 'monthly-report.xlsx',
+  workbookIdentity: "monthly-report.xlsx",
   createdAt: Date.now(),
-  modifiedAt: Date.now()
+  modifiedAt: Date.now(),
 };
 
 this.configService.saveConfiguration(config);
 ```
 
 ### Load Configuration
+
 ```typescript
 const configs = this.configService.getConfigurations();
-const config = configs.find(c => c.id === configId);
+const config = configs.find((c) => c.id === configId);
 if (config) {
   // Apply to state
   this.queryState.setGlobalParams(config.globalParameters);
@@ -249,7 +264,7 @@ if (config) {
 
 ## TSDoc Standards
 
-```typescript
+````typescript
 /**
  * Executes a query and writes results to Excel table.
  *
@@ -276,4 +291,4 @@ async upsertQueryTable(
   rows: any[],
   params: ExecuteQueryParams
 ): Promise<ExcelOperationResult<QueryRunLocation>>
-```
+````

@@ -4,6 +4,7 @@
  */
 
 import { UiLayoutHints } from "./ui/primitives.types";
+import { ApiDefinition } from "./api.types";
 
 /**
  * Known User Role identifiers in the system.
@@ -76,6 +77,43 @@ export interface RoleDefinition {
 }
 
 /**
+ * Text catalog structure for UI strings (Phase 2).
+ */
+export interface TextCatalog {
+  /** Navigation-related text */
+  nav: Record<string, string>;
+  /** Authentication-related text */
+  auth: Record<string, string>;
+  /** Query-related text */
+  query: Record<string, string>;
+  /** Worksheet-related text */
+  worksheet: Record<string, string>;
+  /** Table-related text */
+  table: Record<string, string>;
+  /** User/settings-related text */
+  user: Record<string, string>;
+  /** Role definitions */
+  role?: Record<string, { label: string; description: string }>;
+  /** Host status text (Excel detection, online/offline) */
+  hostStatus?: {
+    excelNotDetectedLabel?: string;
+    excelNotDetectedMessage?: string;
+    excelConnectedLabel?: string;
+    onlineLabel?: string;
+    offlineLabel?: string;
+    offlineMessage?: string;
+    [key: string]: string | undefined;
+  };
+  /** User banner text */
+  userBanner?: {
+    noRolesAssigned?: string;
+    [key: string]: string | undefined;
+  };
+  /** General UI text (can be nested) */
+  ui: Record<string, any>;
+}
+
+/**
  * Root application configuration driving nav, roles, and DOM ids/classes.
  */
 export interface AppConfig {
@@ -114,4 +152,8 @@ export interface AppConfig {
     /** Optional per-view layout hints consumed by section/card primitives. */
     viewLayout?: Partial<Record<ViewId, UiLayoutHints>>;
   };
+  /** API Catalog - Available data source APIs (Phase 2) */
+  apiCatalog?: ApiDefinition[];
+  /** Text Catalog - All UI strings (Phase 2) */
+  text?: TextCatalog;
 }
