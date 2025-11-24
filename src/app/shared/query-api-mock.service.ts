@@ -165,7 +165,8 @@ export class QueryApiMockService {
     {
       id: "user-demographics",
       name: "User Demographics",
-      description: "Comprehensive user demographic data with 25 columns and 5000 rows from randomuser.me.",
+      description:
+        "Comprehensive user demographic data with 25 columns and 5000 rows from randomuser.me.",
       parameterKeys: [],
       parameters: [],
       defaultSheetName: "User_Demographics",
@@ -918,9 +919,7 @@ export class QueryApiMockService {
           amount: Math.random() * 10000,
           currency: ["USD", "EUR", "GBP", "JPY"][Math.floor(Math.random() * 4)],
           status: ["completed", "pending", "failed"][Math.floor(Math.random() * 3)],
-          category: ["retail", "food", "transport", "entertainment"][
-            Math.floor(Math.random() * 4)
-          ],
+          category: ["retail", "food", "transport", "entertainment"][Math.floor(Math.random() * 4)],
           merchant: `Merchant-${Math.floor(Math.random() * 100)}`,
           paymentMethod: ["credit", "debit", "cash", "crypto"][Math.floor(Math.random() * 4)],
           score: Math.random() * 100,
