@@ -1,6 +1,6 @@
 # ExcelExtension
 
-Task pane add-in for Excel built with Angular 20 and standalone components. The Angular app runs inside the Office task pane and integrates with Excel via `ExcelService` and the Office.js runtime.
+This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 19.2.7.
 
 ## Development server
 
@@ -19,6 +19,20 @@ To build in watch mode:
 npm run watch
 ```
 
+## Code scaffolding
+
+Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+
+```bash
+ng generate component component-name
+```
+
+For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+
+```bash
+ng generate --help
+```
+
 ## Building
 
 Create a production build:
@@ -29,99 +43,59 @@ npm run build
 
 Artifacts are emitted to `dist/excel-extension/browser` (Angular application builder). Production is the default configuration.
 
-## Architecture
-
-- `src/app` – Angular task pane shell and views
-  - `app.component.*` – SPA shell with state-based navigation (SSO, Worksheets, Tables)
-  - `sso-home.component.*` – mocked SSO experience (sign-in/out, fake user)
-  - `worksheets.component.*` / `tables.component.*` – Excel data views using `ExcelService`
-  - `excel.service.ts` – wrapper around Office.js (`Excel.run`) exposing `isExcel` and helpers
-- `src/commands`
-  - `commands.html` – entry page for ribbon commands, loads Office.js and `commands.js`
-  - `commands.ts` – basic command handlers wired with `Office.actions.associate("showTaskpane", onShowTaskpane)`
-- `src/helpers`
-  - `sso-helper.ts` – helper for mocked SSO: returns fake auth result, access token, and user profile
-- `src/middle-tier`
-  - `app.ts` – stubbed middle-tier functions (`fetchTokenFromMiddleTier`, `getUserProfileFromGraph`) used by the SSO helper
-- `dev-manifest.xml` / `prod-manifest.xml` – Office add-in manifests for local dev and GitHub Pages deployment
-
 ## Deployment
 
 This repository includes a GitHub Actions workflow that builds the project and deploys the generated files to **GitHub Pages**. Any push to the `main` branch triggers the workflow. The workflow uses a custom composite action located in `.github/actions/deploy` to install dependencies, build the Angular application (with `--base-href /excel-extension/`), and publish the contents of `dist/excel-extension/browser` to the `gh-pages` branch.
 
 No additional configuration is required; the workflow uses the built-in `GITHUB_TOKEN` to authenticate.
 
-## Testing
+## Running unit tests
 
-Run unit tests with Karma/Jasmine in interactive/watch mode:
+Run unit tests with Karma/Jasmine:
 
 ```bash
 npm test
 ```
 
-For CI/headless runs (single pass, no watch) use:
+Note: Office/Excel globals are undefined in Karma. Code paths are guarded behind `ExcelService.isExcel` to keep tests passing.
 
-```bash
-npm run test:ci
-```
+## Running end-to-end tests
 
-To capture full Jasmine failure output for later inspection or AI-assisted debugging, you can pipe the CI run to a log file:
-
-```bash
-npm run test:ci > test-results.log 2>&1
-```
-
-Linters and formatters:
-
-```bash
-npm run lint
-npm run lint:office
-npm run lint:office:fix
-npm run prettier
-```
-
-Note: Office/Excel globals are undefined in Karma. Code paths are guarded behind `ExcelService.isExcel` (and the Office checks in `main.ts`) so tests can run outside Excel.
+This template does not include an e2e framework by default. Choose and configure one as needed.
 
 ## Excel integration and sideloading
 
 - Office.js is included via script tag in `src/index.html` and `public/index.html`.
 - The `ExcelService` (`src/app/excel.service.ts`) wraps `Excel.run(...)` and exposes `isExcel` to safely detect the Excel host.
 - Manifests:
-  - `dev-manifest.xml` — local development against `https://localhost:4200/` (Angular dev server).
-  - `prod-manifest.xml` — production/deployed site at `https://Erikplachta.github.io/excel-extension/`.
+  - `dev-manifest.xml` — local development against `<http://localhost:4200/>`.
+  - `prod-manifest.xml` — production/deployed site at `<https://Erikplachta.github.io/excel-extension/>`.
 
-Local dev & sideload (recommended HTTPS flow):
+To sideload against the local dev server, edit `dev-manifest.xml`:
 
-```bash
-npm ci
-npm run dev-certs   # one-time per machine
-npm run start:dev   # HTTPS dev server at https://localhost:4200/
+```xml
+<DefaultSettings>
+  <SourceLocation DefaultValue="http://localhost:4200/index.html"/>
+</DefaultSettings>
+<AppDomains>
+  <AppDomain>http://localhost:4200</AppDomain>
+  <AppDomain>http://127.0.0.1:4200</AppDomain>
+</AppDomains>
 ```
 
-Then, in Excel (desktop):
+For GitHub Pages deployment, use `prod-manifest.xml` which points to the deployed site. If needed, confirm `SourceLocation`:
 
-1. Ensure the dev server is running (`npm start` for HTTP or `npm run start:dev` for HTTPS).
-2. Go to **Insert → My Add-ins → Upload My Add-in**.
-3. Select `dev-manifest.xml` from this repo.
-4. The task pane loads the Angular app from the dev server; Office.js calls go through `ExcelService`.
-
-You can validate the dev manifest at any time with:
-
-```bash
-npm run validate:dev-manifest
+```xml
+<SourceLocation DefaultValue="https://Erikplachta.github.io/excel-extension/index.html"/>
 ```
 
-For GitHub Pages, use `prod-manifest.xml`, which points to the deployed site. The deploy workflow already sets `--base-href /excel-extension/` at build time.
+The deploy workflow already sets the required `--base-href /excel-extension/` at build time.
 
-## Telemetry and logging
+Sideload steps in Excel (Mac/Windows):
 
-Telemetry for this extension is centralized in `TelemetryService` under `src/app/core/telemetry.service.ts` and configured via `TelemetrySettings` on `AppSettings` (see `SettingsService`).
-
-- **Console logging:** When `enableConsoleLogging` is true in settings, application events (queries, workbook operations, and other features) are logged to the browser/Excel console with enriched context (session id, host status, auth summary).
-- **In-workbook log table:** When `enableWorkbookLogging` is enabled and the host is Excel, a best-effort log of key operations is appended to a configurable worksheet/table (default `_Extension_Log` / `_Extension_Log_Table`). This is primarily useful for troubleshooting query runs and workbook ownership behavior directly inside Excel.
-- **Error normalization:** Excel/Office.js operations return a typed `ExcelOperationResult`/`ExcelErrorInfo` instead of throwing raw errors, making it easier for components to show clear error messages while telemetry records structured details.
-
-For a deeper description of event shapes, sinks, and where telemetry is emitted, see the "Application telemetry" section in `CONTEXT-SESSION.md`.
+1. Start the dev server: `npm start`
+2. Excel → Insert → My Add-ins → Upload My Add-in → select `dev-manifest.xml` (for prod testing, use `prod-manifest.xml`).
+3. The task pane will load from the specified `SourceLocation`.
 
 ## Additional Resources
 

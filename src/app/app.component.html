@@ -1,45 +1,7 @@
-<div [class]="rootShellClass">
-  <nav [class]="appConfig.rootIdsAndClasses.navClass">
-    <app-button
-      *ngFor="let item of appConfig.navItems"
-      [id]="item.domId"
-      [label]="getNavLabel(item.labelKey)"
-      [variant]="item.buttonVariant ?? appConfig.ui?.navButtonVariant ?? 'primary'"
-      [size]="item.buttonSize ?? appConfig.ui?.navButtonSize ?? 'md'"
-      [disabled]="!canAccessNav(item)"
-      (clicked)="handleNavClick(item)"
-    ></app-button>
-  </nav>
-
-  <section class="content">
-    <app-section
-      [title]="text.views.sso.title"
-      *ngIf="currentView === 'sso'"
-      [variant]="getSectionVariantFor('sso')"
-    >
-      <app-sso-home></app-sso-home>
-    </app-section>
-
-    <app-section
-      [title]="text.views.worksheets.title"
-      *ngIf="currentView === 'worksheets'"
-      [variant]="getSectionVariantFor('worksheets')"
-    >
-      <app-worksheets></app-worksheets>
-    </app-section>
-
-    <app-section
-      [title]="text.views.tables.title"
-      *ngIf="currentView === 'tables'"
-      [variant]="getSectionVariantFor('tables')"
-    >
-      <app-tables></app-tables>
-    </app-section>
-  </section>
-
-  <app-status-banner
-    [type]="hostStatus.isExcel ? (appConfig.ui?.hostStatusBannerType ?? 'info') : 'warning'"
-    [title]="hostStatus.isExcel ? '' : text.hostStatus.excelNotDetectedLabel"
-    [message]="hostStatus.isExcel ? '' : text.hostStatus.excelNotDetectedMessage"
-  ></app-status-banner>
-</div>
+<nav class="mobile-nav">
+  <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}">Home</a>
+  <a routerLink="/worksheets" routerLinkActive="active">Worksheets</a>
+  <a routerLink="/tables" routerLinkActive="active">Tables</a>
+  <span class="status">{{ excel.isExcel ? 'Excel' : 'No Excel' }}</span>
+</nav>
+<router-outlet></router-outlet>
