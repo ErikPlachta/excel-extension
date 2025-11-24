@@ -1,7 +1,7 @@
 import { Injectable } from "@angular/core";
 import { BehaviorSubject } from "rxjs";
 import { ExecuteQueryParams, QueryApiMockService } from "./query-api-mock.service";
-import { QueryDefinition, QueryRun } from "./query-model";
+import { ApiDefinition, QueryDefinition, QueryRun } from "./query-model";
 import type { QueryParameterValues } from "../types";
 
 /**
@@ -12,6 +12,12 @@ import type { QueryParameterValues } from "../types";
  * latest value via {@link QueryStateService.snapshot}.
  */
 export interface QueryStateSnapshot {
+  /**
+   * Master catalog of API-style definitions that can be invoked as
+   * queries. This is the same shape as {@link ApiDefinition}; we keep
+   * the older {@link QueryDefinition} name here until the rest of the
+   * app is migrated to API-centric terminology.
+   */
   queries: QueryDefinition[];
   lastParams: Record<string, ExecuteQueryParams>;
   lastRuns: Record<string, QueryRun | undefined>;

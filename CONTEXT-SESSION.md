@@ -51,7 +51,7 @@ When updating planning/checklist docs (like `TODO.md` or this file), treat expli
 
 ### Current Queries behavior (baseline)
 
-The current Queries view presents a **flat list of query definitions** driven by `QueryDefinition` catalog entries from `QueryApiMockService`. Each definition describes an API-style data operation (id, name, description, parameter keys, default sheet/table names, allowed roles, and UI config), and the view renders one row per definition without any per-workbook selection layer yet.
+The current Queries view presents a **flat list of API definitions** driven by `QueryDefinition` catalog entries from `QueryApiMockService`. In the code, this catalog shape is also aliased as `ApiDefinition` to make the distinction between the API itself and per-workbook configurations clearer. Each definition describes an API-style data operation (id, name, description, parameter keys, default sheet/table names, allowed roles, and UI config), and the view renders one row per definition without any per-workbook selection layer yet.
 
 Parameter management is **data driven and split into global vs per-query** state via `QueryStateService`:
 

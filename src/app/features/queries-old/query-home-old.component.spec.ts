@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from "@angular/core/testing";
-import { QueryHomeComponent } from "./query-home-old.component";
+import { QueryHomeOldComponent } from "./query-home-old.component";
 import { AuthService, ExcelService, TelemetryService } from "../../core";
 import {
   ExecuteQueryParams,
@@ -29,9 +29,9 @@ class TelemetryServiceStub {
   }
 }
 
-describe("QueryHomeComponent role visibility and execution", () => {
-  let fixture: ComponentFixture<QueryHomeComponent>;
-  let component: QueryHomeComponent;
+describe("QueryHomeOldComponent role visibility and execution", () => {
+  let fixture: ComponentFixture<QueryHomeOldComponent>;
+  let component: QueryHomeOldComponent;
   let authStub: AuthServiceStub;
   let excelStub: { isExcel: boolean; upsertQueryTable: jasmine.Spy };
   let apiStub: jasmine.SpyObj<QueryApiMockService>;
@@ -72,7 +72,7 @@ describe("QueryHomeComponent role visibility and execution", () => {
     telemetryStub = new TelemetryServiceStub();
 
     await TestBed.configureTestingModule({
-      imports: [QueryHomeComponent],
+      imports: [QueryHomeOldComponent],
       providers: [
         { provide: AuthService, useValue: authStub },
         { provide: ExcelService, useValue: excelStub },
@@ -82,7 +82,7 @@ describe("QueryHomeComponent role visibility and execution", () => {
       ],
     }).compileComponents();
 
-    fixture = TestBed.createComponent(QueryHomeComponent);
+    fixture = TestBed.createComponent(QueryHomeOldComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

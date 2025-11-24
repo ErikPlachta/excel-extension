@@ -1,4 +1,5 @@
 import { CommonModule } from "@angular/common";
+import { FormsModule } from "@angular/forms";
 import { Component } from "@angular/core";
 import { ExcelService, AuthService, AppContextService, AppHostStatus, AppAuthSummary } from ".";
 import { DEFAULT_APP_CONFIG, NavItemConfig, ViewId } from "../shared/app-config";
@@ -8,6 +9,7 @@ import { WorksheetsComponent } from "../features/worksheets/worksheets.component
 import { TablesComponent } from "../features/tables/tables.component";
 import { UserComponent } from "../features/user/user.component";
 import { QueryHomeOldComponent } from "../features/queries-old/query-home-old.component";
+import { QueriesComponent } from "../features/queries/queries.component";
 import { DebugContextComponent } from "../features/debug/debug-context.component";
 import { SettingsComponent } from "../features/settings/settings.component";
 import { ButtonComponent } from "../shared/ui/button.component";
@@ -17,12 +19,14 @@ import { ButtonComponent } from "../shared/ui/button.component";
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
     ButtonComponent,
     SsoHomeComponent,
     WorksheetsComponent,
     TablesComponent,
     UserComponent,
     QueryHomeOldComponent,
+    QueriesComponent,
     DebugContextComponent,
     SettingsComponent,
   ],

@@ -629,32 +629,57 @@ Going forward, **every new feature or meaningful code change must include TSDoc 
     - [x] Review current query-related types in `src/app/types/query.types.ts` and `src/app/shared/query-model.ts` to document the distinction between APIs (catalog entries) and queries (invocations) without changing public type names yet.
     - [x] Tighten terminology and TSDoc in `src/app/shared/query-api-mock.service.ts` so the mock data and helpers clearly model a "query" as a call against an "api" while keeping the public API stable.
     - [x] Add a short "Current Queries behavior" section to `CONTEXT-SESSION.md` describing the existing flat Queries view, parameter management, and telemetry events as a regression baseline.
-  - [ ] PHASE 1: Safety copy of existing feature
+  - [x] PHASE 1: Safety copy of existing feature
     - [x] Create a `queries-old` feature surface (for example, `QueryHomeOldComponent`) by copying the current `QueryHomeComponent` and its template/style/spec from `src/app/features/queries` into a dedicated `queries-old` folder.
     - [x] Duplicate any tightly coupled helpers or view-model logic (such as local view-model interfaces or config objects) that `QueryHomeOldComponent` relies on so it can compile independently of the new refactor.
     - [x] Add an internal-only route (e.g., `/queries-old`) in `src/app/core/app.routes.ts` that points to `QueryHomeOldComponent`, without exposing it in the main navigation.
     - [x] Run `npm test -- --watch=false --browsers=ChromeHeadless` and perform a minimal Excel smoke test to confirm the primary Queries view behaves exactly as before and that the new `/queries-old` route is functional.
-  - [ ] PHASE 2: Introduce master catalog and per-workbook selected items
-    - [ ] Update the Queries feature to show a master **API catalog** and a per-workbook **selected queries** list instead of a flat list of all queries.
-    - [ ] Ensure the same API can be selected multiple times with different query parameters and targets.
-    - [ ] When a new selected query is added, show a mini-form to define: 1) Source API, 2) Query parameters, 3) Target tab name, 4) Target table name, 5) Write mode.
-    - [ ] Once a selected query is added to the workbook, display it in the per-workbook list, separate from the master catalog.
-    - [ ] Allow users to click Details on a selected query to modify parameters, targets, write mode, and display name without breaking existing telemetry or Excel ownership behavior.
-  - [ ] PHASE 3: Named configurations and storage
-    - [ ] Design and implement a `QueryConfiguration` model that captures a named set of selected queries, parameter values (global + per-query), and rerun behaviors so a "report configuration" can be reused.
-    - [ ] Implement local storage of configurations keyed by user and workbook context, leveraging the existing auth state to keep configurations scoped to the signed-in user.
-    - [ ] Add UI affordances to create, rename, "save as", delete, and restore configurations (soft-delete) using existing UI primitives (cards, buttons, lists, status banner, table, etc.).
-    - [ ] Ensure that loading a configuration updates the selected-queries list, parameter panels, and any managed Excel tables in a predictable, observable way, with failures logged and surfaced via the host-status/banner UX.
-    - [ ] Prepare the configuration layer for a future backend API by isolating storage concerns behind a `QueryConfigurationService` (or similar) interface that can later be backed by HTTP instead of local storage.
-  - [ ] PHASE 4: Queued execution and resource management
-    - [ ] Design and implement a simple query execution queue so that only one query runs at a time, preventing resource contention in Excel and the browser.
-    - [ ] Introduce pagination and general resource-management options (for example, max rows per run, backoff/spacing between runs) to keep query execution stable under constrained environments.
-    - [ ] Integrate the queue with existing telemetry so run order, wait times, and any throttling decisions are observable for troubleshooting.
+  - [x] PHASE 2: Introduce master catalog and per-workbook selected items
+    - [x] Implement a new Queries feature surface under `src/app/features/queries` that sits alongside `queries-old`, backed by the same shared services (`QueryApiMockService`, `QueryStateService`).
+    - [x] Update the new Queries feature to show a master **API catalog** (driven by `ApiDefinition` entries from `QueryApiMockService`) and a per-workbook **selected queries** list instead of a flat list of all queries.
+    - [x] Define a `QueryConfigurationItem` (or equivalent) shape that includes at minimum: a stable `id`, `apiId` (linking to `ApiDefinition`), display name, effective parameters, target sheet/table, write mode, and include-in-batch flag.
+    - [x] Ensure the same API can be selected multiple times with different query parameters and targets by creating multiple `QueryConfigurationItem` entries that share an `apiId` but differ in params/targets.
+    - [x] When a new selected query is added, show a mini-form to define: 1) Source API, 2) Query parameters, 3) Target tab name, 4) Target table name, 5) Write mode, and create a corresponding `QueryConfigurationItem` in memory.
+    - [x] Once a selected query is added to the workbook, display it in the per-workbook list, separate from the master catalog, using existing primitives (table/list, cards) for layout.
+    - [x] Allow users to click Details on a selected query to modify parameters, targets, write mode, and display name without breaking existing telemetry or Excel ownership behavior, reusing `QueryStateService.getEffectiveParams` where appropriate.
+  - [x] PHASE 2A: Minimal type plan for API vs Query
+    - [x] Introduce an `ApiDefinition` alias in `query-model.ts` that currently maps 1:1 to `QueryDefinition`, keeping existing callers compiling while clarifying intent that this shape represents an API/catalog entry.
+    - [x] Design a host-agnostic `QueryConfiguration` type in `src/app/types` that represents a named configuration binding an `ApiDefinition` to: parameter presets, selected queries (`QueryConfigurationItem[]`), optional workbook identity/hints, write mode defaults, and optional display metadata; keep this layer free of direct Excel types.
+    - [x] Update `QueryStateService` TSDoc to describe its role as a shared state store for parameter values and last runs that can later be keyed by `QueryConfiguration` or `QueryConfigurationItem` ids instead of raw `QueryDefinition`/API ids, without changing behavior yet (still keyed by current query/api ids).
+    - [x] Add a short note to `CONTEXT-SESSION.md` under the Queries section describing the vocabulary shift (`ApiDefinition` = base API; `QueryConfiguration` = named configuration; `QueryConfigurationItem` = per-workbook selected query instance) and how the new Queries feature will sit on top of the existing `QueryApiMockService` and `QueryStateService`.
+  - [x] PHASE 3: Named configurations and storage
+    - [x] Implement a `QueryConfiguration` model (using the type from Phase 2A) that captures: a named set of `QueryConfigurationItem` entries, parameter values (global + per-query snapshot or references), rerun behaviors, and workbook identity so a "report configuration" can be reused.
+    - [x] Implement a `QueryConfigurationService` that provides CRUD operations over configurations, using local storage keyed by user and workbook context (leveraging existing auth state) as the initial persistence strategy.
+    - [x] Add UI affordances to create, rename, "save as", delete, and restore configurations (soft-delete) using existing UI primitives (cards, buttons, lists, status banner, table, etc.), wired to `QueryConfigurationService`.
+    - [x] Ensure that loading a configuration updates the selected-queries list and parameter panels in a predictable, observable way, and clearly define whether config parameters overwrite `QueryStateService` global/per-query state, remain separate, or follow a hybrid prompt strategy.
+    - [x] Ensure that configuration-driven runs still honor existing Excel ownership and telemetry behavior (`WorkbookService`, `ExcelService`, `TelemetryService`) and surface failures via the host-status/banner UX.
+    - [x] Prepare the configuration layer for a future backend API by keeping storage concerns isolated behind `QueryConfigurationService` so its implementation can later be swapped from local storage to HTTP.
+  - [x] PHASE 4: Queued execution and resource management
+    - [x] Design and implement a simple query execution queue that runs over `QueryConfigurationItem` entries (from the selected-queries list or an active `QueryConfiguration`), ensuring only one query runs at a time to prevent resource contention in Excel and the browser.
+    - [x] Introduce pagination and general resource-management options (for example, max rows per run enforced in `executeQuery`/`loadAndFilterMockRows`, backoff/spacing between runs) to keep query execution stable under constrained environments.
+    - [x] Integrate the queue with existing telemetry so run order, wait times, throttling decisions, and per-item outcomes are observable (e.g., `query.queue.enqueued`, `query.queue.started`, `query.queue.completed`, `query.queue.failed` events with configId/selectedQueryId and row counts).
   - [ ] PHASE 5: Cleanup and migration
-    - [ ] Decide when to retire `queries-old` once parity and stability are confirmed, and remove or archive it accordingly.
-    - [ ] Update `Query_Refactor.md`, `CONTEXT-SESSION.md`, and this section of `TODO.md` to reflect the final architecture and any follow-on work.
+    - [ ] Define concrete exit criteria for retiring `queries-old` (for example, all flows exercised by `QueryHomeOldComponent` have equivalent coverage in the new Queries feature, including single/batch runs, parameter management, and go-to-table behavior).
+    - [ ] Once parity and stability are confirmed, remove or archive `queries-old` (feature folder, route, component imports) so only the new Queries implementation remains wired into `AppComponent`/navigation.
+    - [ ] Update `Query_Refactor.md`, `CONTEXT-SESSION.md`, and this section of `TODO.md` to collapse planning into a "final architecture" summary and mark Phase 0/1 tasks as historical context.
 
-### 13. Resolve NPM I Issues
+### 13. Onboard Service Worker
+
+- [ ] **Implement Service Worker for PWA capabilities**
+  - [ ] Research and select an appropriate Angular service worker package (e.g., `@angular/service-worker`).
+  - [ ] Configure the service worker to cache essential assets and API responses for offline functionality.
+  - [ ] Test the service worker in various scenarios (online, offline, slow network) to ensure it behaves as expected.
+  - [ ] Document the service worker setup and configuration in `CONTEXT-SESSION.md` for future reference.
+
+- [ ] **Enhance PWA Features**
+  - [ ] Implement push notifications to inform users of important updates or actions.
+  - [ ] Add a mechanism for background data synchronization when the app regains connectivity.
+  - [ ] Ensure that the service worker respects user privacy and security best practices.
+  - [ ] Update documentation to include PWA features and usage guidelines.
+  - [ ] Queries cache into indexed DB (or whatever is meant for large data storage) in browser, one finished we should have logic to verify integrity before overwriting current
+    - Backup current restore previous type of behaviors
+
+### 14. Resolve NPM I Issues
 
 - [ ] **Run NPM I, Verify Issue, and Help Resolve**
   - [ ] Run `npm install` locally and capture the full console output (including any warnings or errors) so we have an exact record of the current failure/success state.
@@ -663,7 +688,7 @@ Going forward, **every new feature or meaningful code change must include TSDoc 
   - [ ] Propose and implement a minimal, safe fix for the identified `npm install` issues (such as adjusting a version range, adding a missing dependency, or updating a script), keeping changes focused and consistent with the existing toolchain.
   - [ ] Re-run `npm install` after applying fixes to confirm a clean install, then summarize the root cause and resolution steps in `CONTEXT-SESSION.md` under a short "NPM install issues" subsection.
 
-### 14. Refine UI and UX
+### 15. Refine UI and UX
 
 This section needs to be built out more. The goal is to start polishing and solidifying the design so we can continue with the concept.
 
@@ -733,7 +758,7 @@ This section needs to be built out more. The goal is to start polishing and soli
   - [ ] Add breadcrumbs or indicators to help users understand their location within the app.
   - [ ] Ensure smooth transitions between views.
 
-### 15. Building out Authentication
+### 16. Building out Authentication
 
 - [ ] **Update UI for Authentication**
   - [ ] Refine homepage
@@ -748,7 +773,7 @@ This section needs to be built out more. The goal is to start polishing and soli
     - [ ] Identify how it can be integrated into the existing `AuthService`.
     - [ ] Determine how we could
 
-## 16. Review and Finalize Jasmine/Karma Testing
+## 17. Review and Finalize Jasmine/Karma Testing
 
 - [ ] **Confirm baseline test runner behavior is stable**
   - [x] Fix the Angular/Karma wiring so `npm test` (via `ng test`) builds the webpack bundle (no more `404: /_karma_webpack_/main.js`) and actually executes specs in Chrome/ChromeHeadless.
@@ -770,7 +795,7 @@ This section needs to be built out more. The goal is to start polishing and soli
   - [ ] Briefly describe the layering of specs (core services, features, helpers) and how to add new tests in a way that respects strict typing and the data-driven design (use shared types, avoid `any` outside Office boundaries).
   - [ ] Capture any recurring patterns or pitfalls discovered during the current round of test fixes (e.g., host/role guards firing before deeper logic) so future changes can avoid re-introducing similar issues.
 
-## 17. Research Class Driven Styles
+## 18. Research Class Driven Styles
 
 This section still needs to be built out, but the goal is to make it flexible for Class Driven Style systems like TailwindCSS
 

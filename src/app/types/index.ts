@@ -1,5 +1,6 @@
 export * from "./auth.types";
 export * from "./query.types";
+export * from "./query-configuration.types";
 export * from "./query-params.types";
 export * from "./app-config.types";
 export * from "./ui/primitives.types";

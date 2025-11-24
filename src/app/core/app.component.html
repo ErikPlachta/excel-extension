@@ -52,6 +52,13 @@
   ></app-worksheets>
   <app-tables *ngIf="currentView === 'tables' && authSummary.isAuthenticated"></app-tables>
   <app-user *ngIf="currentView === 'user' && authSummary.isAuthenticated"></app-user>
+  <app-queries
+    *ngIf="
+      currentView === 'queries' &&
+      authSummary.isAuthenticated &&
+      auth.hasAnyRole(['analyst', 'admin'])
+    "
+  ></app-queries>
   <app-query-home
     *ngIf="
       currentView === 'queriesOld' &&

@@ -49,6 +49,15 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
       actionType: "select-view",
     },
     {
+      id: "nav-queries",
+      labelKey: "nav.queries",
+      viewId: "queries",
+      requiresAuth: true,
+      requiredRoles: ["analyst", "admin"],
+      domId: "nav-queries-new",
+      actionType: "select-view",
+    },
+    {
       id: "nav-queries-old",
       labelKey: "nav.queriesOld",
       viewId: "queriesOld",
@@ -126,6 +135,7 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
       user: { sectionVariant: "default" },
       worksheets: { sectionVariant: "dense" },
       tables: { sectionVariant: "dense" },
+      queries: { sectionVariant: "default" },
       queriesOld: { sectionVariant: "default" },
     },
   },
