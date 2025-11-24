@@ -1,0 +1,73 @@
+<nav [class]="appConfig.rootIdsAndClasses.navClass">
+  <app-button
+    *ngFor="let item of appConfig.navItems"
+    [label]="getNavLabel(item.labelKey)"
+    [variant]="item.buttonVariant || appConfig.ui?.navButtonVariant || 'primary'"
+    [size]="item.buttonSize || appConfig.ui?.navButtonSize || 'md'"
+    [disabled]="!canAccessNav(item)"
+    [ngClass]="{ 'is-active': item.viewId && currentView === item.viewId }"
+    [attr.id]="item.domId || null"
+    (clicked)="handleNavClick(item)"
+  ></app-button>
+</nav>
+
+<section
+  [class]="appConfig.rootIdsAndClasses.userBannerClass"
+  *ngIf="authSummary.isAuthenticated && authSummary.displayName as displayName"
+>
+  <span class="user-banner-name">{{ displayName }}</span>
+  <span class="user-banner-role">
+    {{ authSummary.roles.length ? authSummary.roles.join(", ") : text.userBanner.noRolesAssigned }}
+  </span>
+</section>
+
+<section
+  [class]="appConfig.rootIdsAndClasses.hostStatusClass"
+  *ngIf="!hostStatus.isExcel || !hostStatus.isOnline"
+>
+  <ng-container *ngIf="!hostStatus.isExcel; else excelOk">
+    <span class="host-status-label">{{ text.hostStatus.excelNotDetectedLabel }}</span>
+    <span class="host-status-message">
+      {{ text.hostStatus.excelNotDetectedMessage }}
+    </span>
+  </ng-container>
+  <ng-template #excelOk>
+    <span class="host-status-label">{{ text.hostStatus.excelConnectedLabel }}</span>
+  </ng-template>
+
+  <span class="host-status-separator">•</span>
+
+  <span class="host-status-label" [class.host-status-offline]="!hostStatus.isOnline">
+    {{ hostStatus.isOnline ? text.hostStatus.onlineLabel : text.hostStatus.offlineLabel }}
+  </span>
+  <span class="host-status-message" *ngIf="!hostStatus.isOnline">
+    {{ text.hostStatus.offlineMessage }}
+  </span>
+</section>
+
+<section class="content">
+  <app-sso-home *ngIf="currentView === 'sso'"></app-sso-home>
+  <app-worksheets
+    *ngIf="currentView === 'worksheets' && authSummary.isAuthenticated"
+  ></app-worksheets>
+  <app-tables *ngIf="currentView === 'tables' && authSummary.isAuthenticated"></app-tables>
+  <app-user *ngIf="currentView === 'user' && authSummary.isAuthenticated"></app-user>
+  <app-queries
+    *ngIf="
+      currentView === 'queries' &&
+      authSummary.isAuthenticated &&
+      auth.hasAnyRole(['analyst', 'admin'])
+    "
+  ></app-queries>
+  <app-query-home
+    *ngIf="
+      currentView === 'queriesOld' &&
+      authSummary.isAuthenticated &&
+      auth.hasAnyRole(['analyst', 'admin'])
+    "
+  ></app-query-home>
+  <app-debug-context
+    *ngIf="currentView === 'debug' && authSummary.isAuthenticated && auth.hasRole('admin')"
+  ></app-debug-context>
+  <app-settings *ngIf="currentView === 'settings' && authSummary.isAuthenticated"></app-settings>
+</section>

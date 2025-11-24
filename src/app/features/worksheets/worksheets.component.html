@@ -1,0 +1,12 @@
+<app-section title="Worksheets">
+  <ng-container *ngIf="isExcel; else noExcel">
+    <app-table
+      [columns]="[{ field: 'name', header: 'Name' }]"
+      [rows]="sheetsAsRows"
+      emptyMessage="No worksheets found."
+    ></app-table>
+  </ng-container>
+  <ng-template #noExcel>
+    <p>Excel not detected.</p>
+  </ng-template>
+</app-section>

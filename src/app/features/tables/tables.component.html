@@ -1,0 +1,22 @@
+<app-section title="Tables">
+  <ng-container *ngIf="isExcel; else noExcel">
+    <!-- <div class="tables-toolbar">
+      <button type="button" (click)="resetManagedTables()">
+        Reset extension-managed tables (dev)
+      </button>
+    </div> -->
+    <app-table
+      [columns]="[
+        { field: 'name', header: 'Name' },
+        { field: 'worksheet', header: 'Worksheet' },
+        { field: 'rows', header: 'Rows' },
+        { field: 'isManaged', header: 'Managed by extension' },
+      ]"
+      [rows]="tables"
+      emptyMessage="No tables found."
+    ></app-table>
+  </ng-container>
+  <ng-template #noExcel>
+    <p>Excel not detected.</p>
+  </ng-template>
+</app-section>

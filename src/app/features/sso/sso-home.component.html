@@ -1,0 +1,18 @@
+<app-section
+  class="sso-home"
+  title="SSO (Mock) Home"
+  subtitle="This view simulates a signed-in user using mocked SSO data. Real SSO wiring will replace this in a later phase."
+>
+  <div *ngIf="!isSignedIn; else signedIn">
+    <p>You are currently signed out.</p>
+  </div>
+
+  <ng-template #signedIn>
+    <app-card title="Signed-in user" variant="emphasis">
+      <p><strong>User:</strong> {{ userName }}</p>
+      <p><strong>Email:</strong> {{ userEmail }}</p>
+      <p><strong>Token snippet:</strong> {{ tokenSnippet }}</p>
+      <p><strong>Role:</strong> {{ roleSummary }}</p>
+    </app-card>
+  </ng-template>
+</app-section>

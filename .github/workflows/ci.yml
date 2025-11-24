@@ -2,7 +2,7 @@ name: CI - Run Lint, Build, and Tests
 
 on:
   pull_request:
-    branches: ["**" ]
+    branches: [ "**" ]
 
 permissions:
   contents: read

@@ -1,0 +1,77 @@
+.mobile-nav {
+  display: flex;
+  gap: 1rem;
+  background: #333;
+  padding: 0.5rem;
+}
+
+.mobile-nav a {
+  color: #fff;
+  text-decoration: none;
+}
+
+.mobile-nav a.active {
+  text-decoration: underline;
+}
+
+.status {
+  margin-left: auto;
+  color: #ccc;
+}
+
+.user-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: #f5f5f5;
+  border-bottom: 1px solid #ddd;
+  font-size: 0.9rem;
+}
+
+.user-banner-name {
+  font-weight: 600;
+}
+
+.user-banner-role {
+  color: #666;
+}
+
+.host-status {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem 1rem;
+  background: #fff7e6;
+  border-top: 1px solid #f0d9a7;
+  font-size: 0.85rem;
+  z-index: 10;
+}
+
+.host-status-label {
+  font-weight: 500;
+}
+
+.host-status-message {
+  color: #665200;
+}
+
+.host-status-separator {
+  color: #aa8a2c;
+}
+
+.host-status-offline {
+  color: #b3261e;
+}
+
+@media (max-width: 600px) {
+  .mobile-nav {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

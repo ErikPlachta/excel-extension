@@ -1,0 +1,20 @@
+<app-section class="user" *ngIf="isAuthenticated; else notSignedIn" title="User Profile">
+  <section *ngIf="user; else noUser">
+    <p><strong>Name:</strong> {{ user.displayName }}</p>
+    <p><strong>Email:</strong> {{ user.email }}</p>
+    <p><strong>Roles:</strong> {{ roles.length ? roles.join(", ") : "(none)" }}</p>
+    <p *ngIf="isAdmin">
+      <strong>Admin capabilities:</strong> You can manage global settings and queries.
+    </p>
+    <p *ngIf="!isAdmin && isAnalyst">
+      <strong>Analyst capabilities:</strong> You can run queries and work with data tables.
+    </p>
+  </section>
+  <ng-template #noUser>
+    <p>No user profile available.</p>
+  </ng-template>
+</app-section>
+
+<ng-template #notSignedIn>
+  <p>You are not signed in.</p>
+</ng-template>
