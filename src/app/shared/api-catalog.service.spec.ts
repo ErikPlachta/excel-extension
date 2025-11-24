@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
 import { ApiCatalogService } from './api-catalog.service';
 import { ApiDefinition } from '../types/api.types';
 
@@ -6,7 +7,9 @@ describe('ApiCatalogService', () => {
   let service: ApiCatalogService;
 
   beforeEach(() => {
-    TestBed.configureTestingModule({});
+    TestBed.configureTestingModule({
+      providers: [provideHttpClient()],
+    });
     service = TestBed.inject(ApiCatalogService);
   });
 

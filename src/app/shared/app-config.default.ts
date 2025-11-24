@@ -280,18 +280,17 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
         description: "Administrator role with full access",
       },
     },
-    ui: {
-      hostStatus: {
-        excelNotDetectedLabel: "Excel not detected.",
-        excelNotDetectedMessage: "Open this add-in inside Excel to enable worksheet and query features.",
-        excelConnectedLabel: "Excel connected.",
-        onlineLabel: "Online",
-        offlineLabel: "Offline",
-        offlineMessage: "Some features may be unavailable until connectivity is restored.",
-      },
-      userBanner: {
-        noRolesAssigned: "No roles assigned",
-      },
+    hostStatus: {
+      excelNotDetectedLabel: "Excel not detected.",
+      excelNotDetectedMessage: "Open this add-in inside Excel to enable worksheet and query features.",
+      excelConnectedLabel: "Excel connected.",
+      onlineLabel: "Online",
+      offlineLabel: "Offline",
+      offlineMessage: "Some features may be unavailable until connectivity is restored.",
     },
+    userBanner: {
+      noRolesAssigned: "No roles assigned",
+    },
+    ui: {},
   },
 };

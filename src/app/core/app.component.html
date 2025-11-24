@@ -17,7 +17,7 @@
 >
   <span class="user-banner-name">{{ displayName }}</span>
   <span class="user-banner-role">
-    {{ authSummary.roles.length ? authSummary.roles.join(", ") : text.userBanner.noRolesAssigned }}
+    {{ authSummary.roles.length ? authSummary.roles.join(", ") : text.userBanner?.noRolesAssigned }}
   </span>
 </section>
 
@@ -26,22 +26,22 @@
   *ngIf="!hostStatus.isExcel || !hostStatus.isOnline"
 >
   <ng-container *ngIf="!hostStatus.isExcel; else excelOk">
-    <span class="host-status-label">{{ text.hostStatus.excelNotDetectedLabel }}</span>
+    <span class="host-status-label">{{ text.hostStatus?.excelNotDetectedLabel }}</span>
     <span class="host-status-message">
-      {{ text.hostStatus.excelNotDetectedMessage }}
+      {{ text.hostStatus?.excelNotDetectedMessage }}
     </span>
   </ng-container>
   <ng-template #excelOk>
-    <span class="host-status-label">{{ text.hostStatus.excelConnectedLabel }}</span>
+    <span class="host-status-label">{{ text.hostStatus?.excelConnectedLabel }}</span>
   </ng-template>
 
   <span class="host-status-separator">•</span>
 
   <span class="host-status-label" [class.host-status-offline]="!hostStatus.isOnline">
-    {{ hostStatus.isOnline ? text.hostStatus.onlineLabel : text.hostStatus.offlineLabel }}
+    {{ hostStatus.isOnline ? text.hostStatus?.onlineLabel : text.hostStatus?.offlineLabel }}
   </span>
   <span class="host-status-message" *ngIf="!hostStatus.isOnline">
-    {{ text.hostStatus.offlineMessage }}
+    {{ text.hostStatus?.offlineMessage }}
   </span>
 </section>
 

@@ -94,6 +94,21 @@ export interface TextCatalog {
   user: Record<string, string>;
   /** Role definitions */
   role?: Record<string, { label: string; description: string }>;
+  /** Host status text (Excel detection, online/offline) */
+  hostStatus?: {
+    excelNotDetectedLabel?: string;
+    excelNotDetectedMessage?: string;
+    excelConnectedLabel?: string;
+    onlineLabel?: string;
+    offlineLabel?: string;
+    offlineMessage?: string;
+    [key: string]: string | undefined;
+  };
+  /** User banner text */
+  userBanner?: {
+    noRolesAssigned?: string;
+    [key: string]: string | undefined;
+  };
   /** General UI text (can be nested) */
   ui: Record<string, any>;
 }
