@@ -8,6 +8,7 @@
  */
 
 import { AppConfig } from "./app-config";
+import { ApiDefinition } from "../types/api.types";
 
 /**
  * Default application configuration.
@@ -137,6 +138,160 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
       tables: { sectionVariant: "dense" },
       queries: { sectionVariant: "default" },
       queriesOld: { sectionVariant: "default" },
+    },
+  },
+  apiCatalog: [
+    {
+      id: 'sales-summary',
+      name: 'Sales Summary',
+      description: 'Summarized sales by region and month.',
+      allowedRoles: ['analyst', 'admin'],
+      parameters: [
+        { key: 'startDate', type: 'date', required: true, label: 'Start Date' },
+        { key: 'endDate', type: 'date', required: true, label: 'End Date' },
+      ],
+      responseSchema: [
+        { key: 'region', name: 'Region', dataType: 'string' },
+        { key: 'totalSales', name: 'Total Sales', dataType: 'number' },
+        { key: 'period', name: 'Period', dataType: 'string' },
+      ],
+    },
+    {
+      id: 'top-customers',
+      name: 'Top Customers',
+      description: 'Top customers by revenue.',
+      allowedRoles: ['analyst', 'admin'],
+      parameters: [
+        { key: 'topN', type: 'number', required: false, defaultValue: 10, label: 'Top N' },
+      ],
+      responseSchema: [
+        { key: 'customerName', name: 'Customer Name', dataType: 'string' },
+        { key: 'revenue', name: 'Revenue', dataType: 'number' },
+        { key: 'orderCount', name: 'Order Count', dataType: 'number' },
+      ],
+    },
+    {
+      id: 'inventory-status',
+      name: 'Inventory Status',
+      description: 'Current inventory levels by product.',
+      allowedRoles: ['analyst', 'admin'],
+      parameters: [],
+      responseSchema: [
+        { key: 'productId', name: 'Product ID', dataType: 'string' },
+        { key: 'productName', name: 'Product Name', dataType: 'string' },
+        { key: 'quantity', name: 'Quantity', dataType: 'number' },
+        { key: 'status', name: 'Status', dataType: 'string' },
+      ],
+    },
+    {
+      id: 'jsonapi-example',
+      name: 'JSONPlaceholder Users',
+      description: 'Fetches user data from jsonplaceholder.typicode.com and flattens it into Excel-friendly rows.',
+      allowedRoles: ['admin'],
+      parameters: [],
+      catalogUiConfig: {
+        category: 'External APIs',
+        tags: ['demo', 'api'],
+      },
+    },
+    {
+      id: 'user-demographics',
+      name: 'User Demographics',
+      description: 'Comprehensive user demographic data with 25 columns and 5000 rows from randomuser.me.',
+      allowedRoles: ['admin'],
+      parameters: [],
+      catalogUiConfig: {
+        category: 'Large Datasets',
+        tags: ['demo', 'large'],
+      },
+    },
+    {
+      id: 'large-dataset',
+      name: 'Large Dataset (Multiple Batches)',
+      description: '10k rows with 30 columns from multiple paginated API calls.',
+      allowedRoles: ['admin'],
+      parameters: [],
+      catalogUiConfig: {
+        category: 'Large Datasets',
+        tags: ['demo', 'large', 'performance'],
+      },
+    },
+    {
+      id: 'product-catalog',
+      name: 'Product Catalog',
+      description: '1000 products with 20+ columns from DummyJSON API.',
+      allowedRoles: ['admin'],
+      parameters: [],
+      catalogUiConfig: {
+        category: 'Large Datasets',
+        tags: ['demo', 'products'],
+      },
+    },
+    {
+      id: 'mixed-dataset',
+      name: 'Mixed Dataset (Users + Posts)',
+      description: '8000 rows combining user and post data with 35+ columns.',
+      allowedRoles: ['admin'],
+      parameters: [],
+      catalogUiConfig: {
+        category: 'Large Datasets',
+        tags: ['demo', 'large', 'mixed'],
+      },
+    },
+    {
+      id: 'synthetic-expansion',
+      name: 'Synthetic Expansion Dataset',
+      description: '25k rows with 40 columns including synthetic transaction data.',
+      allowedRoles: ['admin'],
+      parameters: [],
+      catalogUiConfig: {
+        category: 'Large Datasets',
+        tags: ['demo', 'large', 'synthetic'],
+      },
+    },
+  ],
+  text: {
+    nav: {
+      ssoHome: "SSO Home",
+      worksheets: "Worksheets",
+      tables: "Tables",
+      user: "User",
+      queries: "Queries",
+      queriesOld: "QueriesOld",
+      debug: "Debug",
+      settings: "Settings",
+    },
+    auth: {
+      signInAnalyst: "Sign in as analyst",
+      signInAdmin: "Sign in as admin",
+      signOut: "Sign out",
+    },
+    query: {},
+    worksheet: {},
+    table: {},
+    user: {},
+    role: {
+      analyst: {
+        label: "Analyst",
+        description: "Analyst role with query access",
+      },
+      admin: {
+        label: "Admin",
+        description: "Administrator role with full access",
+      },
+    },
+    ui: {
+      hostStatus: {
+        excelNotDetectedLabel: "Excel not detected.",
+        excelNotDetectedMessage: "Open this add-in inside Excel to enable worksheet and query features.",
+        excelConnectedLabel: "Excel connected.",
+        onlineLabel: "Online",
+        offlineLabel: "Offline",
+        offlineMessage: "Some features may be unavailable until connectivity is restored.",
+      },
+      userBanner: {
+        noRolesAssigned: "No roles assigned",
+      },
     },
   },
 };

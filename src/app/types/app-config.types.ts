@@ -92,8 +92,10 @@ export interface TextCatalog {
   table: Record<string, string>;
   /** User/settings-related text */
   user: Record<string, string>;
-  /** General UI text */
-  ui: Record<string, string>;
+  /** Role definitions */
+  role?: Record<string, { label: string; description: string }>;
+  /** General UI text (can be nested) */
+  ui: Record<string, any>;
 }
 
 /**
