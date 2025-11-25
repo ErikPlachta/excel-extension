@@ -1,9 +1,10 @@
-import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { Injectable, inject, Injector } from '@angular/core';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { BehaviorSubject, Observable, firstValueFrom } from 'rxjs';
 import { AppConfig } from '../types/app-config.types';
 import { DEFAULT_APP_CONFIG } from '../shared/app-config.default';
 import { ConfigValidatorService } from './config-validator.service';
+import { AuthService } from './auth.service';
 
 /**
  * AppConfig Service - Manages application configuration with observable pattern.
@@ -13,12 +14,19 @@ import { ConfigValidatorService } from './config-validator.service';
  * - Remote config loading with fallback to defaults
  * - Centralized config validation
  *
+ * **Phase 7 Enhancement:**
+ * - JWT bearer token authentication for remote config loading
+ * - Automatically adds Authorization header when authenticated
+ * - Falls back to unauthenticated request if no token available
+ * - Uses lazy injection to avoid circular dependency with AuthService
+ *
  * Services subscribe to config$ to react to config changes.
  */
 @Injectable({ providedIn: 'root' })
 export class AppConfigService {
   private readonly http = inject(HttpClient);
   private readonly validator = inject(ConfigValidatorService);
+  private readonly injector = inject(Injector);
 
   /**
    * Internal config state with BehaviorSubject for replay semantics.
@@ -71,14 +79,20 @@ export class AppConfigService {
    * Fetches config from remote endpoint, validates it, and deep-merges with
    * current config. Falls back to current config if fetch fails or validation fails.
    *
+   * **Phase 7 Enhancement:**
+   * Automatically adds JWT bearer token when authenticated for secure config endpoints.
+   *
    * @param url - Remote config endpoint URL
    * @returns Promise resolving to true if loaded successfully, false if fallback used
    */
   async loadRemoteConfig(url: string): Promise<boolean> {
     try {
+      // Build request options with optional JWT bearer token
+      const options = this.buildRequestOptions();
+
       // Fetch remote config
       const remoteConfig = await firstValueFrom(
-        this.http.get<Partial<AppConfig>>(url)
+        this.http.get<Partial<AppConfig>>(url, options)
       );
 
       // Validate remote config (if it's a full config)
@@ -184,5 +198,37 @@ export class AppConfigService {
       config.roles &&
       config.rootIdsAndClasses
     );
+  }
+
+  /**
+   * Build HTTP request options with optional JWT bearer token.
+   *
+   * Uses lazy injection to get AuthService at call time, avoiding
+   * circular dependency issues during app initialization.
+   *
+   * Adds Authorization header when user is authenticated via JWT.
+   * Returns empty options object if no token available.
+   *
+   * @returns HTTP request options with headers
+   */
+  private buildRequestOptions(): { headers?: HttpHeaders } {
+    try {
+      // Lazy injection: resolved at call time, not construction time
+      // This breaks the circular dependency chain during DI construction
+      const auth = this.injector.get(AuthService);
+      const token = auth.getAccessToken();
+
+      if (token) {
+        return {
+          headers: new HttpHeaders({
+            Authorization: `Bearer ${token}`,
+          }),
+        };
+      }
+    } catch {
+      // AuthService not available or no token - continue without auth header
+    }
+
+    return {};
   }
 }

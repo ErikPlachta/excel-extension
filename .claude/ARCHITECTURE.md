@@ -63,14 +63,56 @@ Angular 20 task-pane add-in for Excel. Standalone components, Office.js wrapper,
 
 ### AuthService (`src/app/core/auth.service.ts`)
 
-**Mocked SSO & role management**
+**JWT Authentication & role management (Phase 7)**
 
+**Core State:**
 - `isAuthenticated`, `user`, `roles`
-- `signInAsAnalyst()`, `signInAsAdmin()`, `signOut()`
+- `state$: Observable<AuthState>` – Reactive auth state stream
+- `tokens$: Observable<TokenPair | null>` – JWT token changes
+
+**JWT Authentication (NEW Phase 7):**
+- `signInWithJwt(email, password, roles)` – Generate mock JWT tokens, update state
+- `refreshAccessToken()` – Refresh access token using refresh token
+- `getAccessToken()` – Get current access token (null if expired/unauthenticated)
+- `isAccessTokenExpiringSoon()` – Check if token expires within threshold
+- Auto-refresh timer (checks every 60s, refreshes 5min before expiry)
+
+**Token Configuration (`JWT_CONFIG`):**
+- Access token: 15-minute lifetime
+- Refresh token: 7-day lifetime
+- Refresh threshold: 5 minutes before expiry
+- Token check interval: 60 seconds
+
+**Legacy SSO Methods (deprecated):**
+- `signInAsAnalyst()`, `signInAsAdmin()`, `signIn()` – Mock SSO flows
+- `signOut()` – Clears both JWT tokens and legacy auth state
+
+**Role Management:**
 - `hasRole(role)`, `hasAnyRole(roles)`
-- **Uses StorageHelperService for persistence** (refactored in Phase 5)
-- Observable state stream (`state$`) for reactive updates
-- Comprehensive TSDoc coverage
+
+**Persistence:**
+- Uses StorageHelperService for auth state and JWT tokens
+- Hydrates from storage on init
+- Persists on state changes
+
+### JwtHelperService (`src/app/core/jwt-helper.service.ts`) - NEW Phase 7
+
+**Mock JWT token generation and validation**
+
+**Token Generation:**
+- `generateMockTokenPair(email, roles)` – Create access + refresh token pair
+- `refreshMockTokenPair(refreshToken)` – Generate new access token from refresh
+
+**Token Validation:**
+- `decodeMockToken(token)` – Decode payload from base64url
+- `validateToken(token)` – Check signature, structure, and expiration
+- `isTokenExpired(token)` – Check if past expiration time
+- `isTokenExpiringSoon(token, thresholdMs?)` – Check if within threshold
+
+**Mock Implementation:**
+- Uses base64url encoding (not cryptographic signing)
+- Deterministic for testing (timestamp-based)
+- Production-ready structure (swap encoding for real JWT library)
 
 ### SettingsService (`src/app/core/settings.service.ts`)
 
@@ -107,7 +149,7 @@ Angular 20 task-pane add-in for Excel. Standalone components, Office.js wrapper,
 - Provides centralized context for telemetry enrichment
 - Comprehensive TSDoc coverage
 
-### AppConfigService (`src/app/core/app-config.service.ts`) - NEW Phase 2
+### AppConfigService (`src/app/core/app-config.service.ts`) - Phase 2 + Phase 7
 
 **Observable config management with remote loading**
 
@@ -124,6 +166,9 @@ Angular 20 task-pane add-in for Excel. Standalone components, Office.js wrapper,
 - Falls back to defaults on fetch/validation failure
 - Enables hot-reload without app restart
 - All services subscribe to `config$` for reactive updates
+- **Phase 7:** JWT bearer token authentication for remote config loading
+  - Automatically adds `Authorization: Bearer <token>` header when authenticated
+  - Uses lazy injection to avoid circular dependency with AuthService
 
 ### ConfigValidatorService (`src/app/core/config-validator.service.ts`) - NEW Phase 2
 
@@ -421,6 +466,7 @@ Replaced standalone `APP_TEXT` with nested config structure:
 `src/app/types/`:
 
 - `auth.types.ts` – `AuthState`, role types
+- `jwt.types.ts` – `TokenPair`, `AccessToken`, `RefreshToken`, `TokenPayload`, `TokenValidationResult`, `JWT_CONFIG` **[Phase 7]**
 - `query.types.ts` – `QueryDefinition`, `QueryParameter`, `QueryRun`, `QueryRunLocation`
 - `app-config.types.ts` – `AppConfig`, `NavItemConfig`, `RoleDefinition`, `ViewId`, `RoleId`
 - `ui/primitives.types.ts` – Button/banner/table/list types

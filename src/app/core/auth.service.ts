@@ -1,26 +1,44 @@
-import { Injectable } from "@angular/core";
-import { BehaviorSubject } from "rxjs";
+import { Injectable, OnDestroy } from "@angular/core";
+import { BehaviorSubject, Subscription, interval } from "rxjs";
 import { getSsoAuthResult, SsoUserProfile } from "../../helpers/sso-helper";
-import { AuthState } from "../types";
+import { AuthState, TokenPair, JWT_CONFIG } from "../types";
 import { StorageHelperService } from "../shared/storage-helper.service";
+import { JwtHelperService } from "./jwt-helper.service";
 
 /**
- * Authentication Service - Manages user authentication state and SSO integration.
+ * Authentication Service - Manages user authentication state and JWT tokens.
  *
  * Provides centralized authentication state management with:
- * - Mock SSO sign-in flows (analyst/admin roles)
+ * - JWT-based authentication with auto-refresh
+ * - Legacy mock SSO sign-in flows (analyst/admin roles)
  * - Role-based access control (RBAC) checks
  * - Persistent auth state via StorageHelperService
  * - Observable state stream for reactive updates
  *
+ * **JWT Token Management:**
+ * - Access tokens: 15-minute lifetime, auto-refreshed
+ * - Refresh tokens: 7-day lifetime
+ * - Auto-refresh timer: triggers 5 minutes before expiry
+ * - Token persistence in localStorage
+ *
  * **State Persistence:**
  * - Auth state stored in localStorage via StorageHelperService
+ * - JWT tokens stored separately for security isolation
  * - Automatically hydrates on app init
  * - Automatically persists on state changes
  *
  * **Usage:**
  * ```typescript
- * // Sign in as analyst
+ * // JWT sign-in (preferred)
+ * await auth.signInWithJwt('user@example.com', 'password', ['analyst']);
+ *
+ * // Get access token for API calls
+ * const token = auth.getAccessToken();
+ * if (token) {
+ *   headers.set('Authorization', `Bearer ${token}`);
+ * }
+ *
+ * // Legacy SSO sign-in
  * await auth.signInAsAnalyst();
  *
  * // Check authentication
@@ -40,7 +58,7 @@ import { StorageHelperService } from "../shared/storage-helper.service";
  * ```
  */
 @Injectable({ providedIn: "root" })
-export class AuthService {
+export class AuthService implements OnDestroy {
   private static readonly STORAGE_KEY = "excel-extension-auth-state";
 
   private readonly stateSubject = new BehaviorSubject<AuthState>({
@@ -49,6 +67,10 @@ export class AuthService {
     accessToken: null,
   });
 
+  private readonly tokensSubject = new BehaviorSubject<TokenPair | null>(null);
+
+  private tokenRefreshTimer?: Subscription;
+
   /**
    * Observable stream of authentication state changes.
    * Subscribe to react to sign-in/sign-out events.
@@ -56,10 +78,23 @@ export class AuthService {
   readonly state$ = this.stateSubject.asObservable();
 
   /**
+   * Observable stream of JWT token changes.
+   * Subscribe to react to token refresh events.
+   */
+  readonly tokens$ = this.tokensSubject.asObservable();
+
+  /**
    * Current authentication state snapshot.
    */
   get state(): AuthState {
     return this.stateSubject.value;
+  }
+
+  /**
+   * Current JWT tokens, or null if not authenticated via JWT.
+   */
+  get tokens(): TokenPair | null {
+    return this.tokensSubject.value;
   }
 
   /**
@@ -103,22 +138,229 @@ export class AuthService {
     return roles.some((r) => this.roles.includes(r));
   }
 
-  constructor(private readonly storage: StorageHelperService) {
+  constructor(
+    private readonly storage: StorageHelperService,
+    private readonly jwtHelper: JwtHelperService
+  ) {
     // Hydrate auth state from storage
     const defaultState: AuthState = {
       isAuthenticated: false,
       user: null,
       accessToken: null,
     };
-    const storedState = this.storage.getItem<AuthState>(AuthService.STORAGE_KEY, defaultState);
+    const storedState = this.storage.getItem<AuthState>(
+      AuthService.STORAGE_KEY,
+      defaultState
+    );
     this.stateSubject.next(storedState);
+
+    // Hydrate JWT tokens from storage
+    const storedTokens = this.storage.getItem<TokenPair | null>(
+      JWT_CONFIG.STORAGE_KEY,
+      null
+    );
+    if (storedTokens && !this.jwtHelper.isTokenExpired(storedTokens.refresh)) {
+      this.tokensSubject.next(storedTokens);
+      this.startTokenRefreshTimer();
+    } else if (storedTokens) {
+      // Clear expired tokens
+      this.storage.removeItem(JWT_CONFIG.STORAGE_KEY);
+    }
 
     // Persist state changes to storage
     this.state$.subscribe((state) => {
       this.storage.setItem(AuthService.STORAGE_KEY, state);
     });
+
+    // Persist token changes to storage
+    this.tokens$.subscribe((tokens) => {
+      if (tokens) {
+        this.storage.setItem(JWT_CONFIG.STORAGE_KEY, tokens);
+      } else {
+        this.storage.removeItem(JWT_CONFIG.STORAGE_KEY);
+      }
+    });
   }
 
+  ngOnDestroy(): void {
+    this.stopTokenRefreshTimer();
+  }
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // JWT Authentication Methods
+  // ────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Sign in with JWT token-based authentication.
+   *
+   * Generates mock JWT tokens and updates auth state. This method is
+   * designed to be replaced with real backend authentication in production.
+   *
+   * @param email - User email address
+   * @param _password - Password (ignored in mock implementation)
+   * @param roles - User roles for authorization (default: ['analyst'])
+   */
+  async signInWithJwt(
+    email: string,
+    _password: string,
+    roles: string[] = ["analyst"]
+  ): Promise<void> {
+    // Generate mock JWT tokens
+    const tokens = this.jwtHelper.generateMockTokenPair(email, roles);
+
+    // Decode payload for user info
+    const payload = this.jwtHelper.decodeMockToken(tokens.access.token);
+    if (!payload) {
+      throw new Error("Failed to decode generated token");
+    }
+
+    // Create user profile from token payload
+    const user: SsoUserProfile = {
+      id: payload.sub,
+      displayName: email.split("@")[0],
+      email: payload.email,
+      roles: payload.roles,
+    };
+
+    // Update tokens
+    this.tokensSubject.next(tokens);
+
+    // Update auth state
+    this.stateSubject.next({
+      isAuthenticated: true,
+      user,
+      accessToken: tokens.access.token,
+    });
+
+    // Start auto-refresh timer
+    this.startTokenRefreshTimer();
+  }
+
+  /**
+   * Refresh the access token using the refresh token.
+   *
+   * Called automatically by the refresh timer, but can also be called
+   * manually if needed.
+   *
+   * @returns True if refresh succeeded, false otherwise
+   */
+  async refreshAccessToken(): Promise<boolean> {
+    const currentTokens = this.tokensSubject.value;
+    if (!currentTokens) {
+      return false;
+    }
+
+    // Check if refresh token is expired
+    if (this.jwtHelper.isTokenExpired(currentTokens.refresh)) {
+      // Refresh token expired - sign out
+      this.signOut();
+      return false;
+    }
+
+    // Generate new tokens
+    const newTokens = this.jwtHelper.refreshMockTokenPair(currentTokens.refresh);
+    if (!newTokens) {
+      // Refresh failed - sign out
+      this.signOut();
+      return false;
+    }
+
+    // Update tokens
+    this.tokensSubject.next(newTokens);
+
+    // Update access token in auth state
+    this.stateSubject.next({
+      ...this.state,
+      accessToken: newTokens.access.token,
+    });
+
+    return true;
+  }
+
+  /**
+   * Get the current access token if valid.
+   *
+   * Checks token expiration and triggers refresh if needed.
+   *
+   * @returns Access token string, or null if not authenticated
+   */
+  getAccessToken(): string | null {
+    const tokens = this.tokensSubject.value;
+    if (!tokens) {
+      return null;
+    }
+
+    // Check if access token is expired
+    if (this.jwtHelper.isTokenExpired(tokens.access)) {
+      // Token expired - try to refresh
+      // Note: This is synchronous check; async refresh happens via timer
+      return null;
+    }
+
+    return tokens.access.token;
+  }
+
+  /**
+   * Check if the current access token is expiring soon.
+   *
+   * @returns True if token will expire within the refresh threshold
+   */
+  isAccessTokenExpiringSoon(): boolean {
+    const tokens = this.tokensSubject.value;
+    if (!tokens) {
+      return false;
+    }
+    return this.jwtHelper.isTokenExpiringSoon(tokens.access);
+  }
+
+  /**
+   * Start the automatic token refresh timer.
+   *
+   * Checks token expiration every 60 seconds and refreshes
+   * when the access token is within 5 minutes of expiry.
+   */
+  private startTokenRefreshTimer(): void {
+    this.stopTokenRefreshTimer();
+
+    this.tokenRefreshTimer = interval(JWT_CONFIG.TOKEN_CHECK_INTERVAL_MS).subscribe(
+      async () => {
+        const tokens = this.tokensSubject.value;
+        if (!tokens) {
+          this.stopTokenRefreshTimer();
+          return;
+        }
+
+        // Check if access token is expiring soon
+        if (this.jwtHelper.isTokenExpiringSoon(tokens.access)) {
+          await this.refreshAccessToken();
+        }
+
+        // Check if refresh token is expired
+        if (this.jwtHelper.isTokenExpired(tokens.refresh)) {
+          this.signOut();
+        }
+      }
+    );
+  }
+
+  /**
+   * Stop the automatic token refresh timer.
+   */
+  private stopTokenRefreshTimer(): void {
+    if (this.tokenRefreshTimer) {
+      this.tokenRefreshTimer.unsubscribe();
+      this.tokenRefreshTimer = undefined;
+    }
+  }
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // Legacy SSO Methods (for backward compatibility)
+  // ────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Sign in as analyst using legacy mock SSO.
+   * @deprecated Use signInWithJwt() instead
+   */
   async signInAsAnalyst(): Promise<void> {
     const result = await getSsoAuthResult();
     const user: SsoUserProfile = {
@@ -133,6 +375,10 @@ export class AuthService {
     });
   }
 
+  /**
+   * Sign in as admin using legacy mock SSO.
+   * @deprecated Use signInWithJwt() instead
+   */
   async signInAsAdmin(): Promise<void> {
     const result = await getSsoAuthResult();
     const user: SsoUserProfile = {
@@ -147,6 +393,10 @@ export class AuthService {
     });
   }
 
+  /**
+   * Sign in using legacy mock SSO.
+   * @deprecated Use signInWithJwt() instead
+   */
   async signIn(): Promise<void> {
     const result = await getSsoAuthResult();
     this.stateSubject.next({
@@ -156,7 +406,19 @@ export class AuthService {
     });
   }
 
+  /**
+   * Sign out and clear all authentication state.
+   *
+   * Clears both JWT tokens and legacy auth state.
+   */
   signOut(): void {
+    // Stop refresh timer
+    this.stopTokenRefreshTimer();
+
+    // Clear JWT tokens
+    this.tokensSubject.next(null);
+
+    // Clear auth state
     this.stateSubject.next({
       isAuthenticated: false,
       user: null,

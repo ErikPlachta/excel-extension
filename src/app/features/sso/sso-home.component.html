@@ -1,18 +1,90 @@
 <app-section
   class="sso-home"
-  title="SSO (Mock) Home"
-  subtitle="This view simulates a signed-in user using mocked SSO data. Real SSO wiring will replace this in a later phase."
+  title="Authentication"
+  subtitle="Sign in with JWT authentication (mock implementation for development)."
 >
   <div *ngIf="!isSignedIn; else signedIn">
-    <p>You are currently signed out.</p>
+    <!-- JWT Sign-in Form -->
+    <app-card title="Sign In with JWT" variant="default">
+      <form class="sign-in-form" (ngSubmit)="signInWithJwt()">
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input
+            type="email"
+            id="email"
+            [(ngModel)]="email"
+            name="email"
+            placeholder="user@example.com"
+            [disabled]="isLoading"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input
+            type="password"
+            id="password"
+            [(ngModel)]="password"
+            name="password"
+            placeholder="(any value - mock)"
+            [disabled]="isLoading"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="role">Role</label>
+          <select
+            id="role"
+            [(ngModel)]="selectedRole"
+            name="role"
+            [disabled]="isLoading"
+          >
+            <option value="analyst">Analyst</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+
+        <div *ngIf="signInError" class="error-message">
+          {{ signInError }}
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" [disabled]="isLoading" class="btn-primary">
+            {{ isLoading ? 'Signing in...' : 'Sign In' }}
+          </button>
+        </div>
+      </form>
+
+      <div class="alt-sign-in">
+        <span>or</span>
+        <button type="button" (click)="signIn()" class="btn-secondary">
+          Mock SSO Sign-In
+        </button>
+      </div>
+    </app-card>
   </div>
 
   <ng-template #signedIn>
-    <app-card title="Signed-in user" variant="emphasis">
+    <app-card title="Signed-in User" variant="emphasis">
       <p><strong>User:</strong> {{ userName }}</p>
       <p><strong>Email:</strong> {{ userEmail }}</p>
-      <p><strong>Token snippet:</strong> {{ tokenSnippet }}</p>
+      <p><strong>Token:</strong> {{ tokenSnippet }}</p>
       <p><strong>Role:</strong> {{ roleSummary }}</p>
+      <p *ngIf="tokenExpiryDisplay">
+        <strong>Token expires in:</strong>
+        <span [class.expiring-soon]="isTokenExpiringSoon">
+          {{ tokenExpiryDisplay }}
+        </span>
+        <span *ngIf="isTokenExpiringSoon" class="refresh-hint">
+          (auto-refresh scheduled)
+        </span>
+      </p>
+
+      <div class="form-actions">
+        <button type="button" (click)="signOut()" class="btn-secondary">
+          Sign Out
+        </button>
+      </div>
     </app-card>
   </ng-template>
 </app-section>
