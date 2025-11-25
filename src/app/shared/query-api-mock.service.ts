@@ -3,6 +3,8 @@ import { QueryDefinition, QueryParameter } from "./query-model";
 import { QueryUiConfig } from "../types/ui/primitives.types";
 import { ApiCatalogService } from './api-catalog.service';
 import { IndexedDBService } from './indexeddb.service';
+import { SettingsService } from '../core/settings.service';
+import { TelemetryService } from '../core/telemetry.service';
 
 /**
  * Concrete parameter values supplied when invoking a query against a
@@ -36,7 +38,9 @@ export interface GroupingOptionsResult {
 export class QueryApiMockService {
   constructor(
     private apiCatalog: ApiCatalogService,
-    private indexedDB: IndexedDBService
+    private indexedDB: IndexedDBService,
+    private settings: SettingsService,
+    private telemetry: TelemetryService
   ) {}
 
   private createStandardQueryUiConfig(options?: { adminOnly?: boolean }): QueryUiConfig {
@@ -288,23 +292,53 @@ export class QueryApiMockService {
    * @returns Promise of result rows
    */
   private async executeApiUncached(apiId: string, params: ExecuteQueryParams): Promise<ExecuteQueryResultRow[]> {
+    // Get max row limit from settings
+    const queryExecSettings = this.settings.value.queryExecution;
+    const maxRows = queryExecSettings?.maxRowsPerQuery ?? 10000;
+
     // Route to appropriate fetch method based on API ID
+    let rows: ExecuteQueryResultRow[];
     switch (apiId) {
       case "jsonapi-example":
-        return await this.fetchJsonPlaceholderUsers();
+        rows = await this.fetchJsonPlaceholderUsers();
+        break;
       case "user-demographics":
-        return await this.fetchUserDemographics();
+        rows = await this.fetchUserDemographics();
+        break;
       case "large-dataset":
-        return await this.fetchLargeDataset();
+        rows = await this.fetchLargeDataset();
+        break;
       case "product-catalog":
-        return await this.fetchProductCatalog();
+        rows = await this.fetchProductCatalog();
+        break;
       case "mixed-dataset":
-        return await this.fetchMixedDataset();
+        rows = await this.fetchMixedDataset();
+        break;
       case "synthetic-expansion":
-        return await this.fetchSyntheticExpansion();
+        rows = await this.fetchSyntheticExpansion();
+        break;
       default:
-        return await this.loadAndFilterMockRows(apiId, params);
+        rows = await this.loadAndFilterMockRows(apiId, params);
     }
+
+    // Enforce max row limit
+    if (rows.length > maxRows) {
+      this.telemetry.logEvent({
+        category: 'query',
+        name: 'executeApi:rowLimitExceeded',
+        severity: 'warn',
+        message: `Query result exceeded max row limit (${rows.length} > ${maxRows})`,
+        context: {
+          apiId,
+          rowCount: rows.length,
+          maxRows,
+          truncated: true,
+        },
+      });
+      return rows.slice(0, maxRows); // Truncate to max rows
+    }
+
+    return rows;
   }
 
   /**

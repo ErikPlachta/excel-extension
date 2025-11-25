@@ -36,21 +36,15 @@ This plan outlines a sequential, phased approach to refactor the Excel Add-In An
 **Sequential execution** across nine phases, each in a dedicated sub-branch:
 
 **Core Architecture (Phases 1-2)**
+
 1. **Phase 1:** API/Query Separation (foundation for everything else)
 2. **Phase 2:** Config-Driven Completion (enables dynamic content)
 
-**Incremental Service Refactor (Phases 3-5)**
-3. **Phase 3:** Excel/Workbook Refactor (Excel/Workbook service boundaries)
-4. **Phase 4:** Query Services Refactor + Storage/Caching Strategy (Query* service boundaries, browser storage investigation, IndexedDB integration, backup/restore) - NEW
-5. **Phase 5:** Auth/Settings/Telemetry Refactor (State management service boundaries) - NEW
+**Incremental Service Refactor (Phases 3-5)** 3. **Phase 3:** Excel/Workbook Refactor (Excel/Workbook service boundaries) 4. **Phase 4:** Query Services Refactor + Storage/Caching Strategy (Query\* service boundaries, browser storage investigation, IndexedDB integration, backup/restore) - NEW 5. **Phase 5:** Auth/Settings/Telemetry Refactor (State management service boundaries) - NEW
 
-**Performance (Phase 6)**
-6. **Phase 6:** Performance Optimization (production-scale data handling)
+**Performance (Phase 6)** ✅ 6. **Phase 6:** Performance Optimization (production-scale data handling) - COMPLETED 2025-11-25
 
-**Advanced Features (Phases 7-9)**
-7. **Phase 7:** JWT Authentication (real auth flow, mocked) - NEW
-8. **Phase 8:** Formula Management (disable/enable during queries) - NEW
-9. **Phase 9:** Formula-Column Detection (detect breaking changes) - NEW
+**Advanced Features (Phases 7-9)** 7. **Phase 7:** JWT Authentication (real auth flow, mocked) - NEW 8. **Phase 8:** Formula Management (disable/enable during queries) - NEW 9. **Phase 9:** Formula-Column Detection (detect breaking changes) - NEW
 
 **Rationale:** API/Query separation unblocks config-driven design. Config completion enables dynamic behavior. Incremental service refactor establishes clear boundaries before performance work. Performance builds on stable foundation. Advanced features add production readiness and safety.
 
@@ -1430,21 +1424,25 @@ private async writeTableData(
 ### Services in Scope
 
 **QueryApiMockService** (`src/app/shared/query-api-mock.service.ts`, 940 lines)
+
 - **Current:** Mixed catalog + execution logic
 - **Target:** Execution only (API calls, mock data generation)
 - **Extract:** Catalog to `ApiCatalogService` (done in Phase 1)
 
 **QueryStateService** (`src/app/shared/query-state.service.ts`, 257 lines)
+
 - **Current:** Parameters, run state, localStorage
 - **Target:** Parameter/run state management only
 - **Extract:** localStorage to `StorageHelperService`
 
 **QueryConfigurationService** (`src/app/shared/query-configuration.service.ts`, 93 lines)
+
 - **Current:** CRUD on configs, apiId validation, localStorage
 - **Target:** CRUD operations only
 - **Extract:** Validation to `ConfigValidatorService`, localStorage to `StorageHelperService`
 
 **QueryQueueService** (`src/app/shared/query-queue.service.ts`, 176 lines)
+
 - **Current:** Queue management, execution coordination
 - **Target:** Queue/execution coordination only (good as-is, verify no state leakage)
 
@@ -1458,20 +1456,22 @@ private async writeTableData(
 
 1. **Browser Storage Options Comparison**
 
-| Storage Type | Max Size | Performance | Offline | Use Case |
-|--------------|----------|-------------|---------|----------|
-| **localStorage** | ~5-10MB | Fast sync API | ✓ | Small key-value (current: user settings, auth state) |
-| **IndexedDB** | ~50MB-1GB+ | Async, fast for large data | ✓ | Large datasets (query results, cached API responses) |
-| **Cache API** | Quota-based (~50MB-1GB+) | Async, optimized for HTTP | ✓ | API response caching (HTTP-based mock APIs) |
-| **Service Worker** | N/A (uses Cache API) | N/A | ✓ | Offline support, background sync |
+| Storage Type       | Max Size                 | Performance                | Offline | Use Case                                             |
+| ------------------ | ------------------------ | -------------------------- | ------- | ---------------------------------------------------- |
+| **localStorage**   | ~5-10MB                  | Fast sync API              | ✓       | Small key-value (current: user settings, auth state) |
+| **IndexedDB**      | ~50MB-1GB+               | Async, fast for large data | ✓       | Large datasets (query results, cached API responses) |
+| **Cache API**      | Quota-based (~50MB-1GB+) | Async, optimized for HTTP  | ✓       | API response caching (HTTP-based mock APIs)          |
+| **Service Worker** | N/A (uses Cache API)     | N/A                        | ✓       | Offline support, background sync                     |
 
 **Current State:**
+
 - All persistence uses `localStorage` (AuthService, SettingsService, QueryStateService, QueryConfigurationService)
 - No large dataset caching
 - No offline support
 - No backup/restore functionality
 
 **Target State:**
+
 - **localStorage:** User settings, auth tokens, UI state (< 1MB total)
 - **IndexedDB:** Query result caching, large datasets (10k+ rows), backup snapshots
 - **Cache API:** Mock API response caching (if moving to HTTP-based mocks)
@@ -1480,12 +1480,14 @@ private async writeTableData(
 2. **Excel Desktop vs Online Storage Differences**
 
 **Action:** Research and document via:
+
 - Office.js documentation review
 - Test sideloading in Excel Desktop (macOS/Windows) and Excel Online
 - Verify storage persistence across hosts
 - Document any quota differences
 
 **Expected Findings:**
+
 - Both hosts run Angular in browser context (Chromium-based for Desktop, browser engine for Online)
 - Browser storage APIs (localStorage, IndexedDB) should work identically
 - Network connectivity may differ (Desktop = localhost dev server, Online = HTTPS GitHub Pages)
@@ -1496,6 +1498,7 @@ private async writeTableData(
 3. **Service Worker Evaluation**
 
 **Feasibility Assessment:**
+
 - **Pros:** Offline support, background sync, cache management
 - **Cons:** HTTPS requirement, complexity, debugging difficulty
 - **Decision Criteria:**
@@ -1508,6 +1511,7 @@ private async writeTableData(
 4. **Backup/Restore Functionality Design**
 
 **Requirements:**
+
 - Export all app state (configs, parameters, settings) to JSON file
 - Import JSON file to restore state
 - Automatic backup on critical operations (query runs, config saves)
@@ -1519,7 +1523,7 @@ private async writeTableData(
 /**
  * Backup/Restore Service - Export/import app state for data persistence.
  */
-@Injectable({ providedIn: 'root' })
+@Injectable({ providedIn: "root" })
 export class BackupRestoreService {
   constructor(
     private storage: StorageHelperService,
@@ -1531,29 +1535,29 @@ export class BackupRestoreService {
    */
   async exportBackup(): Promise<void> {
     const backup: AppStateBackup = {
-      version: '1.0.0',
+      version: "1.0.0",
       timestamp: new Date().toISOString(),
-      authState: this.storage.getItem('auth-state', null),
-      settings: this.storage.getItem('settings', null),
-      queryConfigs: this.storage.getItem('query-configs', []),
-      queryState: this.storage.getItem('query-state', null),
+      authState: this.storage.getItem("auth-state", null),
+      settings: this.storage.getItem("settings", null),
+      queryConfigs: this.storage.getItem("query-configs", []),
+      queryState: this.storage.getItem("query-state", null),
     };
 
     const blob = new Blob([JSON.stringify(backup, null, 2)], {
-      type: 'application/json',
+      type: "application/json",
     });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
     a.download = `excel-extension-backup-${Date.now()}.json`;
     a.click();
     URL.revokeObjectURL(url);
 
     this.telemetry.logEvent({
-      category: 'backup',
-      name: 'export-success',
-      severity: 'info',
-      message: 'Backup exported successfully',
+      category: "backup",
+      name: "export-success",
+      severity: "info",
+      message: "Backup exported successfully",
     });
   }
 
@@ -1570,16 +1574,16 @@ export class BackupRestoreService {
     }
 
     // Restore state to localStorage
-    if (backup.authState) this.storage.setItem('auth-state', backup.authState);
-    if (backup.settings) this.storage.setItem('settings', backup.settings);
-    if (backup.queryConfigs) this.storage.setItem('query-configs', backup.queryConfigs);
-    if (backup.queryState) this.storage.setItem('query-state', backup.queryState);
+    if (backup.authState) this.storage.setItem("auth-state", backup.authState);
+    if (backup.settings) this.storage.setItem("settings", backup.settings);
+    if (backup.queryConfigs) this.storage.setItem("query-configs", backup.queryConfigs);
+    if (backup.queryState) this.storage.setItem("query-state", backup.queryState);
 
     this.telemetry.logEvent({
-      category: 'backup',
-      name: 'import-success',
-      severity: 'info',
-      message: 'Backup restored successfully',
+      category: "backup",
+      name: "import-success",
+      severity: "info",
+      message: "Backup restored successfully",
     });
 
     // Reload app to apply restored state
@@ -1588,8 +1592,8 @@ export class BackupRestoreService {
 
   private isCompatibleVersion(version: string): boolean {
     // Semantic versioning compatibility check
-    const [major] = version.split('.');
-    return major === '1';
+    const [major] = version.split(".");
+    return major === "1";
   }
 }
 
@@ -1604,6 +1608,7 @@ export interface AppStateBackup {
 ```
 
 **UI Integration:**
+
 - Add "Backup/Restore" section in User/Settings view
 - Export button triggers download
 - Import file picker triggers restore with confirmation dialog
@@ -1620,12 +1625,12 @@ export interface AppStateBackup {
 /**
  * IndexedDB Service - Large dataset storage for query result caching.
  */
-@Injectable({ providedIn: 'root' })
+@Injectable({ providedIn: "root" })
 export class IndexedDBService {
   private db: IDBDatabase | null = null;
-  private readonly DB_NAME = 'ExcelExtensionDB';
+  private readonly DB_NAME = "ExcelExtensionDB";
   private readonly DB_VERSION = 1;
-  private readonly STORE_NAME = 'queryResults';
+  private readonly STORE_NAME = "queryResults";
 
   async init(): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -1640,9 +1645,9 @@ export class IndexedDBService {
       request.onupgradeneeded = (event: any) => {
         const db = event.target.result;
         if (!db.objectStoreNames.contains(this.STORE_NAME)) {
-          const store = db.createObjectStore(this.STORE_NAME, { keyPath: 'id' });
-          store.createIndex('queryId', 'queryId', { unique: false });
-          store.createIndex('timestamp', 'timestamp', { unique: false });
+          const store = db.createObjectStore(this.STORE_NAME, { keyPath: "id" });
+          store.createIndex("queryId", "queryId", { unique: false });
+          store.createIndex("timestamp", "timestamp", { unique: false });
         }
       };
     });
@@ -1664,7 +1669,7 @@ export class IndexedDBService {
     };
 
     return new Promise((resolve, reject) => {
-      const tx = this.db!.transaction([this.STORE_NAME], 'readwrite');
+      const tx = this.db!.transaction([this.STORE_NAME], "readwrite");
       const store = tx.objectStore(this.STORE_NAME);
       const request = store.put(record);
 
@@ -1677,9 +1682,9 @@ export class IndexedDBService {
     if (!this.db) await this.init();
 
     return new Promise((resolve, reject) => {
-      const tx = this.db!.transaction([this.STORE_NAME], 'readonly');
+      const tx = this.db!.transaction([this.STORE_NAME], "readonly");
       const store = tx.objectStore(this.STORE_NAME);
-      const index = store.index('queryId');
+      const index = store.index("queryId");
       const request = index.getAll(queryId);
 
       request.onsuccess = () => {
@@ -1691,7 +1696,7 @@ export class IndexedDBService {
 
         // Get most recent non-expired result
         const validResults = results
-          .filter(r => r.expiresAt > Date.now())
+          .filter((r) => r.expiresAt > Date.now())
           .sort((a, b) => b.timestamp - a.timestamp);
 
         resolve(validResults.length > 0 ? validResults[0].rows : null);
@@ -1704,9 +1709,9 @@ export class IndexedDBService {
     if (!this.db) await this.init();
 
     return new Promise((resolve, reject) => {
-      const tx = this.db!.transaction([this.STORE_NAME], 'readwrite');
+      const tx = this.db!.transaction([this.STORE_NAME], "readwrite");
       const store = tx.objectStore(this.STORE_NAME);
-      const index = store.index('timestamp');
+      const index = store.index("timestamp");
       const request = index.openCursor();
 
       request.onsuccess = (event: any) => {
@@ -1736,6 +1741,7 @@ interface QueryResultCache {
 ```
 
 **Integration Points:**
+
 - QueryApiMockService checks IndexedDB cache before generating mock data
 - QueryQueueService caches results after successful runs
 - Settings: cache TTL configurable (default: 1 hour)
@@ -1752,7 +1758,7 @@ interface QueryResultCache {
  * Provides abstraction over localStorage (small data) and IndexedDB (large data).
  * All services should use this instead of direct storage access.
  */
-@Injectable({ providedIn: 'root' })
+@Injectable({ providedIn: "root" })
 export class StorageHelperService {
   constructor(
     private indexedDB: IndexedDBService,
@@ -1771,9 +1777,9 @@ export class StorageHelperService {
       return JSON.parse(item) as T;
     } catch (error) {
       this.telemetry.logEvent({
-        category: 'storage',
-        name: 'parse-error',
-        severity: 'error',
+        category: "storage",
+        name: "parse-error",
+        severity: "error",
         message: `Failed to parse storage key: ${key}`,
         context: { error },
       });
@@ -1790,9 +1796,9 @@ export class StorageHelperService {
       localStorage.setItem(key, JSON.stringify(value));
     } catch (error) {
       this.telemetry.logEvent({
-        category: 'storage',
-        name: 'write-error',
-        severity: 'error',
+        category: "storage",
+        name: "write-error",
+        severity: "error",
         message: `Failed to write storage key: ${key}`,
         context: { error },
       });
@@ -1808,9 +1814,9 @@ export class StorageHelperService {
       return await this.indexedDB.getCachedQueryResult(key);
     } catch (error) {
       this.telemetry.logEvent({
-        category: 'storage',
-        name: 'indexeddb-read-error',
-        severity: 'error',
+        category: "storage",
+        name: "indexeddb-read-error",
+        severity: "error",
         message: `Failed to read from IndexedDB: ${key}`,
         context: { error },
       });
@@ -1827,9 +1833,9 @@ export class StorageHelperService {
       await this.indexedDB.cacheQueryResult(key, value as any, ttl);
     } catch (error) {
       this.telemetry.logEvent({
-        category: 'storage',
-        name: 'indexeddb-write-error',
-        severity: 'error',
+        category: "storage",
+        name: "indexeddb-write-error",
+        severity: "error",
         message: `Failed to write to IndexedDB: ${key}`,
         context: { error },
       });
@@ -1858,10 +1864,10 @@ export class StorageHelperService {
       await this.indexedDB.clearExpiredCache();
     } catch (error) {
       this.telemetry.logEvent({
-        category: 'storage',
-        name: 'cache-cleanup-error',
-        severity: 'error',
-        message: 'Failed to clear expired cache',
+        category: "storage",
+        name: "cache-cleanup-error",
+        severity: "error",
+        message: "Failed to clear expired cache",
         context: { error },
       });
     }
@@ -1874,7 +1880,7 @@ export class StorageHelperService {
 **Update:** `src/app/shared/query-state.service.ts`
 
 ```typescript
-@Injectable({ providedIn: 'root' })
+@Injectable({ providedIn: "root" })
 export class QueryStateService {
   constructor(
     private storage: StorageHelperService,
@@ -1888,7 +1894,7 @@ export class QueryStateService {
    */
   private hydrate(): void {
     const snapshot = this.storage.getItem<QueryStateSnapshot>(
-      'query-state',
+      "query-state",
       this.getDefaultSnapshot()
     );
     this.state$.next(snapshot);
@@ -1898,7 +1904,7 @@ export class QueryStateService {
    * Persist state to storage on change.
    */
   private persist(): void {
-    this.storage.setItem('query-state', this.state$.value);
+    this.storage.setItem("query-state", this.state$.value);
   }
 
   // ... rest of service uses storage helper
@@ -1913,15 +1919,12 @@ export class QueryStateService {
 /**
  * Query Validation Service - Validate query configurations and parameters.
  */
-@Injectable({ providedIn: 'root' })
+@Injectable({ providedIn: "root" })
 export class QueryValidationService {
   /**
    * Validate QueryConfiguration against ApiDefinition.
    */
-  validateConfiguration(
-    config: QueryConfiguration,
-    api: ApiDefinition
-  ): ValidationResult {
+  validateConfiguration(config: QueryConfiguration, api: ApiDefinition): ValidationResult {
     const errors: string[] = [];
 
     // Validate apiId exists
@@ -1953,7 +1956,7 @@ export class QueryValidationService {
 **Update:** `src/app/shared/query-configuration.service.ts`
 
 ```typescript
-@Injectable({ providedIn: 'root' })
+@Injectable({ providedIn: "root" })
 export class QueryConfigurationService {
   constructor(
     private storage: StorageHelperService,
@@ -1967,12 +1970,12 @@ export class QueryConfigurationService {
     const validationResult = this.validation.validateConfiguration(config, api);
 
     if (!validationResult.valid) {
-      throw new Error(`Invalid configuration: ${validationResult.errors.join(', ')}`);
+      throw new Error(`Invalid configuration: ${validationResult.errors.join(", ")}`);
     }
 
     // Use storage helper
-    const configs = this.storage.getItem<QueryConfiguration[]>('query-configs', []);
-    const index = configs.findIndex(c => c.id === config.id);
+    const configs = this.storage.getItem<QueryConfiguration[]>("query-configs", []);
+    const index = configs.findIndex((c) => c.id === config.id);
 
     if (index >= 0) {
       configs[index] = config;
@@ -1980,7 +1983,7 @@ export class QueryConfigurationService {
       configs.push(config);
     }
 
-    this.storage.setItem('query-configs', configs);
+    this.storage.setItem("query-configs", configs);
   }
 
   // ... other CRUD methods use storage helper
@@ -1990,6 +1993,7 @@ export class QueryConfigurationService {
 ### File Changes
 
 **New Files:**
+
 - `src/app/shared/storage-helper.service.ts` (multi-backend storage abstraction)
 - `src/app/shared/storage-helper.service.spec.ts` (tests)
 - `src/app/shared/indexeddb.service.ts` (IndexedDB wrapper for large datasets)
@@ -2000,6 +2004,7 @@ export class QueryConfigurationService {
 - `src/app/shared/query-validation.service.spec.ts` (tests)
 
 **Modified Files:**
+
 - `src/app/shared/query-state.service.ts` (use storage helper)
 - `src/app/shared/query-configuration.service.ts` (use storage + validation helpers)
 - `src/app/shared/query-api-mock.service.ts` (check IndexedDB cache before generating mocks)
@@ -2010,6 +2015,7 @@ export class QueryConfigurationService {
 - All specs for updated services
 
 **Updated Documentation:**
+
 - `.claude/ARCHITECTURE.md` (add service responsibilities section)
 - `.claude/STORAGE-ARCHITECTURE.md` (NEW - storage strategy, Excel host differences)
 - `CONTEXT-SESSION.md` (update query services section)
@@ -2017,6 +2023,7 @@ export class QueryConfigurationService {
 ### Testing Strategy
 
 **Unit Tests:**
+
 - `StorageHelperService.spec.ts` - getItem, setItem, getLargeItem, setLargeItem, error handling
 - `IndexedDBService.spec.ts` - init, cacheQueryResult, getCachedQueryResult, clearExpiredCache, TTL expiration
 - `BackupRestoreService.spec.ts` - exportBackup (download triggered), importBackup (state restored), version compatibility
@@ -2025,6 +2032,7 @@ export class QueryConfigurationService {
 - `QueryConfigurationService.spec.ts` - verify uses validation helper
 
 **Integration Tests:**
+
 - Save config → reload page → verify config persists (localStorage)
 - Cache large query result → getCachedQueryResult → verify returned (IndexedDB)
 - Cache query result with TTL → wait for expiration → clearExpiredCache → verify removed
@@ -2033,6 +2041,7 @@ export class QueryConfigurationService {
 - Storage full → verify error handling
 
 **Manual Verification:**
+
 - Sideload in Excel Desktop → verify localStorage persistence across sessions
 - Sideload in Excel Online → verify IndexedDB persistence across sessions
 - Document any quota or behavior differences in `.claude/STORAGE-ARCHITECTURE.md`
@@ -2082,21 +2091,25 @@ export class QueryConfigurationService {
 ### Services in Scope
 
 **AuthService** (`src/app/core/auth.service.ts`)
+
 - **Current:** Auth state, SSO mock, role checks, localStorage
 - **Target:** Auth state management + role checks only
 - **Extract:** localStorage to `StorageHelperService`
 
 **SettingsService** (`src/app/core/settings.service.ts`)
+
 - **Current:** Settings CRUD, defaults merge, localStorage
 - **Target:** Settings state management only
 - **Extract:** localStorage to `StorageHelperService`, validation to helper
 
 **TelemetryService** (`src/app/core/telemetry.service.ts`)
+
 - **Current:** Logging, workbook writes, error normalization, enrichment
 - **Target:** Logging + enrichment only
 - **Extract:** Workbook writes remain (Excel-specific, OK here)
 
 **AppContextService** (`src/app/core/app-context.service.ts`)
+
 - **Current:** Host status aggregation, auth summary
 - **Target:** Context aggregation only (good as-is)
 
@@ -2107,7 +2120,7 @@ export class QueryConfigurationService {
 **Update:** `src/app/core/auth.service.ts`
 
 ```typescript
-@Injectable({ providedIn: 'root' })
+@Injectable({ providedIn: "root" })
 export class AuthService {
   private authState$ = new BehaviorSubject<AuthState>({
     isAuthenticated: false,
@@ -2126,7 +2139,7 @@ export class AuthService {
    * Hydrate auth state from storage.
    */
   private hydrate(): void {
-    const state = this.storage.getItem<AuthState>('auth-state', {
+    const state = this.storage.getItem<AuthState>("auth-state", {
       isAuthenticated: false,
       user: null,
       roles: [],
@@ -2138,7 +2151,7 @@ export class AuthService {
    * Persist auth state to storage.
    */
   private persist(): void {
-    this.storage.setItem('auth-state', this.authState$.value);
+    this.storage.setItem("auth-state", this.authState$.value);
   }
 
   // ... role check methods (no changes needed)
@@ -2150,7 +2163,7 @@ export class AuthService {
 **Update:** `src/app/core/settings.service.ts`
 
 ```typescript
-@Injectable({ providedIn: 'root' })
+@Injectable({ providedIn: "root" })
 export class SettingsService {
   constructor(
     private storage: StorageHelperService,
@@ -2163,13 +2176,13 @@ export class SettingsService {
    * Hydrate settings from storage with defaults merge.
    */
   private hydrate(): void {
-    const stored = this.storage.getItem<Partial<AppSettings>>('app-settings', {});
+    const stored = this.storage.getItem<Partial<AppSettings>>("app-settings", {});
     const merged = this.mergeWithDefaults(this.getDefaultSettings(), stored);
 
     // Validate merged settings
     const validationResult = this.validation.validateSettings(merged);
     if (!validationResult.valid) {
-      console.warn('Invalid settings, using defaults', validationResult.errors);
+      console.warn("Invalid settings, using defaults", validationResult.errors);
       this.settings$.next(this.getDefaultSettings());
     } else {
       this.settings$.next(merged);
@@ -2183,6 +2196,7 @@ export class SettingsService {
 ### File Changes
 
 **Modified Files:**
+
 - `src/app/core/auth.service.ts` (use storage helper)
 - `src/app/core/settings.service.ts` (use storage + validation helpers)
 - `src/app/core/telemetry.service.ts` (verify responsibility, extract if needed)
@@ -2190,17 +2204,20 @@ export class SettingsService {
 - All specs for updated services
 
 **Updated Documentation:**
+
 - `.claude/ARCHITECTURE.md` (update service responsibilities)
 - `CONTEXT-SESSION.md` (update state management section)
 
 ### Testing Strategy
 
 **Unit Tests:**
+
 - `AuthService.spec.ts` - verify uses storage helper
 - `SettingsService.spec.ts` - verify validation + storage
 - `TelemetryService.spec.ts` - verify no state leakage
 
 **Integration Tests:**
+
 - Sign in → reload → verify auth persists
 - Change settings → reload → verify settings persist
 
@@ -2216,10 +2233,20 @@ export class SettingsService {
 
 ## Phase 6: Performance & Large Datasets
 
-**Sub-Branch:** `feat/performance-optimization` (from `feat/finalize-concept`)
+**Sub-Branch:** `feat/performance-large-datasets` (from `feat/finalize-concept`)
 **Depends On:** Phase 5 (Auth/Settings/Telemetry refactor)
 **Estimated Effort:** 3-4 days
 **Priority:** MEDIUM (production-scale requirement)
+**Status:** ✅ COMPLETED (2025-11-25)
+
+**Completion Notes:**
+
+- Implemented chunked Excel writes with configurable settings (default 1000 rows, 100ms backoff)
+- Enforced row limits in QueryApiMockService with telemetry warnings
+- Added Settings UI for Query Execution configuration (maxRows, chunkSize, progressive loading)
+- Created comprehensive PERFORMANCE.md documentation
+- Updated all architecture documentation
+- All tests passing (184/184), build successful
 
 ### Goals
 
@@ -2792,7 +2819,7 @@ export interface TokenPair {
 **Update:** `src/app/core/auth.service.ts`
 
 ```typescript
-@Injectable({ providedIn: 'root' })
+@Injectable({ providedIn: "root" })
 export class AuthService {
   private tokens$ = new BehaviorSubject<TokenPair | null>(null);
 
@@ -2810,15 +2837,15 @@ export class AuthService {
    */
   async signInWithJwt(email: string, password: string): Promise<void> {
     // Mock JWT generation
-    const tokens = this.jwtHelper.generateMockTokenPair({ email, roles: ['analyst'] });
+    const tokens = this.jwtHelper.generateMockTokenPair({ email, roles: ["analyst"] });
 
     this.tokens$.next(tokens);
     this.persist();
 
     this.telemetry.logEvent({
-      category: 'auth',
-      name: 'jwt.signin.success',
-      severity: 'info',
+      category: "auth",
+      name: "jwt.signin.success",
+      severity: "info",
       context: { email },
     });
   }
@@ -2837,9 +2864,9 @@ export class AuthService {
     this.persist();
 
     this.telemetry.logEvent({
-      category: 'auth',
-      name: 'jwt.token.refreshed',
-      severity: 'debug',
+      category: "auth",
+      name: "jwt.token.refreshed",
+      severity: "debug",
     });
   }
 
@@ -2892,7 +2919,7 @@ export class AuthService {
  *
  * Replace with real JWT library (e.g., `jose`) for production.
  */
-@Injectable({ providedIn: 'root' })
+@Injectable({ providedIn: "root" })
 export class JwtHelperService {
   /**
    * Generate mock JWT token pair.
@@ -2918,7 +2945,7 @@ export class JwtHelperService {
   refreshMockTokenPair(refreshToken: RefreshToken): TokenPair {
     // Validate refresh token not expired
     if (Date.now() >= refreshToken.expiresAt) {
-      throw new Error('Refresh token expired');
+      throw new Error("Refresh token expired");
     }
 
     // Generate new access token
@@ -2938,9 +2965,9 @@ export class JwtHelperService {
   decodeMockToken(token: string): TokenPayload | null {
     // Mock decode (replace with real JWT decode in production)
     return {
-      sub: 'mock-user-id',
-      email: 'mock@example.com',
-      roles: ['analyst'],
+      sub: "mock-user-id",
+      email: "mock@example.com",
+      roles: ["analyst"],
       iat: Date.now() / 1000,
       exp: (Date.now() + 15 * 60 * 1000) / 1000,
     };
@@ -2975,34 +3002,40 @@ private async loadRemoteConfig(): Promise<void> {
 ### File Changes
 
 **New Files:**
+
 - `src/app/types/jwt.types.ts` (JWT types)
 - `src/app/core/jwt-helper.service.ts` (mock JWT generation/validation)
 - `src/app/core/jwt-helper.service.spec.ts` (tests)
 
 **Modified Files:**
+
 - `src/app/core/auth.service.ts` (JWT token management)
 - `src/app/core/auth.service.spec.ts` (update for JWT)
 - `src/app/core/config.services.ts` (use JWT bearer token)
 - `src/app/features/sso-home/sso-home.component.ts` (update sign-in to use JWT)
 
 **Updated Documentation:**
+
 - `.claude/ARCHITECTURE.md` (add JWT authentication section)
 - `CONTEXT-SESSION.md` (update auth flow)
 
 ### Testing Strategy
 
 **Unit Tests:**
+
 - `JwtHelperService.spec.ts` - generate, refresh, decode tokens
 - `AuthService.spec.ts` - JWT sign-in, refresh timer, expiry handling
 - `ConfigService.spec.ts` - verify bearer token in headers
 
 **Integration Tests:**
+
 - Sign in → verify tokens stored
 - Wait for expiry → verify refresh triggered
 - Token expired → verify sign-out triggered
 - Config loading with JWT → verify auth header
 
 **Manual Tests:**
+
 - Sign in, verify localStorage has tokens
 - Wait 10+ minutes, verify auto-refresh
 - Clear tokens, verify config falls back to defaults
@@ -3168,10 +3201,7 @@ private showFormulaStatus(message: string): void {
 
 ```html
 <!-- Formula status banner -->
-<app-status-banner
-  *ngIf="formulaStatusMessage"
-  [type]="'info'"
-  [message]="formulaStatusMessage">
+<app-status-banner *ngIf="formulaStatusMessage" [type]="'info'" [message]="formulaStatusMessage">
 </app-status-banner>
 
 <!-- Queries list -->
@@ -3181,6 +3211,7 @@ private showFormulaStatus(message: string): void {
 ### File Changes
 
 **Modified Files:**
+
 - `src/app/types/settings.types.ts` (add `disableFormulasDuringRun`)
 - `src/app/core/settings.service.ts` (add default)
 - `src/app/core/excel.service.ts` (add `setCalculationMode`)
@@ -3189,6 +3220,7 @@ private showFormulaStatus(message: string): void {
 - `src/app/features/settings/settings.component.ts` (add setting UI)
 
 **Updated Documentation:**
+
 - `.claude/ARCHITECTURE.md` (add formula management)
 - `.claude/PERFORMANCE.md` (note formula impact on large datasets)
 - `CONTEXT-SESSION.md` (update query execution flow)
@@ -3196,15 +3228,18 @@ private showFormulaStatus(message: string): void {
 ### Testing Strategy
 
 **Unit Tests:**
+
 - `ExcelService.spec.ts` - setCalculationMode returns previous mode
 - `QueriesComponent.spec.ts` - formulas suspended/restored on success/error
 
 **Integration Tests:**
+
 - Run query with setting enabled → verify mode changed to Manual
 - Query fails → verify mode restored to Automatic
 - Setting disabled → verify mode never changed
 
 **Manual Tests:**
+
 - Enable setting, run query, verify Excel shows "Manual" calculation mode
 - Query fails, verify calculation mode restored
 - Disable setting, run query, verify calculation stays Automatic
@@ -3257,7 +3292,7 @@ private showFormulaStatus(message: string): void {
 /**
  * Formula Scanner Service - Detect formula dependencies on tables/columns.
  */
-@Injectable({ providedIn: 'root' })
+@Injectable({ providedIn: "root" })
 export class FormulaScannerService {
   constructor(
     private excel: ExcelService,
@@ -3272,14 +3307,14 @@ export class FormulaScannerService {
 
     return await Excel.run(async (ctx) => {
       const sheets = ctx.workbook.worksheets;
-      sheets.load('items/name');
+      sheets.load("items/name");
       await ctx.sync();
 
       const dependencies: FormulaDependency[] = [];
 
       for (const sheet of sheets.items) {
         const usedRange = sheet.getUsedRange();
-        usedRange.load('formulas, address');
+        usedRange.load("formulas, address");
         await ctx.sync();
 
         // Parse formulas for table/column references
@@ -3287,7 +3322,7 @@ export class FormulaScannerService {
           for (let j = 0; j < usedRange.formulas[i].length; j++) {
             const formula = usedRange.formulas[i][j];
 
-            if (formula && typeof formula === 'string') {
+            if (formula && typeof formula === "string") {
               const refs = this.parseTableColumnReferences(formula);
               for (const ref of refs) {
                 dependencies.push({
@@ -3304,9 +3339,9 @@ export class FormulaScannerService {
       }
 
       this.telemetry.logEvent({
-        category: 'formula',
-        name: 'scan.completed',
-        severity: 'info',
+        category: "formula",
+        name: "scan.completed",
+        severity: "info",
         context: {
           dependencyCount: dependencies.length,
           sheetsScanned: sheets.items.length,
@@ -3347,9 +3382,7 @@ export class FormulaScannerService {
    */
   async checkQueryImpact(query: QueryConfiguration): Promise<FormulaImpactResult> {
     const dependencies = await this.scanWorkbook();
-    const affected = dependencies.filter(
-      d => d.tableName === query.targetTableName
-    );
+    const affected = dependencies.filter((d) => d.tableName === query.targetTableName);
 
     return {
       hasImpact: affected.length > 0,
@@ -3446,31 +3479,37 @@ downloadReport(dependencies: FormulaDependency[]): void {
 ### File Changes
 
 **New Files:**
+
 - `src/app/core/formula-scanner.service.ts` (formula dependency detection)
 - `src/app/core/formula-scanner.service.spec.ts` (tests)
 - `src/app/types/formula.types.ts` (FormulaDependency, FormulaImpactResult)
 
 **Modified Files:**
+
 - `src/app/features/queries/queries.component.ts` (check impact before run)
 - `src/app/features/settings/settings.component.ts` (add "Scan Formulas" button)
 
 **Updated Documentation:**
+
 - `.claude/ARCHITECTURE.md` (add formula detection)
 - `CONTEXT-SESSION.md` (add formula safety section)
 
 ### Testing Strategy
 
 **Unit Tests:**
+
 - `FormulaScannerService.spec.ts` - parseTableColumnReferences with various formulas
 - Mock Excel range with formulas, verify detection
 - checkQueryImpact with matching/non-matching tables
 
 **Integration Tests:**
+
 - Create workbook with formulas referencing table
 - Run scan, verify dependencies detected
 - Run query, verify warning shown
 
 **Manual Tests:**
+
 - Create Excel workbook with `=Table1[Column]` formula
 - Scan formulas, verify dependency reported
 - Run query on Table1, verify warning dialog

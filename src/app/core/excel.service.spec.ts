@@ -1,5 +1,6 @@
 import { ExcelService } from "./excel.service";
 import { TelemetryService } from "./telemetry.service";
+import { SettingsService } from "./settings.service";
 import { QueryDefinition, QueryRunLocation } from "../shared/query-model";
 import { ExecuteQueryResultRow } from "../shared/query-api-mock.service";
 import { ExcelOperationResult } from "../types";
@@ -7,6 +8,7 @@ import { ExcelOperationResult } from "../types";
 describe("ExcelService.upsertQueryTable (host-agnostic behavior)", () => {
   let service: ExcelService;
   let telemetrySpy: jasmine.SpyObj<TelemetryService>;
+  let settingsSpy: jasmine.SpyObj<SettingsService>;
 
   beforeEach(() => {
     telemetrySpy = jasmine.createSpyObj<TelemetryService>("TelemetryService", [
@@ -14,10 +16,26 @@ describe("ExcelService.upsertQueryTable (host-agnostic behavior)", () => {
       "logEvent",
     ]);
 
+    settingsSpy = jasmine.createSpyObj<SettingsService>("SettingsService", [], {
+      value: {
+        telemetry: {
+          enableWorkbookLogging: false,
+          enableConsoleLogging: true,
+        },
+        queryExecution: {
+          maxRowsPerQuery: 10000,
+          chunkSize: 1000,
+          enableProgressiveLoading: true,
+          apiPageSize: 1000,
+          chunkBackoffMs: 100,
+        },
+      },
+    });
+
     // In unit tests we are not running inside Excel, so
     // upsertQueryTable should short-circuit with a typed error
     // result instead of throwing.
-    service = new ExcelService(telemetrySpy);
+    service = new ExcelService(telemetrySpy, settingsSpy);
 
     // Ensure the global Office object is absent so isExcel === false.
     (globalThis as unknown as { Office?: unknown }).Office = undefined;

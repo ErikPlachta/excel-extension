@@ -113,6 +113,23 @@ npm run validate:dev-manifest
 
 For GitHub Pages, use `prod-manifest.xml`, which points to the deployed site. The deploy workflow already sets `--base-href /excel-extension/` at build time.
 
+## Performance and large datasets
+
+The extension handles large datasets (10k+ rows) efficiently through chunked Excel writes and configurable resource limits. See `.claude/PERFORMANCE.md` for comprehensive details.
+
+- **Chunked writes:** Large datasets are written to Excel in configurable batches (default 1000 rows) to stay within Office.js ~5MB payload limit
+- **Row limits:** Configurable max rows per query (default 10,000) prevents Excel crashes from massive datasets
+- **User-configurable settings:** Adjust chunk size, max rows, and backoff timing via Settings UI (Settings → Query Execution)
+- **Telemetry:** Progress logging for chunk writes and warnings when row limits are exceeded
+
+Key settings (defaults):
+
+- Max rows per query: 10,000
+- Chunk size: 1,000 rows
+- Chunk backoff: 100ms between batches
+
+Test queries available: `large-dataset` (10k rows), `synthetic-expansion` (25k rows, truncated to limit)
+
 ## Telemetry and logging
 
 Telemetry for this extension is centralized in `TelemetryService` under `src/app/core/telemetry.service.ts` and configured via `TelemetrySettings` on `AppSettings` (see `SettingsService`).

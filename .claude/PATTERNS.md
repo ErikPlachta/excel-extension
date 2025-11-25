@@ -267,24 +267,26 @@ if (config) {
 ### Multi-Tier Storage
 
 **Tier 1 (localStorage) - Small Data (< 100 KB)**
+
 ```typescript
 // Read
-const settings = this.storage.getItem<Settings>('settings', DEFAULT_SETTINGS);
+const settings = this.storage.getItem<Settings>("settings", DEFAULT_SETTINGS);
 
 // Write
-this.storage.setItem('settings', updatedSettings);
+this.storage.setItem("settings", updatedSettings);
 
 // Remove
-this.storage.removeItem('settings');
+this.storage.removeItem("settings");
 ```
 
 **Tier 2 (IndexedDB) - Large Data (100 KB+)**
+
 ```typescript
 // Read (async)
-const cached = await this.storage.getLargeItem<any[]>('query-results-sales');
+const cached = await this.storage.getLargeItem<any[]>("query-results-sales");
 
 // Write (async with TTL)
-await this.storage.setLargeItem('query-results-sales', rows, 3600000); // 1 hour
+await this.storage.setLargeItem("query-results-sales", rows, 3600000); // 1 hour
 
 // Clear expired
 await this.storage.clearExpiredCache();
@@ -293,6 +295,7 @@ await this.storage.clearExpiredCache();
 ### Backup/Restore
 
 **Export**
+
 ```typescript
 exportBackup(): void {
   this.backupRestore.exportBackup();
@@ -301,6 +304,7 @@ exportBackup(): void {
 ```
 
 **Import**
+
 ```typescript
 async onFileSelected(event: Event): Promise<void> {
   const input = event.target as HTMLInputElement;
@@ -323,7 +327,7 @@ async onFileSelected(event: Event): Promise<void> {
 // Validate before save
 const result = this.validator.validateConfiguration(config);
 if (!result.valid) {
-  throw new Error(`Invalid config: ${result.errors.join(', ')}`);
+  throw new Error(`Invalid config: ${result.errors.join(", ")}`);
 }
 
 // QueryConfigurationService validates automatically on save

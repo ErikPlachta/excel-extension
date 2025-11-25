@@ -23,10 +23,17 @@ Angular 20 task-pane add-in for Excel. Standalone components, Office.js wrapper,
 - `computeHeaderAndValues(rows)` – Transform query result rows to Excel format
 - `writeQueryTableData(ctx, sheet, tableName, header, values, queryId)` – Handle table creation/update logic
 
+**Performance Optimizations (Phase 6):**
+- `writeRowsInChunks(ctx, table, rows, chunkSize, backoffMs, onChunkWritten?)` – Chunked writes for large datasets
+- Configurable chunk size (default 1000 rows) and backoff (default 100ms) via `SettingsService.queryExecution`
+- Automatically used by `writeQueryTableData()` to stay within Office.js ~5MB payload limit
+- Telemetry for chunk progress and completion
+
 **Design:**
 - All methods gated by `isExcel`, return typed results (no throws)
 - Office.js types remain `any` at boundary
 - Focuses on Office.js API calls, delegates ownership decisions to `WorkbookService`
+- Injected dependencies: `TelemetryService`, `SettingsService`
 
 ### WorkbookService (`src/app/core/workbook.service.ts`)
 
@@ -70,9 +77,15 @@ Angular 20 task-pane add-in for Excel. Standalone components, Office.js wrapper,
 **App-wide settings**
 
 - `AppSettings.telemetry` → `TelemetrySettings`
+- `AppSettings.queryExecution` → `QueryExecutionSettings` **[Phase 6]**
+  - `maxRowsPerQuery` (default 10000) – Prevent Excel crashes
+  - `chunkSize` (default 1000) – Rows per batch for Excel writes
+  - `enableProgressiveLoading` (default true) – Show first chunk immediately
+  - `apiPageSize` (default 1000) – API pagination size
+  - `chunkBackoffMs` (default 100) – Delay between chunks to avoid throttling
 - Console logging, workbook logging, log sheet/table names
 - **Uses direct localStorage** (not StorageHelperService to avoid circular dependency with TelemetryService)
-- Deep merge for partial updates
+- Deep merge for partial updates (telemetry + queryExecution)
 - Comprehensive TSDoc coverage
 
 ### TelemetryService (`src/app/core/telemetry.service.ts`)
@@ -202,8 +215,11 @@ const result = await this.excel.upsertQueryTable(query, rows, {
 - `executeQuery(id, params)` → `Promise<{query, rows}>` **[DEPRECATED - use executeApi]**
 - `getQueries()`, `getQueryById()` **[DEPRECATED - use ApiCatalogService]**
 - **Phase 4:** Integrated IndexedDB caching - checks cache before generating mocks
+- **Phase 6:** Enforces `maxRowsPerQuery` limit from `SettingsService.queryExecution`
+  - Truncates results exceeding limit
+  - Logs warning telemetry with `executeApi:rowLimitExceeded`
 - In-process mock data, no HTTP
-- Injected `ApiCatalogService` for validation, `IndexedDBService` for caching
+- Injected `ApiCatalogService` for validation, `IndexedDBService` for caching, `SettingsService`, `TelemetryService`
 
 ### QueryStateService (`src/app/shared/query-state.service.ts`)
 
