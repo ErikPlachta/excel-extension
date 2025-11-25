@@ -61,7 +61,19 @@ Angular 20 task-pane add-in for Excel. Standalone components, Office.js wrapper,
 - `isAuthenticated`, `user`, `roles`
 - `signInAsAnalyst()`, `signInAsAdmin()`, `signOut()`
 - `hasRole(role)`, `hasAnyRole(roles)`
-- `localStorage` persistence
+- **Uses StorageHelperService for persistence** (refactored in Phase 5)
+- Observable state stream (`state$`) for reactive updates
+- Comprehensive TSDoc coverage
+
+### SettingsService (`src/app/core/settings.service.ts`)
+
+**App-wide settings**
+
+- `AppSettings.telemetry` → `TelemetrySettings`
+- Console logging, workbook logging, log sheet/table names
+- **Uses direct localStorage** (not StorageHelperService to avoid circular dependency with TelemetryService)
+- Deep merge for partial updates
+- Comprehensive TSDoc coverage
 
 ### TelemetryService (`src/app/core/telemetry.service.ts`)
 
@@ -71,21 +83,16 @@ Angular 20 task-pane add-in for Excel. Standalone components, Office.js wrapper,
 - Config via `SettingsService` → `TelemetrySettings`
 - Enriches events with session ID, host status, auth summary
 - `normalizeError()` for Excel operations → `ExcelOperationResult`
-
-### SettingsService (`src/app/core/settings.service.ts`)
-
-**App-wide settings**
-
-- `AppSettings.telemetry` → `TelemetrySettings`
-- Console logging, workbook logging, log sheet/table names
-- `localStorage` persistence with defaults merge
+- Comprehensive TSDoc coverage
 
 ### AppContextService (`src/app/core/app-context.service.ts`)
 
 **Host & auth context**
 
-- `hostStatus` → `{isExcel, isOnline}`
-- `getAuthSummary()` → `{isAuthenticated, displayName, roles}`
+- `hostStatus` → `{isExcel, isOnline}` (captured at init)
+- `getAuthSummary()` → `{isAuthenticated, displayName, roles}` (derived from AuthService)
+- Provides centralized context for telemetry enrichment
+- Comprehensive TSDoc coverage
 
 ### AppConfigService (`src/app/core/app-config.service.ts`) - NEW Phase 2
 

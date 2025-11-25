@@ -60,8 +60,22 @@ Angular 20 task-pane add-in for Excel using standalone components and Office.js.
 
 #### AuthService (`src/app/core/auth.service.ts`)
 - Mocked SSO with user, roles, auth state
-- `localStorage` persistence
+- **Uses StorageHelperService for persistence** (refactored in Phase 5)
 - Role-based feature visibility (queries require `analyst`/`admin`)
+- Observable state stream (`state$`) for reactive updates
+- Comprehensive TSDoc coverage
+
+#### SettingsService (`src/app/core/settings.service.ts`)
+- Application-wide user preferences and configuration
+- **Uses direct localStorage** (not StorageHelperService to avoid circular dependency)
+- Deep merge for partial updates (especially telemetry settings)
+- Comprehensive TSDoc coverage
+
+#### AppContextService (`src/app/core/app-context.service.ts`)
+- Aggregates runtime context for telemetry and diagnostics
+- Provides host status (Excel vs browser, online status)
+- Provides auth summary (derived from AuthService)
+- Comprehensive TSDoc coverage
 
 #### TelemetryService (`src/app/core/telemetry.service.ts`)
 - Centralized logging to console + optional in-workbook table
