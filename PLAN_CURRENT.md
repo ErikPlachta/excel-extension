@@ -1,181 +1,335 @@
-# Phase 6: Performance & Large Datasets
+# Phase 7: JWT Authentication
 
-**Branch:** `feat/performance-large-datasets`
-**Depends On:** Phase 5 (Auth/Settings/Telemetry refactor)
-**Priority:** HIGH (production readiness for large datasets)
-**Status:** ✅ COMPLETED
+**Branch:** `feat/jwt-authentication`
+**Depends On:** Phase 6 (Performance & Large Datasets)
+**Priority:** HIGH (production auth requirement)
+**Status:** 🚧 IN PROGRESS
 
 ## Goals
 
-1. Handle large datasets (10k+ rows) efficiently without Excel crashes
-2. Stay within Office.js ~5MB payload limit per operation
-3. User-configurable performance settings (chunk size, row limits, backoff)
-4. Comprehensive documentation for large dataset handling
-5. Telemetry for performance monitoring
+1. Design JWT token flow with mock implementation (real-ready structure)
+2. Update `AuthService` for token lifecycle management
+3. Integrate JWT with config loading (bearer token auth)
+4. Mock SSO → JWT transition path
+5. Token refresh/expiry handling with auto-refresh timer
 
 ## Success Criteria
 
-- [x] Chunked Excel writes (default 1000 rows, configurable)
-- [x] Row limit enforcement (default 10k, configurable)
-- [x] User-configurable settings in UI (maxRows, chunkSize, backoff)
-- [x] Telemetry for chunk progress and row limit warnings
-- [x] PERFORMANCE.md documentation (Excel limits, strategies, testing)
-- [x] Settings UI for Query Execution configuration
-- [x] All tests passing (184/184)
-- [x] Documentation updated (ARCHITECTURE.md, CLAUDE.md, README.md)
+- [ ] JWT token types defined (`AccessToken`, `RefreshToken`, `TokenPayload`, `TokenPair`)
+- [ ] `JwtHelperService` created with mock JWT generation/validation
+- [ ] `AuthService` manages token lifecycle (store, refresh, clear, auto-refresh)
+- [ ] Config loading uses JWT bearer token when auth succeeds
+- [ ] Token expiry triggers re-auth flow
+- [ ] Auto-refresh timer triggers before token expiry
+- [ ] Tests pass (token lifecycle, refresh, expiry scenarios)
+- [ ] Documentation updated (ARCHITECTURE.md)
 
-## Implementation Summary
+## Implementation Plan
 
-### Core Services Modified
+### 7.1: JWT Types Definition
 
-**ExcelService** (`src/app/core/excel.service.ts`)
-- Added `writeRowsInChunks()` method with configurable chunk size and backoff
-- Integrated with `SettingsService` for configuration
-- Telemetry for chunk progress
-- Automatically used by `writeQueryTableData()` for all query writes
+**Create:** `src/app/types/jwt.types.ts`
 
-**QueryApiMockService** (`src/app/shared/query-api-mock.service.ts`)
-- Enforces `maxRowsPerQuery` limit from settings
-- Truncates results exceeding limit with telemetry warning
-- Integrated with `SettingsService` and `TelemetryService`
+```typescript
+/**
+ * JWT access token with expiration.
+ */
+export interface AccessToken {
+  token: string;
+  expiresAt: number; // Unix timestamp (ms)
+}
 
-**SettingsService** (`src/app/core/settings.service.ts`)
-- Added `QueryExecutionSettings` interface to settings types
-- Deep merge support for queryExecution updates
-- Defaults: maxRowsPerQuery=10000, chunkSize=1000, chunkBackoffMs=100
+/**
+ * JWT refresh token with expiration.
+ */
+export interface RefreshToken {
+  token: string;
+  expiresAt: number; // Unix timestamp (ms)
+}
 
-### User Interface
+/**
+ * JWT token payload (decoded claims).
+ */
+export interface TokenPayload {
+  sub: string;        // User ID
+  email: string;
+  roles: string[];
+  iat: number;        // Issued at (Unix timestamp)
+  exp: number;        // Expires at (Unix timestamp)
+}
 
-**Settings Component** (`src/app/features/settings/`)
-- Query Execution section with user controls:
-  - Max rows per query (number input, 100-100000)
-  - Chunk size for Excel writes (number input, 100-5000)
-  - Enable progressive loading (checkbox, placeholder for future)
-- Changes persist to localStorage immediately
-- Telemetry logged for all setting changes
+/**
+ * Access + refresh token pair.
+ */
+export interface TokenPair {
+  access: AccessToken;
+  refresh: RefreshToken;
+}
+```
 
-### Documentation
+### 7.2: JWT Helper Service
 
-**Created:**
-- `.claude/PERFORMANCE.md` - Comprehensive guide covering:
-  - Excel resource limits (~5MB payload, ~1M cells, proxy object management)
-  - Chunked write strategy and implementation details
-  - User-configurable limits and settings
-  - Testing strategies for large datasets
-  - Failure modes and fixes
-  - Manual testing procedures
-  - Configuration reference
+**Create:** `src/app/core/jwt-helper.service.ts`
 
-**Updated:**
-- `.claude/ARCHITECTURE.md` - Added Phase 6 details to service descriptions
-- `.claude/CLAUDE.md` - Added Performance & Large Datasets section
-- `.claude/README.md` - Added PERFORMANCE.md to file list
-- `README.md` - Added Performance and large datasets section
+**Purpose:** Mock JWT generation and validation (deterministic for testing)
+
+**Methods:**
+- `generateMockTokenPair(email, roles)` → `TokenPair`
+  - Access token: 15-minute expiry
+  - Refresh token: 7-day expiry
+  - Deterministic tokens based on email (for testing)
+
+- `refreshMockTokenPair(refreshToken)` → `TokenPair`
+  - Validate refresh token not expired
+  - Generate new access token
+  - Keep same refresh token (unless < 1 day remaining)
+
+- `decodeMockToken(token)` → `TokenPayload`
+  - Mock JWT decoding (base64 decode payload section)
+  - Returns decoded claims
+
+- `isTokenExpired(token)` → `boolean`
+  - Check if token expiry passed
+
+**Note:** Use simple base64 encoding for mock. Replace with real JWT library (`jose`) in production.
+
+### 7.3: AuthService Updates
+
+**Update:** `src/app/core/auth.service.ts`
+
+**New State:**
+```typescript
+private tokensSubject = new BehaviorSubject<TokenPair | null>(null);
+public tokens$ = this.tokensSubject.asObservable();
+private tokenRefreshTimer?: Subscription;
+```
+
+**New Methods:**
+- `signInWithJwt(email: string, password: string)` → `Promise<void>`
+  - Call `jwtHelper.generateMockTokenPair(email, roles)`
+  - Store tokens in `tokensSubject` and localStorage
+  - Start token refresh timer
+  - Update auth state (isAuthenticated, user, roles)
+
+- `refreshAccessToken()` → `Promise<void>`
+  - Get current refresh token
+  - Call `jwtHelper.refreshMockTokenPair(refreshToken)`
+  - Update tokens in state and storage
+
+- `getAccessToken()` → `string | null`
+  - Get current access token
+  - Check if expired → trigger refresh if possible
+  - Return token or null
+
+- `startTokenRefreshTimer()` → `void`
+  - Check token expiry every 60 seconds
+  - Trigger refresh when < 5 minutes remaining
+  - Stop timer on sign-out
+
+- `stopTokenRefreshTimer()` → `void`
+  - Unsubscribe from timer
+
+**Updated Methods:**
+- `signOut()` - Clear tokens from state and storage, stop refresh timer
+- Constructor - Load tokens from storage on init, start refresh timer if valid
+
+**Storage:**
+- Use `StorageHelperService.setItem('jwt_tokens', tokenPair)`
+- Load on init with `StorageHelperService.getItem<TokenPair>('jwt_tokens')`
+
+### 7.4: Config Service Integration
+
+**Update:** `src/app/core/config.services.ts`
+
+**Modify:** `loadRemoteConfig(url)` method
+
+```typescript
+async loadRemoteConfig(url: string): Promise<boolean> {
+  try {
+    // Get JWT token from AuthService
+    const token = this.auth.getAccessToken();
+
+    // Add bearer token if authenticated
+    const headers = token
+      ? { Authorization: `Bearer ${token}` }
+      : {};
+
+    const config = await this.http.get<AppConfig>(url, { headers }).toPromise();
+
+    // Validate and merge...
+    return true;
+  } catch (error) {
+    // Fall back to defaults if auth fails
+    console.warn('Failed to load remote config, using defaults', error);
+    return false;
+  }
+}
+```
+
+### 7.5: SSO Component Updates
+
+**Update:** `src/app/features/sso-home/sso-home.component.ts`
+
+**Changes:**
+- Update sign-in buttons to call `authService.signInWithJwt(email, password)`
+- Mock password (no real validation needed for Phase 7)
+- Display token expiry information (optional, for debugging)
+
+**HTML changes:**
+- Add password input field (type="password", mock validation)
+- Update sign-in button handler
+
+### 7.6: Testing Strategy
+
+**Unit Tests:**
+
+**`jwt-helper.service.spec.ts`:**
+- Token generation produces valid structure
+- Access token expires in 15 minutes
+- Refresh token expires in 7 days
+- Token refresh creates new access token
+- Token decoding returns correct payload
+- Expired token detection works
+
+**`auth.service.spec.ts`:**
+- JWT sign-in stores tokens
+- Token refresh updates access token
+- Auto-refresh triggers before expiry
+- Token expiry triggers sign-out
+- getAccessToken() refreshes if needed
+
+**`config.service.spec.ts`:**
+- Bearer token added to config loading when authenticated
+- Falls back to defaults if auth fails
+
+**Integration Tests:**
+- Sign in → verify tokens in localStorage
+- Wait 10+ minutes → verify auto-refresh triggered
+- Clear tokens → verify config falls back to defaults
+
+### 7.7: Documentation Updates
+
+**Update:** `.claude/ARCHITECTURE.md`
+
+Add JWT Authentication section:
+- AuthService token management
+- JwtHelperService mock implementation
+- Token lifecycle (access, refresh, auto-refresh)
+- Config Service bearer token integration
+
+**Update:** `CONTEXT-SESSION.md` (if needed)
+- Auth flow diagram with JWT
+- Token storage strategy
 
 ## Technical Details
 
-### Chunked Writes
+### Token Lifecycle
 
-```typescript
-// ExcelService.writeRowsInChunks()
-private async writeRowsInChunks(
-  ctx: any,
-  table: any,
-  rows: unknown[][],
-  chunkSize: number = 1000,
-  backoffMs: number = 100,
-  onChunkWritten?: (chunkIndex: number, totalChunks: number) => void
-): Promise<void>
-```
+**Sign-In Flow:**
+1. User clicks sign-in with email
+2. `AuthService.signInWithJwt(email, password)` called
+3. `JwtHelperService.generateMockTokenPair()` creates tokens
+4. Tokens stored in localStorage + BehaviorSubject
+5. Auth state updated (isAuthenticated = true, user, roles)
+6. Auto-refresh timer started
 
-- Breaks data into configurable batches (default 1000 rows)
-- Syncs after each batch to stay within Office.js payload limit
-- Configurable backoff between chunks (default 100ms) to prevent throttling
-- Telemetry for each chunk with context (chunkIndex, totalChunks, rowCount)
-- Progress callback for UI updates
+**Auto-Refresh Flow:**
+1. Timer checks token expiry every 60 seconds
+2. If access token < 5 minutes remaining:
+   - Call `AuthService.refreshAccessToken()`
+   - Get new access token from `JwtHelperService.refreshMockTokenPair()`
+   - Update tokens in state and storage
+3. If refresh token expired:
+   - Trigger sign-out
+   - Clear tokens
 
-### Row Limit Enforcement
+**Config Loading Flow:**
+1. Config service calls `AuthService.getAccessToken()`
+2. If token valid: Add `Authorization: Bearer <token>` header
+3. Make HTTP request to config endpoint
+4. If auth fails: Fall back to default config
 
-```typescript
-// QueryApiMockService.executeApiUncached()
-const maxRows = this.settings.value.queryExecution?.maxRowsPerQuery ?? 10000;
-if (rows.length > maxRows) {
-  this.telemetry.logEvent({
-    category: 'query',
-    name: 'executeApi:rowLimitExceeded',
-    severity: 'warn',
-    context: { apiId, rowCount: rows.length, maxRows, truncated: true }
-  });
-  return rows.slice(0, maxRows);
+### Mock JWT Structure
+
+**Access Token (base64 encoded):**
+```json
+{
+  "header": {"alg": "HS256", "typ": "JWT"},
+  "payload": {
+    "sub": "user-123",
+    "email": "user@example.com",
+    "roles": ["analyst"],
+    "iat": 1234567890,
+    "exp": 1234568790
+  },
+  "signature": "mock-signature"
 }
 ```
 
-### Settings Schema
+**Token Format:** `header.payload.signature` (base64url encoded)
 
-```typescript
-interface QueryExecutionSettings {
-  maxRowsPerQuery: number;        // Default: 10000
-  chunkSize: number;              // Default: 1000
-  enableProgressiveLoading: boolean; // Default: true (placeholder)
-  apiPageSize: number;            // Default: 1000 (for future pagination)
-  chunkBackoffMs: number;         // Default: 100
+### Storage Schema
+
+**localStorage key:** `jwt_tokens`
+
+**Value:**
+```json
+{
+  "access": {
+    "token": "eyJ0eXAi...",
+    "expiresAt": 1234568790000
+  },
+  "refresh": {
+    "token": "eyJ0eXAi...",
+    "expiresAt": 1234972390000
+  }
 }
 ```
 
-## Testing
+## File Changes
 
-**Test Results:**
-- Unit tests: 184/184 passing ✅
-- Build: Successful ✅
+**New Files:**
+- `src/app/types/jwt.types.ts` - JWT type definitions
+- `src/app/core/jwt-helper.service.ts` - Mock JWT generation/validation
+- `src/app/core/jwt-helper.service.spec.ts` - Unit tests
 
-**Manual Testing:**
-- Test with `large-dataset` query (10k rows × 30 columns)
-- Test with `synthetic-expansion` query (25k rows, truncated to 10k)
-- Verify Settings UI updates persist
-- Verify telemetry logs chunk progress
-- Verify row limit warnings appear
+**Modified Files:**
+- `src/app/core/auth.service.ts` - Add JWT token management
+- `src/app/core/auth.service.spec.ts` - Update tests
+- `src/app/core/config.services.ts` - Add bearer token to config loading
+- `src/app/features/sso-home/sso-home.component.ts` - Update sign-in flow
+- `src/app/features/sso-home/sso-home.component.html` - Add password input
+- `.claude/ARCHITECTURE.md` - Add JWT auth section
 
-## Files Modified (8)
+## Testing Checklist
 
-**Core Implementation:**
-- `src/app/types/settings.types.ts` - Added QueryExecutionSettings interface
-- `src/app/core/settings.service.ts` - Added defaults, deep merge
-- `src/app/core/excel.service.ts` - Added writeRowsInChunks(), SettingsService injection
-- `src/app/shared/query-api-mock.service.ts` - Added row limit enforcement
-
-**UI:**
-- `src/app/features/settings/settings.component.html` - Query Execution section
-- `src/app/features/settings/settings.component.ts` - Event handlers
-
-**Tests:**
-- `src/app/core/excel.service.spec.ts` - Mock SettingsService
-
-**Documentation:**
-- `.claude/PERFORMANCE.md` (NEW)
-- `.claude/ARCHITECTURE.md`
-- `.claude/CLAUDE.md`
-- `.claude/README.md`
-- `README.md`
-- `PLAN_CURRENT.md`
-
-## Future Enhancements
-
-Deferred to future phases:
-- [ ] Progressive loading implementation (show first chunk immediately, queue rest)
-- [ ] API pagination with `executeApiPaginated()` generator
-- [ ] Proxy object untracking for memory optimization
-- [ ] Adaptive chunking based on column count
-- [ ] Background queue for non-blocking writes
-- [ ] Memory budget tracking via telemetry
+- [ ] `JwtHelperService` unit tests pass
+- [ ] `AuthService` JWT tests pass
+- [ ] `ConfigService` bearer token tests pass
+- [ ] Sign-in flow creates and stores tokens
+- [ ] Auto-refresh timer triggers correctly
+- [ ] Token expiry triggers sign-out
+- [ ] Config loading uses bearer token
+- [ ] All existing tests still pass (184 tests)
 
 ## Exit Criteria
 
-All criteria met ✅:
-- [x] Chunked writes implemented and tested
-- [x] Row limits enforced with telemetry
-- [x] Settings UI functional and persistent
-- [x] Comprehensive documentation created
-- [x] All tests passing (184/184)
-- [x] Build successful
-- [x] Architecture docs updated
-- [x] Ready for commit and merge
+- [ ] All new tests passing
+- [ ] All existing tests still passing
+- [ ] Build successful
+- [ ] JWT token types defined and documented
+- [ ] Mock JWT generation working (deterministic)
+- [ ] Token lifecycle fully implemented (sign-in, refresh, expiry)
+- [ ] Config loading integrated with JWT auth
+- [ ] Documentation updated (ARCHITECTURE.md)
+- [ ] Ready for merge to develop
+
+## Future Enhancements (Post-Phase 7)
+
+Deferred to production implementation:
+- Real JWT library (`jose` or `jsonwebtoken`)
+- Backend API integration for token generation
+- Real token validation and signature verification
+- Secure token storage (HttpOnly cookies vs localStorage)
+- Role-based access control (RBAC) enforcement
+- Multi-factor authentication (MFA)
