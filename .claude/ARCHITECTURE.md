@@ -29,6 +29,14 @@ Angular 20 task-pane add-in for Excel. Standalone components, Office.js wrapper,
 - Automatically used by `writeQueryTableData()` to stay within Office.js ~5MB payload limit
 - Telemetry for chunk progress and completion
 
+**Formula Management (Phase 8):**
+- `setCalculationMode(mode: 'Automatic' | 'Manual')` – Suspend/resume formula recalculation
+- `getCalculationMode()` – Get current calculation mode
+- `CalculationMode` static constant for mode values
+- Returns typed `ExcelOperationResult` with previous/current mode info
+- Used by QueriesComponent to disable formulas during query execution
+- Setting: `queryExecution.disableFormulasDuringRun` (default: true)
+
 **Design:**
 - All methods gated by `isExcel`, return typed results (no throws)
 - Office.js types remain `any` at boundary

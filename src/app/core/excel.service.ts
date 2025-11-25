@@ -977,6 +977,120 @@ export class ExcelService {
   }
 
   /**
+   * Excel calculation mode type.
+   * - 'Automatic': Formulas recalculate on every change (default Excel behavior)
+   * - 'Manual': Formulas only recalculate when explicitly requested
+   */
+  static readonly CalculationMode = {
+    Automatic: "Automatic",
+    Manual: "Manual",
+  } as const;
+
+  /**
+   * Sets the Excel workbook calculation mode.
+   *
+   * Use this to temporarily disable formula recalculation during
+   * large data writes, then restore afterward. This prevents
+   * expensive recalculations after each row/chunk write.
+   *
+   * @param mode - 'Automatic' (default) or 'Manual'
+   * @returns ExcelOperationResult indicating success/failure
+   */
+  async setCalculationMode(
+    mode: "Automatic" | "Manual"
+  ): Promise<ExcelOperationResult<{ previousMode: string }>> {
+    if (!this.isExcel) {
+      return {
+        ok: false,
+        error: {
+          operation: "setCalculationMode",
+          message: "Excel is not available in the current host.",
+        },
+      };
+    }
+
+    await this.ensureOfficeReady();
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return await Excel!.run(async (ctx: any) => {
+        const application = ctx.workbook.application;
+        application.load("calculationMode");
+        await ctx.sync();
+
+        const previousMode = application.calculationMode;
+
+        // Map mode string to Excel enum value
+        const excelMode =
+          mode === "Manual" ? Excel.CalculationMode.manual : Excel.CalculationMode.automatic;
+
+        application.calculationMode = excelMode;
+        await ctx.sync();
+
+        this.telemetry.logEvent({
+          category: "excel",
+          name: "setCalculationMode",
+          severity: "info",
+          context: {
+            previousMode,
+            newMode: mode,
+          },
+        });
+
+        return {
+          ok: true,
+          value: { previousMode },
+        };
+      });
+    } catch (err) {
+      return this.telemetry.normalizeError<{ previousMode: string }>(
+        "setCalculationMode",
+        err,
+        "Failed to set calculation mode."
+      );
+    }
+  }
+
+  /**
+   * Gets the current Excel workbook calculation mode.
+   *
+   * @returns ExcelOperationResult with current mode ('Automatic' | 'Manual')
+   */
+  async getCalculationMode(): Promise<ExcelOperationResult<{ mode: string }>> {
+    if (!this.isExcel) {
+      return {
+        ok: false,
+        error: {
+          operation: "getCalculationMode",
+          message: "Excel is not available in the current host.",
+        },
+      };
+    }
+
+    await this.ensureOfficeReady();
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return await Excel!.run(async (ctx: any) => {
+        const application = ctx.workbook.application;
+        application.load("calculationMode");
+        await ctx.sync();
+
+        return {
+          ok: true,
+          value: { mode: application.calculationMode },
+        };
+      });
+    } catch (err) {
+      return this.telemetry.normalizeError<{ mode: string }>(
+        "getCalculationMode",
+        err,
+        "Failed to get calculation mode."
+      );
+    }
+  }
+
+  /**
    * Removes all tables and worksheets that are marked as
    * extension-managed in the ownership sheet, then deletes
    * the ownership sheet itself. Intended as a dev-only

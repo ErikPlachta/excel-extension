@@ -41,6 +41,9 @@ export interface QueryExecutionSettings {
 
   /** Backoff delay between chunks in milliseconds to avoid Excel throttling (default: 100) */
   chunkBackoffMs: number;
+
+  /** Disable Excel formula recalculation during query execution (default: true) */
+  disableFormulasDuringRun: boolean;
 }
 
 export interface AppSettings {

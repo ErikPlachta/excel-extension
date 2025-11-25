@@ -1,3 +1,17 @@
 .query-actions__item--active {
   background-color: #eff6ff;
 }
+
+/* Formula status indicator (Phase 8) */
+.formula-status {
+  font-size: 0.75rem;
+  padding: 0.375rem 0.5rem;
+  border-radius: 4px;
+  margin: 0.5rem 0;
+}
+
+.formula-status--disabled {
+  background-color: rgba(237, 108, 2, 0.1);
+  color: var(--warning-color, #ed6c02);
+  border: 1px solid rgba(237, 108, 2, 0.3);
+}

@@ -28,6 +28,7 @@ describe("ExcelService.upsertQueryTable (host-agnostic behavior)", () => {
           enableProgressiveLoading: true,
           apiPageSize: 1000,
           chunkBackoffMs: 100,
+          disableFormulasDuringRun: true,
         },
       },
     });
@@ -103,5 +104,105 @@ describe("ExcelService.upsertQueryTable (host-agnostic behavior)", () => {
 
     expect(result.ok).toBeFalse();
     expect(telemetrySpy.logEvent).not.toHaveBeenCalled();
+  });
+});
+
+describe("ExcelService.setCalculationMode (host-agnostic behavior)", () => {
+  let service: ExcelService;
+  let telemetrySpy: jasmine.SpyObj<TelemetryService>;
+  let settingsSpy: jasmine.SpyObj<SettingsService>;
+
+  beforeEach(() => {
+    telemetrySpy = jasmine.createSpyObj<TelemetryService>("TelemetryService", [
+      "normalizeError",
+      "logEvent",
+    ]);
+
+    settingsSpy = jasmine.createSpyObj<SettingsService>("SettingsService", [], {
+      value: {
+        telemetry: {
+          enableWorkbookLogging: false,
+          enableConsoleLogging: true,
+        },
+        queryExecution: {
+          maxRowsPerQuery: 10000,
+          chunkSize: 1000,
+          enableProgressiveLoading: true,
+          apiPageSize: 1000,
+          chunkBackoffMs: 100,
+          disableFormulasDuringRun: true,
+        },
+      },
+    });
+
+    service = new ExcelService(telemetrySpy, settingsSpy);
+    (globalThis as unknown as { Office?: unknown }).Office = undefined;
+  });
+
+  it("returns a typed error when not running inside Excel", async () => {
+    const result = await service.setCalculationMode("Manual");
+
+    expect(result.ok).toBeFalse();
+    const error = result.error as NonNullable<typeof result.error>;
+    expect(error.operation).toBe("setCalculationMode");
+    expect(error.message).toContain("Excel is not available");
+  });
+
+  it("does not call telemetry when Excel is not available", async () => {
+    await service.setCalculationMode("Automatic");
+
+    expect(telemetrySpy.logEvent).not.toHaveBeenCalled();
+  });
+});
+
+describe("ExcelService.getCalculationMode (host-agnostic behavior)", () => {
+  let service: ExcelService;
+  let telemetrySpy: jasmine.SpyObj<TelemetryService>;
+  let settingsSpy: jasmine.SpyObj<SettingsService>;
+
+  beforeEach(() => {
+    telemetrySpy = jasmine.createSpyObj<TelemetryService>("TelemetryService", [
+      "normalizeError",
+      "logEvent",
+    ]);
+
+    settingsSpy = jasmine.createSpyObj<SettingsService>("SettingsService", [], {
+      value: {
+        telemetry: {
+          enableWorkbookLogging: false,
+          enableConsoleLogging: true,
+        },
+        queryExecution: {
+          maxRowsPerQuery: 10000,
+          chunkSize: 1000,
+          enableProgressiveLoading: true,
+          apiPageSize: 1000,
+          chunkBackoffMs: 100,
+          disableFormulasDuringRun: true,
+        },
+      },
+    });
+
+    service = new ExcelService(telemetrySpy, settingsSpy);
+    (globalThis as unknown as { Office?: unknown }).Office = undefined;
+  });
+
+  it("returns a typed error when not running inside Excel", async () => {
+    const result = await service.getCalculationMode();
+
+    expect(result.ok).toBeFalse();
+    const error = result.error as NonNullable<typeof result.error>;
+    expect(error.operation).toBe("getCalculationMode");
+    expect(error.message).toContain("Excel is not available");
+  });
+});
+
+describe("ExcelService.CalculationMode constants", () => {
+  it("exposes Automatic mode constant", () => {
+    expect(ExcelService.CalculationMode.Automatic).toBe("Automatic");
+  });
+
+  it("exposes Manual mode constant", () => {
+    expect(ExcelService.CalculationMode.Manual).toBe("Manual");
   });
 });

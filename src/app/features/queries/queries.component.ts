@@ -1,7 +1,7 @@
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { Component } from "@angular/core";
-import { ExcelService, AuthService, TelemetryService } from "../../core";
+import { ExcelService, AuthService, TelemetryService, SettingsService } from "../../core";
 import { ExecuteQueryParams, QueryApiMockService } from "../../shared/query-api-mock.service";
 import { QueryStateService } from "../../shared/query-state.service";
 import { QueryDefinition } from "../../shared/query-model";
@@ -73,6 +73,10 @@ export class QueriesComponent {
   queueCompleted = 0;
   queueCurrentItemId: string | null = null;
 
+  // Formula management state (Phase 8)
+  formulasDisabled = false;
+  private previousCalculationMode: string | null = null;
+
   // Debug view model to surface core state as JSON in the template.
   get debugState() {
     return {
@@ -92,6 +96,7 @@ export class QueriesComponent {
         completed: this.queueCompleted,
         currentItemId: this.queueCurrentItemId,
       },
+      formulasDisabled: this.formulasDisabled,
     };
   }
 
@@ -103,7 +108,8 @@ export class QueriesComponent {
     private readonly state: QueryStateService,
     private readonly telemetry: TelemetryService,
     private readonly configs: QueryConfigurationService,
-    private readonly queue: QueryQueueService
+    private readonly queue: QueryQueueService,
+    private readonly settings: SettingsService
   ) {
     // Phase 1: Use ApiCatalogService with role filtering instead of QueryApiMockService
     this.apis = this.api.getQueries(); // Keep for backward compat
@@ -433,6 +439,27 @@ export class QueriesComponent {
 
     this.isRunningConfig = true;
 
+    // Phase 8: Disable formulas during execution if setting enabled
+    const shouldDisableFormulas =
+      this.settings.value.queryExecution?.disableFormulasDuringRun ?? true;
+
+    if (shouldDisableFormulas) {
+      const modeResult = await this.excel.setCalculationMode("Manual");
+      if (modeResult.ok && modeResult.value) {
+        this.previousCalculationMode = modeResult.value.previousMode;
+        this.formulasDisabled = true;
+        this.telemetry.logEvent({
+          category: "excel",
+          name: "formulas.disabled",
+          severity: "info",
+          context: {
+            configId,
+            previousMode: this.previousCalculationMode,
+          },
+        });
+      }
+    }
+
     this.telemetry.logEvent(
       this.telemetry.createWorkflowEvent({
         category: "query",
@@ -441,52 +468,73 @@ export class QueriesComponent {
         context: {
           configId,
           itemIds: this.selectedItems.map((i) => i.id),
+          formulasDisabled: this.formulasDisabled,
         },
       })
     );
 
-    await this.queue.runBatch(
-      {
-        configId,
-        items: this.selectedItems,
-        backoffMs: 50,
-      },
-      async (item) => {
-        const api = this.apis.find((q) => q.id === item.apiId);
-        if (!api) {
-          return { ok: false, rowCount: 0 };
-        }
-
-        const params: ExecuteQueryParams = { ...item.parameters };
-
-        try {
-          const result = await this.api.executeQuery(api.id, params);
-          const effectiveQuery = {
-            ...api,
-            defaultSheetName: item.targetSheetName,
-            defaultTableName: item.targetTableName,
-            writeMode: item.writeMode,
-          };
-          const excelResult = await this.excel.upsertQueryTable(effectiveQuery, result.rows);
-
-          const ok = excelResult.ok;
-
-          if (ok && excelResult.value) {
-            this.state.setLastRun(api.id, {
-              queryId: api.id,
-              completedAt: new Date(),
-              rowCount: result.rows.length,
-              location: excelResult.value,
-            });
+    try {
+      await this.queue.runBatch(
+        {
+          configId,
+          items: this.selectedItems,
+          backoffMs: 50,
+        },
+        async (item) => {
+          const api = this.apis.find((q) => q.id === item.apiId);
+          if (!api) {
+            return { ok: false, rowCount: 0 };
           }
 
-          return { ok, rowCount: result.rows.length };
-        } catch {
-          return { ok: false, rowCount: 0 };
-        }
-      }
-    );
+          const params: ExecuteQueryParams = { ...item.parameters };
 
-    this.isRunningConfig = false;
+          try {
+            const result = await this.api.executeQuery(api.id, params);
+            const effectiveQuery = {
+              ...api,
+              defaultSheetName: item.targetSheetName,
+              defaultTableName: item.targetTableName,
+              writeMode: item.writeMode,
+            };
+            const excelResult = await this.excel.upsertQueryTable(effectiveQuery, result.rows);
+
+            const ok = excelResult.ok;
+
+            if (ok && excelResult.value) {
+              this.state.setLastRun(api.id, {
+                queryId: api.id,
+                completedAt: new Date(),
+                rowCount: result.rows.length,
+                location: excelResult.value,
+              });
+            }
+
+            return { ok, rowCount: result.rows.length };
+          } catch {
+            return { ok: false, rowCount: 0 };
+          }
+        }
+      );
+    } finally {
+      // Phase 8: Restore formulas after execution (even on error)
+      if (this.formulasDisabled && this.previousCalculationMode) {
+        const restoreMode =
+          this.previousCalculationMode === "Manual" ? "Manual" : "Automatic";
+        await this.excel.setCalculationMode(restoreMode);
+        this.telemetry.logEvent({
+          category: "excel",
+          name: "formulas.restored",
+          severity: "info",
+          context: {
+            configId,
+            restoredMode: restoreMode,
+          },
+        });
+        this.formulasDisabled = false;
+        this.previousCalculationMode = null;
+      }
+
+      this.isRunningConfig = false;
+    }
   }
 }

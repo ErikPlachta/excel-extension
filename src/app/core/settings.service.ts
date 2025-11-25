@@ -25,6 +25,7 @@ const DEFAULT_SETTINGS: AppSettings = {
     enableProgressiveLoading: true,
     apiPageSize: 1000,
     chunkBackoffMs: 100,
+    disableFormulasDuringRun: true,
   },
 };
 
