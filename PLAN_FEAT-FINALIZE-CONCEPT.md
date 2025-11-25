@@ -44,7 +44,7 @@ This plan outlines a sequential, phased approach to refactor the Excel Add-In An
 
 **Performance (Phase 6)** ✅ 6. **Phase 6:** Performance Optimization (production-scale data handling) - COMPLETED 2025-11-25
 
-**Advanced Features (Phases 7-9)** 7. **Phase 7:** JWT Authentication (real auth flow, mocked) - NEW 8. **Phase 8:** Formula Management (disable/enable during queries) - NEW 9. **Phase 9:** Formula-Column Detection (detect breaking changes) - NEW
+**Advanced Features (Phases 7-9)** ✅ 7. **Phase 7:** JWT Authentication (real auth flow, mocked) - COMPLETED 2025-11-25 8. **Phase 8:** Formula Management (disable/enable during queries) - COMPLETED 2025-11-25 9. **Phase 9:** Formula-Column Detection (detect breaking changes) - COMPLETED 2025-11-25
 
 **Rationale:** API/Query separation unblocks config-driven design. Config completion enables dynamic behavior. Incremental service refactor establishes clear boundaries before performance work. Performance builds on stable foundation. Advanced features add production readiness and safety.
 
@@ -2752,6 +2752,16 @@ TODO: Implement proxy object untracking in ExcelService helpers.
 **Depends On:** Phase 6 (Performance optimization)
 **Estimated Effort:** 3-4 days
 **Priority:** HIGH (production auth requirement)
+**Status:** ✅ COMPLETED (2025-11-25)
+
+**Completion Notes:**
+
+- Created JwtHelperService for mock JWT token generation/validation
+- Updated AuthService with signInWithJwt(), refreshAccessToken(), getAccessToken()
+- Auto-refresh timer (60s check, refresh 5min before expiry)
+- AppConfigService uses Bearer token for remote config loading
+- JWT types: TokenPair, AccessToken, RefreshToken, TokenPayload
+- All tests passing (207/207), build successful
 
 ### Goals
 
@@ -3058,6 +3068,16 @@ private async loadRemoteConfig(): Promise<void> {
 **Depends On:** Phase 7 (JWT authentication)
 **Estimated Effort:** 2-3 days
 **Priority:** MEDIUM (query safety feature)
+**Status:** ✅ COMPLETED (2025-11-25)
+
+**Completion Notes:**
+
+- Added ExcelService.setCalculationMode()/getCalculationMode() methods
+- QueriesComponent disables formulas during query execution (try/finally pattern)
+- Configurable via queryExecution.disableFormulasDuringRun setting (default: true)
+- Inline formula status indicator in queries UI
+- Restores previous calculation mode after execution (even on error)
+- All tests passing (239/239), build successful
 
 ### Goals
 
@@ -3263,6 +3283,17 @@ private showFormulaStatus(message: string): void {
 **Depends On:** Phase 8 (Formula management) - Separate priority
 **Estimated Effort:** 3-4 days
 **Priority:** LOW (advanced safety feature)
+**Status:** ✅ COMPLETED (2025-11-25)
+
+**Completion Notes:**
+
+- Created FormulaScannerService with workbook scanning (5-min cache TTL)
+- parseTableColumnReferences() handles Table[Column], [@Column], [[Column]] patterns
+- checkQueryImpact() assesses formula dependencies before query execution
+- Inline warning banner shows affected formula count (non-blocking)
+- CSV export for formula dependency report via "Export formula report" button
+- Added "formula" telemetry category
+- All tests passing (257/257), build successful
 
 ### Goals
 
@@ -3544,7 +3575,7 @@ downloadReport(dependencies: FormulaDependency[]): void {
 
 2. **Merge Order**
 
-   ```
+   ```md
    feat/api-query-separation → feat/finalize-concept (PR)
    feat/config-finalization → feat/finalize-concept (PR)
    feat/excel-workbook-cleanup → feat/finalize-concept (PR)

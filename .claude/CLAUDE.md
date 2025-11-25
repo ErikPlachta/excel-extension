@@ -85,6 +85,13 @@ Angular 20 task-pane add-in for Excel using standalone components and Office.js.
 - Enriches events with session ID, host status, auth summary
 - Error normalization for Excel operations
 
+#### FormulaScannerService (`src/app/core/formula-scanner.service.ts`) - Phase 9
+- Scans workbook formulas for table/column dependencies (5-min cache)
+- Parses Table[Column], [@Column], [[Column]] structured references
+- `checkQueryImpact()` assesses formula dependencies before query execution
+- Non-blocking warning display in queries UI
+- CSV report export for formula dependencies
+
 #### QueryStateService (`src/app/shared/query-state.service.ts`)
 - Tracks query configurations, parameters (global + per-query), last runs
 - **Uses StorageHelperService for persistence** (refactored in Phase 4)
