@@ -2,7 +2,43 @@ import { Injectable } from "@angular/core";
 import { BehaviorSubject } from "rxjs";
 import { getSsoAuthResult, SsoUserProfile } from "../../helpers/sso-helper";
 import { AuthState } from "../types";
+import { StorageHelperService } from "../shared/storage-helper.service";
 
+/**
+ * Authentication Service - Manages user authentication state and SSO integration.
+ *
+ * Provides centralized authentication state management with:
+ * - Mock SSO sign-in flows (analyst/admin roles)
+ * - Role-based access control (RBAC) checks
+ * - Persistent auth state via StorageHelperService
+ * - Observable state stream for reactive updates
+ *
+ * **State Persistence:**
+ * - Auth state stored in localStorage via StorageHelperService
+ * - Automatically hydrates on app init
+ * - Automatically persists on state changes
+ *
+ * **Usage:**
+ * ```typescript
+ * // Sign in as analyst
+ * await auth.signInAsAnalyst();
+ *
+ * // Check authentication
+ * if (auth.isAuthenticated) {
+ *   console.log('User:', auth.user);
+ * }
+ *
+ * // Role checks
+ * if (auth.hasRole('admin')) {
+ *   // Admin-only logic
+ * }
+ *
+ * // Subscribe to state changes
+ * auth.state$.subscribe(state => {
+ *   console.log('Auth state changed:', state);
+ * });
+ * ```
+ */
 @Injectable({ providedIn: "root" })
 export class AuthService {
   private static readonly STORAGE_KEY = "excel-extension-auth-state";
@@ -13,51 +49,73 @@ export class AuthService {
     accessToken: null,
   });
 
+  /**
+   * Observable stream of authentication state changes.
+   * Subscribe to react to sign-in/sign-out events.
+   */
   readonly state$ = this.stateSubject.asObservable();
 
+  /**
+   * Current authentication state snapshot.
+   */
   get state(): AuthState {
     return this.stateSubject.value;
   }
 
+  /**
+   * Whether user is currently authenticated.
+   */
   get isAuthenticated(): boolean {
     return this.state.isAuthenticated;
   }
 
+  /**
+   * Current user profile, or null if not authenticated.
+   */
   get user(): SsoUserProfile | null {
     return this.state.user;
   }
 
+  /**
+   * Current user's roles, or empty array if not authenticated.
+   */
   get roles(): string[] {
     return this.state.user?.roles ?? [];
   }
 
+  /**
+   * Check if current user has a specific role.
+   *
+   * @param role - Role name to check (e.g., 'admin', 'analyst')
+   * @returns True if user has the role, false otherwise
+   */
   hasRole(role: string): boolean {
     return this.roles.includes(role);
   }
 
+  /**
+   * Check if current user has any of the specified roles.
+   *
+   * @param roles - Array of role names to check
+   * @returns True if user has at least one role, false otherwise
+   */
   hasAnyRole(roles: string[]): boolean {
     return roles.some((r) => this.roles.includes(r));
   }
 
-  constructor() {
-    const raw =
-      typeof window !== "undefined" ? window.localStorage.getItem(AuthService.STORAGE_KEY) : null;
-    if (raw) {
-      try {
-        const parsed = JSON.parse(raw) as AuthState;
-        this.stateSubject.next(parsed);
-      } catch {
-        // Ignore malformed stored state
-      }
-    }
+  constructor(private readonly storage: StorageHelperService) {
+    // Hydrate auth state from storage
+    const defaultState: AuthState = {
+      isAuthenticated: false,
+      user: null,
+      accessToken: null,
+    };
+    const storedState = this.storage.getItem<AuthState>(AuthService.STORAGE_KEY, defaultState);
+    this.stateSubject.next(storedState);
 
+    // Persist state changes to storage
     this.state$.subscribe((state) => {
-      if (typeof window === "undefined") return;
-      try {
-        window.localStorage.setItem(AuthService.STORAGE_KEY, JSON.stringify(state));
-      } catch {
-        // Ignore storage errors
-      }
+      this.storage.setItem(AuthService.STORAGE_KEY, state);
     });
   }
 
