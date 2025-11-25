@@ -3,6 +3,8 @@ import { BehaviorSubject } from "rxjs";
 import { QueryConfiguration } from "../types";
 import { AuthService } from "../core/auth.service";
 import { ApiCatalogService } from './api-catalog.service';
+import { StorageHelperService } from './storage-helper.service';
+import { QueryValidationService } from './query-validation.service';
 
 /**
  * Simple local-storage backed store for named query configurations.
@@ -20,7 +22,9 @@ export class QueryConfigurationService {
 
   constructor(
     private readonly auth: AuthService,
-    private readonly apiCatalog: ApiCatalogService
+    private readonly apiCatalog: ApiCatalogService,
+    private readonly storage: StorageHelperService,
+    private readonly validator: QueryValidationService
   ) {
     const initial = this.hydrateFromStorage();
     this.subject.next(initial);
@@ -39,14 +43,10 @@ export class QueryConfigurationService {
   }
 
   save(config: QueryConfiguration): void {
-    // Validate all apiIds in items exist in catalog (Phase 1 addition)
-    if (config.items && config.items.length > 0) {
-      for (const item of config.items) {
-        const api = this.apiCatalog.getApiById(item.apiId);
-        if (!api) {
-          throw new Error(`Invalid apiId in item ${item.id}: ${item.apiId}. API not found in catalog.`);
-        }
-      }
+    // Validate configuration using QueryValidationService
+    const validationResult = this.validator.validateConfiguration(config);
+    if (!validationResult.valid) {
+      throw new Error(`Invalid configuration: ${validationResult.errors.join(', ')}`);
     }
 
     const existing = this.snapshot;
@@ -79,29 +79,11 @@ export class QueryConfigurationService {
   }
 
   private hydrateFromStorage(): QueryConfiguration[] {
-    if (typeof window === "undefined" || !window.localStorage) {
-      return [];
-    }
-
-    try {
-      const raw = window.localStorage.getItem(this.storageKey());
-      if (!raw) return [];
-      const parsed = JSON.parse(raw) as QueryConfiguration[];
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
+    const configs = this.storage.getItem<QueryConfiguration[]>(this.storageKey(), []);
+    return Array.isArray(configs) ? configs : [];
   }
 
   private persistToStorage(configs: QueryConfiguration[]): void {
-    if (typeof window === "undefined" || !window.localStorage) {
-      return;
-    }
-
-    try {
-      window.localStorage.setItem(this.storageKey(), JSON.stringify(configs));
-    } catch {
-      // Swallow storage errors; configs still work in-memory.
-    }
+    this.storage.setItem(this.storageKey(), configs);
   }
 }

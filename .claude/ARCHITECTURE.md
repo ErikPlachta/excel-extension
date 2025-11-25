@@ -194,8 +194,9 @@ const result = await this.excel.upsertQueryTable(query, rows, {
 - `executeApi(apiId, params)` → `Promise<any[]>` **[NEW Phase 1]**
 - `executeQuery(id, params)` → `Promise<{query, rows}>` **[DEPRECATED - use executeApi]**
 - `getQueries()`, `getQueryById()` **[DEPRECATED - use ApiCatalogService]**
+- **Phase 4:** Integrated IndexedDB caching - checks cache before generating mocks
 - In-process mock data, no HTTP
-- Injected `ApiCatalogService` for validation
+- Injected `ApiCatalogService` for validation, `IndexedDBService` for caching
 
 ### QueryStateService (`src/app/shared/query-state.service.ts`)
 
@@ -207,7 +208,7 @@ const result = await this.excel.upsertQueryTable(query, rows, {
 - `getEffectiveParams(queryId, mode)` – Compute params for execution
 - `getLastRun(queryId)` → `QueryRun | null`
 - `setLastRun(queryId, run)` – Store location/metadata
-- `localStorage` persistence
+- **Phase 4:** Uses `StorageHelperService` instead of direct `localStorage`
 
 ### QueryConfigurationService (`src/app/shared/query-configuration.service.ts`)
 
@@ -215,8 +216,9 @@ const result = await this.excel.upsertQueryTable(query, rows, {
 
 - `QueryConfiguration` – Named config with selected queries, parameter snapshots, workbook identity
 - `QueryConfigurationItem` – Selected query instance (apiId, params, target sheet/table)
-- CRUD operations, `localStorage` keyed by user + workbook
+- CRUD operations keyed by user + workbook
 - **Phase 1:** Validates apiIds against `ApiCatalogService` on save
+- **Phase 4:** Uses `StorageHelperService` + `QueryValidationService` for validation
 
 ### QueryQueueService (`src/app/shared/query-queue.service.ts`)
 
@@ -225,6 +227,101 @@ const result = await this.excel.upsertQueryTable(query, rows, {
 - Runs queries one at a time (prevent resource contention)
 - Integrates with telemetry for queue events
 - Pagination/resource management
+
+## Storage Services (Phase 4)
+
+### StorageHelperService (`src/app/shared/storage-helper.service.ts`)
+**Multi-backend storage abstraction**
+
+**Tier 1 (localStorage):**
+- `getItem<T>(key, defaultValue)` – Type-safe localStorage read
+- `setItem<T>(key, value)` – Type-safe localStorage write
+- `removeItem(key)` – Remove key
+- `clear()` – Clear all (use cautiously)
+
+**Tier 2 (IndexedDB):**
+- `getLargeItem<T>(key)` – Async read from IndexedDB
+- `setLargeItem<T>(key, value, ttl?)` – Async write with TTL
+- `clearExpiredCache()` – Remove expired entries
+
+**Design:**
+- All services use StorageHelperService instead of direct storage access
+- Centralized error handling with telemetry integration
+- Type safety with generics
+- Future-proof for new storage APIs
+
+### IndexedDBService (`src/app/shared/indexeddb.service.ts`)
+**Query result caching with TTL**
+
+**Operations:**
+- `init()` – Initialize DB connection (auto on first use)
+- `cacheQueryResult(queryId, rows, ttl?)` – Cache with expiration
+- `getCachedQueryResult(queryId)` – Get most recent non-expired cache
+- `clearExpiredCache()` – Cleanup (called on app init)
+- `clearAllCache()` – Manual reset (Settings UI)
+
+**Schema:**
+```typescript
+interface QueryResultCache {
+  id: string;           // PK: `${queryId}-${timestamp}`
+  queryId: string;      // Index
+  rows: any[];
+  timestamp: number;    // Index
+  expiresAt: number;    // TTL
+}
+```
+
+**Cache Invalidation:**
+- TTL-based (default 1 hour, configurable)
+- Manual clear via Settings
+- Auto cleanup on app init
+
+### BackupRestoreService (`src/app/shared/backup-restore.service.ts`)
+**Export/import app state**
+
+**Operations:**
+- `exportBackup()` – Download JSON snapshot
+- `importBackup(file)` – Restore from JSON (validates version, reloads app)
+
+**Schema:**
+```typescript
+interface AppStateBackup {
+  version: string;      // "1.0.0" (semantic versioning)
+  timestamp: string;    // ISO 8601
+  authState: any;
+  settings: any;
+  queryConfigs: any[];
+  queryState: any;
+}
+```
+
+**Version Compatibility:**
+- Major mismatch: Reject (v2.x.x → v1.x.x)
+- Minor mismatch: Allow with warning (v1.2.0 → v1.1.0)
+- Patch mismatch: Allow silently (v1.0.1 → v1.0.0)
+
+### QueryValidationService (`src/app/shared/query-validation.service.ts`)
+**Configuration and parameter validation**
+
+**Operations:**
+- `validateConfiguration(config)` → `ValidationResult`
+- `validateConfigurationItem(item, params?)` → `ValidationResult`
+- `validateParameters(api, params)` → `ValidationResult`
+- `apiExists(apiId)` → `boolean`
+
+**Validation Checks:**
+- API exists in catalog
+- Required parameters present
+- Parameter types match (date, number, string, boolean)
+- Returns detailed error messages
+
+**Usage:**
+```typescript
+const result = validator.validateConfiguration(config);
+if (!result.valid) {
+  throw new Error(result.errors.join(', '));
+}
+```
 
 ## Data Flow
 

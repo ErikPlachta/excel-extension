@@ -224,7 +224,11 @@ async runBatch(mode: 'global' | 'unique') {
 1. User clicks "Run" (single or batch)
 2. QueryHomeComponent.runQuery() or runBatch()
 3. Get effective parameters (global + overrides, mode-dependent)
-4. QueryApiMockService.executeQuery(id, params) → rows
+4. QueryApiMockService.executeQuery(id, params)
+   a. Check IndexedDB cache (getCachedQueryResult)
+   b. If cached and not expired, return cached rows
+   c. Otherwise, generate mock data
+   d. Cache result to IndexedDB with TTL → rows
 5. ExcelService.upsertQueryTable(query, rows, params)
    a. WorkbookService checks ownership
    b. Create/update table in Excel
@@ -233,6 +237,43 @@ async runBatch(mode: 'global' | 'unique') {
 7. QueryStateService.setLastRun(queryId, { location, timestamp, rowCount })
 8. UI updates (last run time, success/failure badge)
 ```
+
+## Query Result Caching (Phase 4)
+
+### IndexedDB Integration
+
+QueryApiMockService checks IndexedDB cache before generating mock data:
+
+```typescript
+async executeApi(apiId: string, params: ExecuteQueryParams): Promise<any[]> {
+  // Validate API exists in catalog
+  const api = this.apiCatalog.getApiById(apiId);
+  if (!api) {
+    throw new Error(`API not found: ${apiId}`);
+  }
+
+  // Try cache first
+  const cacheKey = this.generateCacheKey(apiId, params);
+  const cachedResult = await this.indexedDB.getCachedQueryResult(cacheKey);
+  if (cachedResult) {
+    return cachedResult; // Return cached data
+  }
+
+  // Cache miss - execute and cache
+  const rows = await this.executeApiUncached(apiId, params);
+  await this.indexedDB.cacheQueryResult(cacheKey, rows, 3600000); // 1 hour TTL
+
+  return rows;
+}
+```
+
+### Cache Management
+
+- **TTL:** Default 1 hour, configurable per cache operation
+- **Cleanup:** App init calls `clearExpiredCache()` to remove stale entries
+- **Manual Clear:** Settings component provides cache management UI
+- **Storage Tier:** Large datasets (10k+ rows) automatically use IndexedDB via StorageHelperService
+- **Cache Key:** Deterministic based on apiId + sorted parameters for consistent lookups
 
 ## Excel Integration
 

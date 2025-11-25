@@ -3,6 +3,7 @@ import { BehaviorSubject } from "rxjs";
 import { ExecuteQueryParams, QueryApiMockService } from "./query-api-mock.service";
 import { ApiDefinition, QueryDefinition, QueryRun } from "./query-model";
 import type { QueryParameterValues } from "../types";
+import { StorageHelperService } from "./storage-helper.service";
 
 /**
  * Shape of the in-memory state managed by {@link QueryStateService}.
@@ -38,10 +39,13 @@ export class QueryStateService {
   private static readonly STORAGE_KEY_QUERY_PARAMS = "excel-ext:queries:queryParams";
   private static readonly STORAGE_KEY_RUN_FLAGS = "excel-ext:queries:runFlags";
 
-  constructor(private readonly api: QueryApiMockService) {
+  constructor(
+    private readonly api: QueryApiMockService,
+    private readonly storage: StorageHelperService
+  ) {
     const queries = this.api.getQueries();
 
-    const { globalParams, queryParams, queryRunFlags } = QueryStateService.hydrateFromStorage();
+    const { globalParams, queryParams, queryRunFlags } = this.hydrateFromStorage();
 
     this.stateSubject = new BehaviorSubject<QueryStateSnapshot>({
       queries,
@@ -63,63 +67,33 @@ export class QueryStateService {
     return this.snapshot.queries;
   }
 
-  private static hydrateFromStorage(): {
+  private hydrateFromStorage(): {
     globalParams: QueryParameterValues;
     queryParams: Record<string, QueryParameterValues>;
     queryRunFlags: Record<string, boolean>;
   } {
-    if (typeof window === "undefined" || !window.localStorage) {
-      return { globalParams: {}, queryParams: {}, queryRunFlags: {} };
-    }
-
-    const safeParse = <T>(raw: string | null): T | undefined => {
-      if (!raw) return undefined;
-      try {
-        return JSON.parse(raw) as T;
-      } catch {
-        return undefined;
-      }
-    };
-
-    const globalParams =
-      safeParse<QueryParameterValues>(
-        window.localStorage.getItem(QueryStateService.STORAGE_KEY_GLOBAL)
-      ) ?? {};
-    const queryParams =
-      safeParse<Record<string, QueryParameterValues>>(
-        window.localStorage.getItem(QueryStateService.STORAGE_KEY_QUERY_PARAMS)
-      ) ?? {};
-    const queryRunFlags =
-      safeParse<Record<string, boolean>>(
-        window.localStorage.getItem(QueryStateService.STORAGE_KEY_RUN_FLAGS)
-      ) ?? {};
+    const globalParams = this.storage.getItem<QueryParameterValues>(
+      QueryStateService.STORAGE_KEY_GLOBAL,
+      {}
+    );
+    const queryParams = this.storage.getItem<Record<string, QueryParameterValues>>(
+      QueryStateService.STORAGE_KEY_QUERY_PARAMS,
+      {}
+    );
+    const queryRunFlags = this.storage.getItem<Record<string, boolean>>(
+      QueryStateService.STORAGE_KEY_RUN_FLAGS,
+      {}
+    );
 
     return { globalParams, queryParams, queryRunFlags };
   }
 
   private persistSlice(): void {
-    if (typeof window === "undefined" || !window.localStorage) {
-      return;
-    }
-
     const { globalParams, queryParams, queryRunFlags } = this.snapshot;
 
-    try {
-      window.localStorage.setItem(
-        QueryStateService.STORAGE_KEY_GLOBAL,
-        JSON.stringify(globalParams)
-      );
-      window.localStorage.setItem(
-        QueryStateService.STORAGE_KEY_QUERY_PARAMS,
-        JSON.stringify(queryParams)
-      );
-      window.localStorage.setItem(
-        QueryStateService.STORAGE_KEY_RUN_FLAGS,
-        JSON.stringify(queryRunFlags)
-      );
-    } catch {
-      // Swallow storage errors; state still works in-memory.
-    }
+    this.storage.setItem(QueryStateService.STORAGE_KEY_GLOBAL, globalParams);
+    this.storage.setItem(QueryStateService.STORAGE_KEY_QUERY_PARAMS, queryParams);
+    this.storage.setItem(QueryStateService.STORAGE_KEY_RUN_FLAGS, queryRunFlags);
   }
 
   /**

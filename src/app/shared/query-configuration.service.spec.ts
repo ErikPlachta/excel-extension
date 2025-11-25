@@ -2,6 +2,8 @@ import { QueryConfigurationService } from "./query-configuration.service";
 import { QueryConfiguration } from "../types";
 import { AuthService } from "../core/auth.service";
 import { ApiCatalogService } from "./api-catalog.service";
+import { StorageHelperService } from "./storage-helper.service";
+import { QueryValidationService, ValidationResult } from "./query-validation.service";
 
 class AuthServiceStub {
   state = { user: { id: "user-1" } } as unknown as AuthService["state"];
@@ -14,23 +16,52 @@ class ApiCatalogServiceStub {
   }
 }
 
+class StorageHelperServiceMock {
+  private store = new Map<string, any>();
+
+  getItem<T>(key: string, defaultValue: T): T {
+    return this.store.has(key) ? this.store.get(key) : defaultValue;
+  }
+
+  setItem<T>(key: string, value: T): void {
+    this.store.set(key, value);
+  }
+
+  removeItem(key: string): void {
+    this.store.delete(key);
+  }
+
+  clear(): void {
+    this.store.clear();
+  }
+}
+
+class QueryValidationServiceMock {
+  validateConfiguration(config: QueryConfiguration): ValidationResult {
+    // Return valid by default for tests
+    return { valid: true, errors: [] };
+  }
+}
+
 describe("QueryConfigurationService", () => {
   let service: QueryConfigurationService;
   let authStub: AuthServiceStub;
   let apiCatalogStub: ApiCatalogServiceStub;
+  let storageStub: StorageHelperServiceMock;
+  let validatorStub: QueryValidationServiceMock;
 
   beforeEach(() => {
     authStub = new AuthServiceStub();
     apiCatalogStub = new ApiCatalogServiceStub();
+    storageStub = new StorageHelperServiceMock();
+    validatorStub = new QueryValidationServiceMock();
+
     service = new QueryConfigurationService(
       authStub as unknown as AuthService,
-      apiCatalogStub as unknown as ApiCatalogService
+      apiCatalogStub as unknown as ApiCatalogService,
+      storageStub as unknown as StorageHelperService,
+      validatorStub as unknown as QueryValidationService
     );
-
-    // Clear any persisted state for a predictable test environment.
-    if (typeof window !== "undefined" && window.localStorage) {
-      window.localStorage.clear();
-    }
   });
 
   it("saves and retrieves configurations by id", () => {

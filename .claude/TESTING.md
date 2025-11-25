@@ -90,7 +90,35 @@ describe("QueryHomeComponent", () => {
 - Effective params calculation
 - Run flag state
 - Last run tracking
-- `localStorage` persistence
+- Storage persistence via StorageHelperService
+
+#### StorageHelperService
+- Type-safe localStorage operations
+- IndexedDB integration (async operations)
+- Error handling with telemetry
+- Default value fallback
+- Cache cleanup operations
+
+#### IndexedDBService
+- Database initialization
+- Cache write/read operations
+- TTL expiration logic
+- clearExpiredCache removes only expired entries
+- Multiple caches per queryId (timestamp-based)
+
+#### BackupRestoreService
+- Export creates valid JSON
+- Import validates version compatibility
+- Version compatibility rules (major/minor/patch)
+- Restore overwrites storage correctly
+- Window reload triggered after import
+
+#### QueryValidationService
+- Configuration structure validation
+- API existence checks
+- Required parameter validation
+- Parameter type validation (date, number, string, boolean)
+- Detailed error messages
 
 ### Feature Components
 
@@ -190,6 +218,106 @@ it("should hydrate auth state from storage", () => {
 
   expect(service.isAuthenticated).toBe(true);
   expect(service.roles).toEqual(["analyst"]);
+});
+```
+
+### IndexedDB Testing (Phase 4)
+```typescript
+it('should cache and retrieve query result', async () => {
+  const rows = [{ id: 1, name: 'Test' }];
+  await service.cacheQueryResult('test-query', rows, 3600000);
+
+  const cached = await service.getCachedQueryResult('test-query');
+  expect(cached).toEqual(rows);
+});
+
+it('should return null for expired cache', async () => {
+  await service.cacheQueryResult('test-query', rows, -1000); // Already expired
+  const cached = await service.getCachedQueryResult('test-query');
+  expect(cached).toBeNull();
+});
+
+it('should clear only expired entries', async () => {
+  // Cache with different TTLs
+  await service.cacheQueryResult('fresh', [{ id: 1 }], 3600000); // 1 hour
+  await service.cacheQueryResult('stale', [{ id: 2 }], -1000); // Expired
+
+  await service.clearExpiredCache();
+
+  expect(await service.getCachedQueryResult('fresh')).toBeTruthy();
+  expect(await service.getCachedQueryResult('stale')).toBeNull();
+});
+```
+
+### Backup/Restore Testing (Phase 4)
+```typescript
+it('should export valid backup JSON', () => {
+  const downloadSpy = spyOn(window.document, 'createElement');
+  service.exportBackup();
+
+  expect(downloadSpy).toHaveBeenCalledWith('a');
+  // Verify backup structure includes version, timestamp, etc.
+});
+
+it('should reject incompatible major version', async () => {
+  const file = new File([JSON.stringify({
+    version: '2.0.0', // Major version mismatch
+    timestamp: new Date().toISOString(),
+    authState: null,
+    settings: null,
+    queryConfigs: [],
+    queryState: null
+  })], 'backup.json');
+
+  await expectAsync(service.importBackup(file)).toBeRejected();
+});
+
+it('should restore all storage keys', async () => {
+  const backup = {
+    version: '1.0.0',
+    timestamp: new Date().toISOString(),
+    authState: { user: mockUser },
+    settings: mockSettings,
+    queryConfigs: [mockConfig],
+    queryState: mockState
+  };
+  const file = new File([JSON.stringify(backup)], 'backup.json');
+
+  spyOn(storage, 'setItem');
+  await service.importBackup(file);
+
+  expect(storage.setItem).toHaveBeenCalledWith('auth-state', backup.authState);
+  expect(storage.setItem).toHaveBeenCalledWith('settings', backup.settings);
+});
+```
+
+### Validation Testing (Phase 4)
+```typescript
+it('should validate required parameters', () => {
+  const config = {
+    id: 'test',
+    name: 'Test Config',
+    items: [{
+      id: 'item-1',
+      apiId: 'api-with-required-params',
+      parameters: {} // Missing required params
+    }]
+  };
+
+  const result = validator.validateConfiguration(config);
+  expect(result.valid).toBeFalse();
+  expect(result.errors.length).toBeGreaterThan(0);
+});
+
+it('should validate parameter types', () => {
+  const result = validator.validateParameters(api, {
+    date: 'not-a-date',
+    count: 'not-a-number'
+  });
+
+  expect(result.valid).toBeFalse();
+  expect(result.errors).toContain(jasmine.stringContaining('date'));
+  expect(result.errors).toContain(jasmine.stringContaining('count'));
 });
 ```
 
