@@ -2,6 +2,7 @@ import { Injectable } from "@angular/core";
 import { QueryDefinition, QueryParameter } from "./query-model";
 import { QueryUiConfig } from "../types/ui/primitives.types";
 import { ApiCatalogService } from './api-catalog.service';
+import { IndexedDBService } from './indexeddb.service';
 
 /**
  * Concrete parameter values supplied when invoking a query against a
@@ -33,7 +34,10 @@ export interface GroupingOptionsResult {
 
 @Injectable({ providedIn: "root" })
 export class QueryApiMockService {
-  constructor(private apiCatalog: ApiCatalogService) {}
+  constructor(
+    private apiCatalog: ApiCatalogService,
+    private indexedDB: IndexedDBService
+  ) {}
 
   private createStandardQueryUiConfig(options?: { adminOnly?: boolean }): QueryUiConfig {
     const isAdminOnly = options?.adminOnly ?? false;
@@ -248,9 +252,12 @@ export class QueryApiMockService {
    * This is the NEW method that separates API execution from catalog management.
    * It works with ApiDefinition IDs from ApiCatalogService, not QueryDefinition.
    *
+   * Checks IndexedDB cache before executing. Cached results are returned immediately
+   * if not expired. On cache miss, executes API and caches result for future calls.
+   *
    * @param apiId - API identifier from ApiCatalogService
    * @param params - Parameter values for API execution
-   * @returns Promise of result rows
+   * @returns Promise of result rows (from cache or fresh execution)
    */
   async executeApi(apiId: string, params: ExecuteQueryParams = {}): Promise<ExecuteQueryResultRow[]> {
     // Validate API exists in catalog
@@ -259,6 +266,28 @@ export class QueryApiMockService {
       throw new Error(`API not found: ${apiId}`);
     }
 
+    // Try cache first
+    const cacheKey = this.generateCacheKey(apiId, params);
+    const cachedResult = await this.indexedDB.getCachedQueryResult(cacheKey);
+    if (cachedResult) {
+      return cachedResult;
+    }
+
+    // Cache miss - execute and cache
+    const rows = await this.executeApiUncached(apiId, params);
+    await this.indexedDB.cacheQueryResult(cacheKey, rows);
+    return rows;
+  }
+
+  /**
+   * Execute API without checking cache. Used internally by executeApi().
+   *
+   * @private
+   * @param apiId - API identifier
+   * @param params - Parameter values for API execution
+   * @returns Promise of result rows
+   */
+  private async executeApiUncached(apiId: string, params: ExecuteQueryParams): Promise<ExecuteQueryResultRow[]> {
     // Route to appropriate fetch method based on API ID
     switch (apiId) {
       case "jsonapi-example":
@@ -276,6 +305,29 @@ export class QueryApiMockService {
       default:
         return await this.loadAndFilterMockRows(apiId, params);
     }
+  }
+
+  /**
+   * Generate cache key from API ID and parameters.
+   *
+   * Creates deterministic key by sorting parameter keys to ensure
+   * same params in different order produce same cache key.
+   *
+   * @private
+   * @param apiId - API identifier
+   * @param params - Parameter values
+   * @returns Cache key string
+   */
+  private generateCacheKey(apiId: string, params: ExecuteQueryParams): string {
+    // Sort params for deterministic cache key
+    const sortedParams = Object.keys(params)
+      .sort()
+      .reduce((acc, key) => {
+        acc[key] = params[key];
+        return acc;
+      }, {} as ExecuteQueryParams);
+
+    return `${apiId}:${JSON.stringify(sortedParams)}`;
   }
 
   /**

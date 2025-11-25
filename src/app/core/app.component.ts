@@ -1,7 +1,8 @@
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
-import { Component } from "@angular/core";
+import { Component, OnInit } from "@angular/core";
 import { ExcelService, AuthService, AppContextService, AppHostStatus, AppAuthSummary } from ".";
+import { IndexedDBService } from "../shared/indexeddb.service";
 import { DEFAULT_APP_CONFIG, NavItemConfig, ViewId } from "../shared/app-config";
 import { APP_TEXT } from "../shared/app-text";
 import { SsoHomeComponent } from "../features/sso/sso-home.component";
@@ -33,7 +34,7 @@ import { ButtonComponent } from "../shared/ui/button.component";
   templateUrl: "./app.component.html",
   styleUrl: "./app.component.css",
 })
-export class AppComponent {
+export class AppComponent implements OnInit {
   currentView: ViewId = DEFAULT_APP_CONFIG.defaultViewId;
   readonly appConfig = DEFAULT_APP_CONFIG;
   readonly text = APP_TEXT;
@@ -46,9 +47,15 @@ export class AppComponent {
   constructor(
     public excel: ExcelService,
     public auth: AuthService,
-    private readonly appContext: AppContextService
+    private readonly appContext: AppContextService,
+    private readonly indexedDB: IndexedDBService
   ) {
     this.hostStatus = this.appContext.hostStatus;
+  }
+
+  async ngOnInit(): Promise<void> {
+    // Clean up expired cache entries on app initialization
+    await this.indexedDB.clearExpiredCache();
   }
 
   selectView(viewId: ViewId): void {

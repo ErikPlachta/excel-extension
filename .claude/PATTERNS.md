@@ -247,6 +247,94 @@ if (config) {
 }
 ```
 
+## Storage Patterns (Phase 4)
+
+### Multi-Tier Storage
+
+**Tier 1 (localStorage) - Small Data (< 100 KB)**
+```typescript
+// Read
+const settings = this.storage.getItem<Settings>('settings', DEFAULT_SETTINGS);
+
+// Write
+this.storage.setItem('settings', updatedSettings);
+
+// Remove
+this.storage.removeItem('settings');
+```
+
+**Tier 2 (IndexedDB) - Large Data (100 KB+)**
+```typescript
+// Read (async)
+const cached = await this.storage.getLargeItem<any[]>('query-results-sales');
+
+// Write (async with TTL)
+await this.storage.setLargeItem('query-results-sales', rows, 3600000); // 1 hour
+
+// Clear expired
+await this.storage.clearExpiredCache();
+```
+
+### Backup/Restore
+
+**Export**
+```typescript
+exportBackup(): void {
+  this.backupRestore.exportBackup();
+  // Downloads: excel-extension-backup-{timestamp}.json
+}
+```
+
+**Import**
+```typescript
+async onFileSelected(event: Event): Promise<void> {
+  const input = event.target as HTMLInputElement;
+  if (!input.files || input.files.length === 0) return;
+
+  const file = input.files[0];
+  try {
+    await this.backupRestore.importBackup(file);
+    // App reloads to apply restored state
+  } catch (error) {
+    console.error('Import failed:', error.message);
+  }
+  input.value = ''; // Reset for re-selection
+}
+```
+
+### Configuration Validation
+
+```typescript
+// Validate before save
+const result = this.validator.validateConfiguration(config);
+if (!result.valid) {
+  throw new Error(`Invalid config: ${result.errors.join(', ')}`);
+}
+
+// QueryConfigurationService validates automatically on save
+this.configService.save(config);
+```
+
+### Cache Check Pattern
+
+```typescript
+// Check cache before expensive operation
+async executeApi(apiId: string, params: ExecuteQueryParams): Promise<any[]> {
+  const cacheKey = this.generateCacheKey(apiId, params);
+
+  // Try cache first
+  const cached = await this.indexedDB.getCachedQueryResult(cacheKey);
+  if (cached) {
+    return cached; // Use cached data
+  }
+
+  // Perform operation and cache result
+  const rows = await this.generateData(apiId, params);
+  await this.indexedDB.cacheQueryResult(cacheKey, rows, 3600000); // 1 hour TTL
+  return rows;
+}
+```
+
 ## TSDoc Standards
 
 ```typescript

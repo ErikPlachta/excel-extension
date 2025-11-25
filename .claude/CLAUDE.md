@@ -71,13 +71,42 @@ Angular 20 task-pane add-in for Excel using standalone components and Office.js.
 
 #### QueryStateService (`src/app/shared/query-state.service.ts`)
 - Tracks query configurations, parameters (global + per-query), last runs
-- `localStorage` persistence
+- **Uses StorageHelperService for persistence** (refactored in Phase 4)
 - Used by Queries view for state management
 
 #### QueryApiMockService (`src/app/shared/query-api-mock.service.ts`)
 - Mock API definitions for queries (sales, customers, inventory, audit)
 - Returns sample data rows for each query
+- **Integrated IndexedDB caching** (Phase 4): checks cache before generating mocks
 - Drives flat catalog in current Queries view
+
+#### StorageHelperService (`src/app/shared/storage-helper.service.ts`)
+- Multi-backend storage abstraction (localStorage + IndexedDB)
+- Type-safe operations with error handling
+- Tier 1 (localStorage): Settings, auth, UI state (< 100 KB)
+- Tier 2 (IndexedDB): Query results, cached data (100 KB+)
+- `getItem<T>()`, `setItem<T>()`, `getLargeItem<T>()`, `setLargeItem<T>()`
+- All services use this instead of direct storage access
+
+#### IndexedDBService (`src/app/shared/indexeddb.service.ts`)
+- Large dataset storage for query result caching
+- TTL-based cache invalidation (default: 1 hour)
+- Schema: `{ id, queryId, rows, timestamp, expiresAt }`
+- `cacheQueryResult()`, `getCachedQueryResult()`, `clearExpiredCache()`
+- Integrated with QueryApiMockService for transparent caching
+
+#### BackupRestoreService (`src/app/shared/backup-restore.service.ts`)
+- Export/import app state to JSON file
+- Version compatibility checks (semantic versioning)
+- Backup schema: `{ version, timestamp, authState, settings, queryConfigs, queryState }`
+- UI in Settings component (export/import buttons)
+- App reloads after import to apply restored state
+
+#### QueryValidationService (`src/app/shared/query-validation.service.ts`)
+- Validates QueryConfiguration against ApiDefinition catalog
+- Required parameter checks, type validation
+- Returns `{ valid: boolean, errors: string[] }`
+- Used by QueryConfigurationService on save operations
 
 ### Office.js Integration Pattern
 
