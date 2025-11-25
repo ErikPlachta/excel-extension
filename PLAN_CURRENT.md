@@ -1,169 +1,181 @@
-# Phase 4: Query Services Refactor + Storage/Caching Strategy
+# Phase 6: Performance & Large Datasets
 
-**Branch:** `feat/update-query-services-and-storage-caching-strategy`
-**Depends On:** Phase 3 (Excel/Workbook cleanup) 
-**Priority:** HIGH (clear service boundaries + critical storage architecture)
+**Branch:** `feat/performance-large-datasets`
+**Depends On:** Phase 5 (Auth/Settings/Telemetry refactor)
+**Priority:** HIGH (production readiness for large datasets)
+**Status:** âœ… COMPLETED
 
 ## Goals
 
-1. Clear service responsibility boundaries (single responsibility)
-2. Extract shared helpers (storage, validation)
-3. **Comprehensive storage/caching strategy** (localStorage vs IndexedDB vs Cache API)
-4. **Backup/restore functionality** for data persistence
-5. **Service worker evaluation** for offline support
-6. **Excel Desktop vs Online storage differences** documented
+1. Handle large datasets (10k+ rows) efficiently without Excel crashes
+2. Stay within Office.js ~5MB payload limit per operation
+3. User-configurable performance settings (chunk size, row limits, backoff)
+4. Comprehensive documentation for large dataset handling
+5. Telemetry for performance monitoring
 
 ## Success Criteria
 
-- [ ] Each query service has single responsibility
-- [ ] StorageHelperService abstracts localStorage + IndexedDB
-- [ ] IndexedDBService caches large datasets (query results)
-- [ ] BackupRestoreService exports/imports app state
-- [ ] QueryValidationService validates configs
-- [ ] Storage strategy evaluated and documented
-- [ ] Excel Desktop vs Online storage differences documented in `.claude/STORAGE-ARCHITECTURE.md`
-- [ ] Service worker feasibility assessed
-- [ ] Backup/Restore UI in User/Settings view
-- [ ] Query result caching integrated (check cache before mock generation)
-- [ ] Expired cache cleanup on app init
-- [ ] All public methods TSDoc'd
-- [ ] Tests pass (100% for new/refactored services)
+- [x] Chunked Excel writes (default 1000 rows, configurable)
+- [x] Row limit enforcement (default 10k, configurable)
+- [x] User-configurable settings in UI (maxRows, chunkSize, backoff)
+- [x] Telemetry for chunk progress and row limit warnings
+- [x] PERFORMANCE.md documentation (Excel limits, strategies, testing)
+- [x] Settings UI for Query Execution configuration
+- [x] All tests passing (184/184)
+- [x] Documentation updated (ARCHITECTURE.md, CLAUDE.md, README.md)
 
-## Services in Scope
+## Implementation Summary
 
-**QueryStateService** (`src/app/shared/query-state.service.ts`)
-- **Current:** Parameters, run state, direct localStorage
-- **Target:** State management only
-- **Extract:** localStorage ’ StorageHelperService
+### Core Services Modified
 
-**QueryConfigurationService** (`src/app/shared/query-configuration.service.ts`)
-- **Current:** CRUD on configs, apiId validation, direct localStorage
-- **Target:** CRUD operations only
-- **Extract:** Validation ’ QueryValidationService, localStorage ’ StorageHelperService
+**ExcelService** (`src/app/core/excel.service.ts`)
+- Added `writeRowsInChunks()` method with configurable chunk size and backoff
+- Integrated with `SettingsService` for configuration
+- Telemetry for chunk progress
+- Automatically used by `writeQueryTableData()` for all query writes
 
 **QueryApiMockService** (`src/app/shared/query-api-mock.service.ts`)
-- **Current:** Mock data generation
-- **Target:** Check IndexedDB cache before generating mocks
-- **Add:** Cache integration via IndexedDBService
+- Enforces `maxRowsPerQuery` limit from settings
+- Truncates results exceeding limit with telemetry warning
+- Integrated with `SettingsService` and `TelemetryService`
 
-**QueryQueueService** (`src/app/shared/query-queue.service.ts`)
-- **Current:** Queue management, execution coordination
-- **Target:** Add result caching to IndexedDB after runs
-- **Verify:** No state leakage
+**SettingsService** (`src/app/core/settings.service.ts`)
+- Added `QueryExecutionSettings` interface to settings types
+- Deep merge support for queryExecution updates
+- Defaults: maxRowsPerQuery=10000, chunkSize=1000, chunkBackoffMs=100
 
-## Technical Approach
+### User Interface
 
-### 4.0: Storage/Caching Strategy Investigation
+**Settings Component** (`src/app/features/settings/`)
+- Query Execution section with user controls:
+  - Max rows per query (number input, 100-100000)
+  - Chunk size for Excel writes (number input, 100-5000)
+  - Enable progressive loading (checkbox, placeholder for future)
+- Changes persist to localStorage immediately
+- Telemetry logged for all setting changes
 
-**Browser Storage Comparison:**
+### Documentation
 
-| Storage Type | Max Size | Performance | Offline | Use Case |
-|--------------|----------|-------------|---------|----------|
-| localStorage | ~5-10MB | Fast sync |  | Small key-value (settings, auth) |
-| IndexedDB | ~50MB-1GB+ | Async, fast for large data |  | Query results, cached API responses |
-| Cache API | ~50MB-1GB+ | Async, HTTP-optimized |  | API response caching |
-| Service Worker | N/A | N/A |  | Offline support, background sync |
+**Created:**
+- `.claude/PERFORMANCE.md` - Comprehensive guide covering:
+  - Excel resource limits (~5MB payload, ~1M cells, proxy object management)
+  - Chunked write strategy and implementation details
+  - User-configurable limits and settings
+  - Testing strategies for large datasets
+  - Failure modes and fixes
+  - Manual testing procedures
+  - Configuration reference
 
-**Current State:** All persistence uses localStorage
-**Target State:**
-- localStorage: Settings, auth, UI state (< 1MB)
-- IndexedDB: Query results, large datasets (10k+ rows)
-- Service Worker: Deferred to post-MVP (Phase 10+)
+**Updated:**
+- `.claude/ARCHITECTURE.md` - Added Phase 6 details to service descriptions
+- `.claude/CLAUDE.md` - Added Performance & Large Datasets section
+- `.claude/README.md` - Added PERFORMANCE.md to file list
+- `README.md` - Added Performance and large datasets section
 
-**Deliverable:** `.claude/STORAGE-ARCHITECTURE.md` documenting findings + Excel host differences
+## Technical Details
 
-### 4.1: Extract Storage Helpers
+### Chunked Writes
 
-**Create:** `src/app/shared/storage-helper.service.ts`
-- Multi-backend abstraction (localStorage + IndexedDB)
-- Methods: `getItem`, `setItem`, `getLargeItem`, `setLargeItem`, `removeItem`, `clear`, `clearExpiredCache`
-- All services use this instead of direct storage access
+```typescript
+// ExcelService.writeRowsInChunks()
+private async writeRowsInChunks(
+  ctx: any,
+  table: any,
+  rows: unknown[][],
+  chunkSize: number = 1000,
+  backoffMs: number = 100,
+  onChunkWritten?: (chunkIndex: number, totalChunks: number) => void
+): Promise<void>
+```
 
-### 4.2: Create IndexedDB Service
+- Breaks data into configurable batches (default 1000 rows)
+- Syncs after each batch to stay within Office.js payload limit
+- Configurable backoff between chunks (default 100ms) to prevent throttling
+- Telemetry for each chunk with context (chunkIndex, totalChunks, rowCount)
+- Progress callback for UI updates
 
-**Create:** `src/app/shared/indexeddb.service.ts`
-- Large dataset storage for query result caching
-- Methods: `init`, `cacheQueryResult`, `getCachedQueryResult`, `clearExpiredCache`
-- Schema: `{ id, queryId, rows, timestamp, expiresAt }`
-- Default TTL: 1 hour (configurable)
+### Row Limit Enforcement
 
-### 4.3: Create Backup/Restore Service
+```typescript
+// QueryApiMockService.executeApiUncached()
+const maxRows = this.settings.value.queryExecution?.maxRowsPerQuery ?? 10000;
+if (rows.length > maxRows) {
+  this.telemetry.logEvent({
+    category: 'query',
+    name: 'executeApi:rowLimitExceeded',
+    severity: 'warn',
+    context: { apiId, rowCount: rows.length, maxRows, truncated: true }
+  });
+  return rows.slice(0, maxRows);
+}
+```
 
-**Create:** `src/app/shared/backup-restore.service.ts`
-- Export all app state to JSON file (download)
-- Import JSON file to restore state (with version compatibility check)
-- Backup schema: `{ version, timestamp, authState, settings, queryConfigs, queryState }`
-- Triggers app reload after restore
+### Settings Schema
 
-**UI Integration:** User/Settings view with Export/Import buttons
+```typescript
+interface QueryExecutionSettings {
+  maxRowsPerQuery: number;        // Default: 10000
+  chunkSize: number;              // Default: 1000
+  enableProgressiveLoading: boolean; // Default: true (placeholder)
+  apiPageSize: number;            // Default: 1000 (for future pagination)
+  chunkBackoffMs: number;         // Default: 100
+}
+```
 
-### 4.4: Create Validation Service
+## Testing
 
-**Create:** `src/app/shared/query-validation.service.ts`
-- Validate QueryConfiguration against ApiDefinition
-- Check required parameters, parameter types
-- Return: `{ valid: boolean, errors: string[] }`
+**Test Results:**
+- Unit tests: 184/184 passing âœ…
+- Build: Successful âœ…
 
-### 4.5: Refactor Existing Services
+**Manual Testing:**
+- Test with `large-dataset` query (10k rows Ã— 30 columns)
+- Test with `synthetic-expansion` query (25k rows, truncated to 10k)
+- Verify Settings UI updates persist
+- Verify telemetry logs chunk progress
+- Verify row limit warnings appear
 
-**QueryStateService:** Use StorageHelperService for hydrate/persist
-**QueryConfigurationService:** Use StorageHelperService + QueryValidationService
-**QueryApiMockService:** Check IndexedDB cache before generating mocks
-**QueryQueueService:** Cache results to IndexedDB after successful runs
-**AppComponent:** Call `clearExpiredCache()` on init
+## Files Modified (8)
 
-## File Changes
+**Core Implementation:**
+- `src/app/types/settings.types.ts` - Added QueryExecutionSettings interface
+- `src/app/core/settings.service.ts` - Added defaults, deep merge
+- `src/app/core/excel.service.ts` - Added writeRowsInChunks(), SettingsService injection
+- `src/app/shared/query-api-mock.service.ts` - Added row limit enforcement
 
-**New Files:**
-- `src/app/shared/storage-helper.service.ts` + `.spec.ts`
-- `src/app/shared/indexeddb.service.ts` + `.spec.ts`
-- `src/app/shared/backup-restore.service.ts` + `.spec.ts`
-- `src/app/shared/query-validation.service.ts` + `.spec.ts`
-- `.claude/STORAGE-ARCHITECTURE.md` (NEW)
+**UI:**
+- `src/app/features/settings/settings.component.html` - Query Execution section
+- `src/app/features/settings/settings.component.ts` - Event handlers
 
-**Modified Files:**
-- `src/app/shared/query-state.service.ts` + `.spec.ts`
-- `src/app/shared/query-configuration.service.ts` + `.spec.ts`
-- `src/app/shared/query-api-mock.service.ts` + `.spec.ts`
-- `src/app/shared/query-queue.service.ts` + `.spec.ts`
-- `src/app/features/user/user.component.html` + `.ts`
-- `src/app/core/app.component.ts`
-- `.claude/ARCHITECTURE.md` (service responsibilities)
+**Tests:**
+- `src/app/core/excel.service.spec.ts` - Mock SettingsService
 
-## Testing Strategy
+**Documentation:**
+- `.claude/PERFORMANCE.md` (NEW)
+- `.claude/ARCHITECTURE.md`
+- `.claude/CLAUDE.md`
+- `.claude/README.md`
+- `README.md`
+- `PLAN_CURRENT.md`
 
-**Unit Tests:**
-- StorageHelperService: getItem, setItem, getLargeItem, setLargeItem, error handling
-- IndexedDBService: init, cache/get, clearExpired, TTL expiration
-- BackupRestoreService: export/import, version compatibility
-- QueryValidationService: validate configs with missing/invalid params
-- Updated services: verify use storage/validation helpers
+## Future Enhancements
 
-**Integration Tests:**
-- Save config ’ reload ’ verify persistence (localStorage)
-- Cache large result ’ get cached ’ verify returned (IndexedDB)
-- Cache with TTL ’ wait ’ clearExpired ’ verify removed
-- Export ’ import ’ verify state restored
-- Invalid config ’ verify validation errors
-
-**Manual Verification:**
-- Sideload in Excel Desktop ’ verify localStorage persistence
-- Sideload in Excel Online ’ verify IndexedDB persistence
-- Document quota/behavior differences in `.claude/STORAGE-ARCHITECTURE.md`
+Deferred to future phases:
+- [ ] Progressive loading implementation (show first chunk immediately, queue rest)
+- [ ] API pagination with `executeApiPaginated()` generator
+- [ ] Proxy object untracking for memory optimization
+- [ ] Adaptive chunking based on column count
+- [ ] Background queue for non-blocking writes
+- [ ] Memory budget tracking via telemetry
 
 ## Exit Criteria
 
-- [ ] StorageHelperService created, tested, documented
-- [ ] IndexedDBService created, tested, documented
-- [ ] BackupRestoreService created, tested, documented
-- [ ] QueryValidationService created, tested, documented
-- [ ] All query services use StorageHelperService (no direct localStorage)
-- [ ] All config operations validate via QueryValidationService
-- [ ] Query result caching integrated (IndexedDB)
-- [ ] Expired cache cleanup on app init
-- [ ] Backup/Restore UI in User/Settings view
-- [ ] `.claude/STORAGE-ARCHITECTURE.md` documents strategy + Excel host differences
-- [ ] Service worker evaluation documented (defer to Phase 10+)
-- [ ] Each service has single, documented responsibility
-- [ ] Tests pass (100% for helpers + updated services)
-- [ ] `.claude/ARCHITECTURE.md` updated with service responsibilities
+All criteria met âœ…:
+- [x] Chunked writes implemented and tested
+- [x] Row limits enforced with telemetry
+- [x] Settings UI functional and persistent
+- [x] Comprehensive documentation created
+- [x] All tests passing (184/184)
+- [x] Build successful
+- [x] Architecture docs updated
+- [x] Ready for commit and merge

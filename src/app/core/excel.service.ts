@@ -3,6 +3,7 @@ import { ExecuteQueryResultRow } from "../shared/query-api-mock.service";
 import { QueryDefinition, QueryRunLocation } from "../shared/query-model";
 import { ExcelOperationResult, WorkbookOwnershipInfo, WorkbookTableInfo } from "../types";
 import { TelemetryService } from "./telemetry.service";
+import { SettingsService } from "./settings.service";
 
 /**
  * Low-level wrapper around the Office.js Excel APIs.
@@ -45,7 +46,10 @@ declare const Excel: any;
  */
 @Injectable({ providedIn: "root" })
 export class ExcelService {
-  constructor(private readonly telemetry: TelemetryService) {}
+  constructor(
+    private readonly telemetry: TelemetryService,
+    private readonly settings: SettingsService
+  ) {}
 
   /**
    * Cached promise used to ensure `Office.onReady` has completed
@@ -701,6 +705,82 @@ export class ExcelService {
   }
 
   /**
+   * Sleep helper for throttling between chunks.
+   *
+   * @param ms - Milliseconds to sleep
+   * @returns Promise that resolves after delay
+   */
+  private sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Write table rows in chunks to avoid Excel payload limits.
+   *
+   * Breaks large datasets into smaller batches and syncs after each batch
+   * to stay within Office.js ~5MB payload limit. Adds configurable backoff
+   * between chunks to prevent Excel throttling.
+   *
+   * **Performance:**
+   * - Default chunk size: 1000 rows (configurable via SettingsService)
+   * - Backoff delay: 100ms between chunks (configurable)
+   * - Telemetry logged for each chunk
+   *
+   * @param ctx - Excel.run context
+   * @param table - Excel table object
+   * @param rows - All rows to write (2D array)
+   * @param chunkSize - Rows per batch (default 1000)
+   * @param backoffMs - Delay between chunks in ms (default 100)
+   * @param onChunkWritten - Optional progress callback (chunkIndex, totalChunks)
+   */
+  private async writeRowsInChunks(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ctx: any,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    table: any,
+    rows: unknown[][],
+    chunkSize: number = 1000,
+    backoffMs: number = 100,
+    onChunkWritten?: (chunkIndex: number, totalChunks: number) => void
+  ): Promise<void> {
+    if (rows.length === 0) return;
+
+    const totalChunks = Math.ceil(rows.length / chunkSize);
+
+    for (let i = 0; i < rows.length; i += chunkSize) {
+      const chunk = rows.slice(i, i + chunkSize);
+      const chunkIndex = Math.floor(i / chunkSize);
+
+      // Write chunk
+      table.rows.add(null, chunk);
+      await ctx.sync();
+
+      // Telemetry
+      this.telemetry.logEvent({
+        category: 'excel',
+        name: 'writeRowsInChunks:chunk',
+        severity: 'debug',
+        context: {
+          chunkIndex,
+          totalChunks,
+          chunkSize: chunk.length,
+          totalRows: rows.length,
+        },
+      });
+
+      // Progress callback
+      if (onChunkWritten) {
+        onChunkWritten(chunkIndex, totalChunks);
+      }
+
+      // Backoff between chunks (prevent throttling)
+      if (i + chunkSize < rows.length) {
+        await this.sleep(backoffMs);
+      }
+    }
+  }
+
+  /**
    * Writes or overwrites data in an Excel table for a query.
    *
    * This low-level helper encapsulates the complex table creation and
@@ -826,6 +906,10 @@ export class ExcelService {
         }
 
         if (values.length > 0) {
+          const queryExecSettings = this.settings.value.queryExecution;
+          const chunkSize = queryExecSettings?.chunkSize ?? 1000;
+          const backoffMs = queryExecSettings?.chunkBackoffMs ?? 100;
+
           this.telemetry.logEvent({
             category: "excel",
             name: "upsertQueryTable:overwrite",
@@ -834,9 +918,26 @@ export class ExcelService {
               queryId,
               overwriteRowCount: values.length,
               columnCount: header.length,
+              chunkSize,
+              willChunk: values.length > chunkSize,
             },
           });
-          table.rows.add(null, values);
+
+          // Use chunked writes for large datasets
+          await this.writeRowsInChunks(ctx, table, values, chunkSize, backoffMs, (chunk, total) => {
+            this.telemetry.logEvent({
+              category: 'excel',
+              name: 'writeQueryTableData:progress',
+              severity: 'debug',
+              context: {
+                queryId,
+                chunk: chunk + 1,
+                total,
+                rowsWritten: Math.min((chunk + 1) * chunkSize, values.length),
+                totalRows: values.length,
+              },
+            });
+          });
         }
       }
     }

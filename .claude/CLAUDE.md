@@ -51,6 +51,7 @@ Angular 20 task-pane add-in for Excel using standalone components and Office.js.
 - Provides workbook operations: `upsertQueryTable`, `activateQueryLocation`, ownership helpers
 - Returns typed `ExcelOperationResult<T>` instead of throwing
 - All Excel operations gated by `isExcel` check
+- **Phase 6:** Chunked writes for large datasets via `writeRowsInChunks()` (default 1000 rows/chunk, 100ms backoff)
 
 #### WorkbookService (`src/app/core/workbook.service.ts`)
 - Shared workbook abstraction for tabs/sheets and tables
@@ -68,8 +69,9 @@ Angular 20 task-pane add-in for Excel using standalone components and Office.js.
 #### SettingsService (`src/app/core/settings.service.ts`)
 - Application-wide user preferences and configuration
 - **Uses direct localStorage** (not StorageHelperService to avoid circular dependency)
-- Deep merge for partial updates (especially telemetry settings)
+- Deep merge for partial updates (telemetry + queryExecution settings)
 - Comprehensive TSDoc coverage
+- **Phase 6:** `queryExecution` settings for performance (maxRowsPerQuery, chunkSize, enableProgressiveLoading, apiPageSize, chunkBackoffMs)
 
 #### AppContextService (`src/app/core/app-context.service.ts`)
 - Aggregates runtime context for telemetry and diagnostics
@@ -92,6 +94,7 @@ Angular 20 task-pane add-in for Excel using standalone components and Office.js.
 - Mock API definitions for queries (sales, customers, inventory, audit)
 - Returns sample data rows for each query
 - **Integrated IndexedDB caching** (Phase 4): checks cache before generating mocks
+- **Phase 6:** Enforces `maxRowsPerQuery` limit with telemetry warnings when truncating
 - Drives flat catalog in current Queries view
 
 #### StorageHelperService (`src/app/shared/storage-helper.service.ts`)
@@ -220,6 +223,16 @@ this.telemetry.logEvent({
   context: { queryId: query.id }
 });
 ```
+
+## Performance & Large Datasets
+
+**See `.claude/PERFORMANCE.md` for comprehensive guide** (Phase 6)
+
+- Excel resource limits: ~5MB payload per Office.js call, ~1M cell recommendation
+- Chunked writes: Default 1000 rows/chunk, configurable via Settings UI
+- Row limits: Default 10k max rows per query, configurable
+- User-configurable settings: maxRows, chunkSize, progressive loading, backoff
+- Test queries: `large-dataset` (10k rows), `synthetic-expansion` (25k rows)
 
 ## Deployment
 

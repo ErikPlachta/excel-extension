@@ -55,6 +55,66 @@ export class SettingsComponent {
     );
   }
 
+  onMaxRowsChange(value: string): void {
+    const maxRows = parseInt(value, 10);
+    if (isNaN(maxRows) || maxRows < 100) return;
+
+    const current = this.settings.value.queryExecution;
+    this.settings.update({
+      queryExecution: {
+        ...(current ?? {}),
+        maxRowsPerQuery: maxRows,
+      } as any,
+    });
+    this.telemetry.logEvent(
+      this.telemetry.createFeatureEvent({
+        category: "settings",
+        name: "queryExecution.maxRows.changed",
+        severity: "info",
+        context: { maxRows },
+      })
+    );
+  }
+
+  onChunkSizeChange(value: string): void {
+    const chunkSize = parseInt(value, 10);
+    if (isNaN(chunkSize) || chunkSize < 100) return;
+
+    const current = this.settings.value.queryExecution;
+    this.settings.update({
+      queryExecution: {
+        ...(current ?? {}),
+        chunkSize,
+      } as any,
+    });
+    this.telemetry.logEvent(
+      this.telemetry.createFeatureEvent({
+        category: "settings",
+        name: "queryExecution.chunkSize.changed",
+        severity: "info",
+        context: { chunkSize },
+      })
+    );
+  }
+
+  onProgressiveLoadingChange(checked: boolean): void {
+    const current = this.settings.value.queryExecution;
+    this.settings.update({
+      queryExecution: {
+        ...(current ?? {}),
+        enableProgressiveLoading: checked,
+      } as any,
+    });
+    this.telemetry.logEvent(
+      this.telemetry.createFeatureEvent({
+        category: "settings",
+        name: "queryExecution.progressiveLoading.toggled",
+        severity: "info",
+        context: { enabled: checked },
+      })
+    );
+  }
+
   async resetManagedTables(): Promise<void> {
     if (!this.excel.isExcel) return;
     await this.excel.purgeExtensionManagedContent();

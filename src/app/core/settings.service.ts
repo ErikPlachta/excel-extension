@@ -19,6 +19,13 @@ const DEFAULT_SETTINGS: AppSettings = {
       correlationId: "correlationId",
     },
   },
+  queryExecution: {
+    maxRowsPerQuery: 10000,
+    chunkSize: 1000,
+    enableProgressiveLoading: true,
+    apiPageSize: 1000,
+    chunkBackoffMs: 100,
+  },
 };
 
 /**
@@ -36,6 +43,12 @@ const DEFAULT_SETTINGS: AppSettings = {
  *   - enableConsoleLogging: Log to browser console
  *   - sessionStrategy: Session ID strategy
  *   - logWorksheetName/logTableName: Excel logging targets
+ * - **queryExecution**: Query performance and resource limits (Phase 6)
+ *   - maxRowsPerQuery: Maximum rows per query (default 10,000)
+ *   - chunkSize: Excel write batch size (default 1,000)
+ *   - enableProgressiveLoading: Show first chunk immediately
+ *   - apiPageSize: Pagination size for API calls
+ *   - chunkBackoffMs: Delay between Excel write chunks
  *
  * **Storage:**
  * Uses direct localStorage access (not StorageHelperService to avoid circular dependency
@@ -68,7 +81,7 @@ export class SettingsService {
 
   /**
    * Update settings with partial values.
-   * Performs deep merge for telemetry settings, shallow merge for top-level.
+   * Performs deep merge for telemetry and queryExecution settings, shallow merge for top-level.
    * Automatically persists to localStorage.
    *
    * @param partial - Partial settings to merge with current settings
@@ -80,6 +93,10 @@ export class SettingsService {
       telemetry: {
         ...this.settings.telemetry,
         ...(partial.telemetry ?? {}),
+      },
+      queryExecution: {
+        ...(this.settings.queryExecution ?? DEFAULT_SETTINGS.queryExecution!),
+        ...(partial.queryExecution ?? {}),
       },
     };
     this.save();
@@ -97,6 +114,10 @@ export class SettingsService {
         telemetry: {
           ...DEFAULT_SETTINGS.telemetry,
           ...(parsed.telemetry ?? {}),
+        },
+        queryExecution: {
+          ...DEFAULT_SETTINGS.queryExecution!,
+          ...(parsed.queryExecution ?? {}),
         },
       };
     } catch {
