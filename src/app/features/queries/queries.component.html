@@ -161,10 +161,27 @@
       Formulas paused during query execution
     </div>
 
+    <div *ngIf="showImpactWarning && formulaImpactAssessment" class="formula-warning formula-warning--impact">
+      <strong>Formula Impact:</strong>
+      {{ formulaImpactAssessment.affectedFormulas.length }} formula(s) reference
+      table "{{ formulaImpactAssessment.tableName }}".
+      <span *ngIf="formulaImpactAssessment.affectedColumns.length">
+        Columns: {{ formulaImpactAssessment.affectedColumns.join(', ') }}
+      </span>
+    </div>
+
     <app-button
       label="Run configuration"
       [disabled]="isRunningConfig || !excel.isExcel"
       (clicked)="runCurrentConfiguration()"
+    ></app-button>
+
+    <app-button
+      label="Export formula report"
+      variant="secondary"
+      size="sm"
+      [disabled]="!excel.isExcel"
+      (clicked)="exportFormulaDependencies()"
     ></app-button>
   </div>
 </app-section>

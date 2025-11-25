@@ -15,3 +15,22 @@
   color: var(--warning-color, #ed6c02);
   border: 1px solid rgba(237, 108, 2, 0.3);
 }
+
+/* Formula impact warning (Phase 9) */
+.formula-warning {
+  font-size: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+  margin: 0.5rem 0;
+  line-height: 1.4;
+}
+
+.formula-warning--impact {
+  background-color: rgba(2, 136, 209, 0.1);
+  color: var(--info-color, #0288d1);
+  border: 1px solid rgba(2, 136, 209, 0.3);
+}
+
+.formula-warning--impact strong {
+  font-weight: 600;
+}

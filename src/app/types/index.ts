@@ -9,3 +9,4 @@ export * from "./workbook.types";
 export * from "./excel.types";
 export * from "./settings.types";
 export * from "./telemetry.types";
+export * from "./formula.types";

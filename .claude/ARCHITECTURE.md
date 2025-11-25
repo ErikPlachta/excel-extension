@@ -37,7 +37,35 @@ Angular 20 task-pane add-in for Excel. Standalone components, Office.js wrapper,
 - Used by QueriesComponent to disable formulas during query execution
 - Setting: `queryExecution.disableFormulasDuringRun` (default: true)
 
+### FormulaScannerService (`src/app/core/formula-scanner.service.ts`) - NEW Phase 9
+
+**Formula dependency detection and impact assessment**
+
+**Core Operations:**
+- `scanWorkbook(forceRefresh?)` – Scan all worksheets for formula dependencies (cached 5min)
+- `parseTableColumnReferences(formula)` – Extract Table[Column] references from formula string
+- `checkQueryImpact(queryId, tableName, columns?)` – Assess query update impact on formulas
+- `getTableDependencies()` – Group all dependencies by table name
+- `generateReportCsv(dependencies)` – Export dependencies to CSV format
+- `clearCache()` – Clear cached scan results
+
+**Structured Reference Parsing:**
+- Handles: `Table1[Column]`, `Table1[@Column]`, `Table1[[Column]]`
+- Skips: `#Headers`, `#All`, `#Data`, `#Totals` special items
+- Supports column names with spaces
+
+**Impact Assessment:**
+- Severity levels: `none`, `low` (≤5 refs), `high` (>5 refs)
+- Returns `QueryImpactAssessment` with affected formulas and columns
+- Non-blocking warning (doesn't prevent query execution)
+
 **Design:**
+- Returns `ExcelOperationResult<T>` for all async methods
+- Gated by `ExcelService.isExcel`
+- 5-minute TTL cache to avoid expensive re-scans
+- Injected dependencies: `ExcelService`, `TelemetryService`
+
+**(ExcelService) Design:**
 - All methods gated by `isExcel`, return typed results (no throws)
 - Office.js types remain `any` at boundary
 - Focuses on Office.js API calls, delegates ownership decisions to `WorkbookService`
@@ -479,7 +507,8 @@ Replaced standalone `APP_TEXT` with nested config structure:
 - `app-config.types.ts` – `AppConfig`, `NavItemConfig`, `RoleDefinition`, `ViewId`, `RoleId`
 - `ui/primitives.types.ts` – Button/banner/table/list types
 - `workbook.types.ts` – `WorkbookTabInfo`, `WorkbookTableInfo`, `WorkbookOwnershipInfo`
-- `telemetry.types.ts` – `AppTelemetryEvent`, `ExcelOperationResult`, `ExcelErrorInfo`
+- `telemetry.types.ts` – `AppTelemetryEvent`, `ExcelOperationResult`, `ExcelErrorInfo`, `TelemetryCategory` (includes "formula")
+- `formula.types.ts` – `FormulaDependency`, `FormulaScanResult`, `QueryImpactAssessment`, `TableColumnReference` **[Phase 9]**
 
 ## Office.js Integration
 

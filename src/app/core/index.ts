@@ -8,3 +8,4 @@ export * from "./auth.service";
 export * from "./app-context.service";
 export * from "./telemetry.service";
 export * from "./settings.service";
+export * from "./formula-scanner.service";

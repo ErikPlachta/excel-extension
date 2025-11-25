@@ -1,11 +1,11 @@
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { Component } from "@angular/core";
-import { ExcelService, AuthService, TelemetryService, SettingsService } from "../../core";
+import { ExcelService, AuthService, TelemetryService, SettingsService, FormulaScannerService } from "../../core";
 import { ExecuteQueryParams, QueryApiMockService } from "../../shared/query-api-mock.service";
 import { QueryStateService } from "../../shared/query-state.service";
 import { QueryDefinition } from "../../shared/query-model";
-import { QueryConfiguration, QueryParameterValues, QueryWriteMode } from "../../types";
+import { QueryConfiguration, QueryParameterValues, QueryWriteMode, QueryImpactAssessment } from "../../types";
 import { SectionComponent } from "../../shared/ui/section.component";
 import { TableComponent } from "../../shared/ui/table.component";
 import { DropdownComponent, UiDropdownItem } from "../../shared/ui/dropdown.component";
@@ -77,6 +77,10 @@ export class QueriesComponent {
   formulasDisabled = false;
   private previousCalculationMode: string | null = null;
 
+  // Formula impact assessment state (Phase 9)
+  formulaImpactAssessment: QueryImpactAssessment | null = null;
+  showImpactWarning = false;
+
   // Debug view model to surface core state as JSON in the template.
   get debugState() {
     return {
@@ -97,6 +101,13 @@ export class QueriesComponent {
         currentItemId: this.queueCurrentItemId,
       },
       formulasDisabled: this.formulasDisabled,
+      formulaImpact: this.formulaImpactAssessment
+        ? {
+            hasImpact: this.formulaImpactAssessment.hasImpact,
+            severity: this.formulaImpactAssessment.severity,
+            affectedCount: this.formulaImpactAssessment.affectedFormulas.length,
+          }
+        : null,
     };
   }
 
@@ -109,7 +120,8 @@ export class QueriesComponent {
     private readonly telemetry: TelemetryService,
     private readonly configs: QueryConfigurationService,
     private readonly queue: QueryQueueService,
-    private readonly settings: SettingsService
+    private readonly settings: SettingsService,
+    private readonly formulaScanner: FormulaScannerService
   ) {
     // Phase 1: Use ApiCatalogService with role filtering instead of QueryApiMockService
     this.apis = this.api.getQueries(); // Keep for backward compat
@@ -439,6 +451,23 @@ export class QueriesComponent {
 
     this.isRunningConfig = true;
 
+    // Phase 9: Check formula impact before execution
+    this.showImpactWarning = false;
+    this.formulaImpactAssessment = null;
+
+    // Get unique target table names from selected items
+    const targetTables = [...new Set(this.selectedItems.map((item) => item.targetTableName))];
+
+    for (const tableName of targetTables) {
+      const impact = await this.formulaScanner.checkQueryImpact(configId, tableName);
+      if (impact.ok && impact.value && impact.value.hasImpact) {
+        this.formulaImpactAssessment = impact.value;
+        this.showImpactWarning = true;
+        // Show warning but don't block execution
+        break;
+      }
+    }
+
     // Phase 8: Disable formulas during execution if setting enabled
     const shouldDisableFormulas =
       this.settings.value.queryExecution?.disableFormulasDuringRun ?? true;
@@ -536,5 +565,49 @@ export class QueriesComponent {
 
       this.isRunningConfig = false;
     }
+  }
+
+  /**
+   * Export formula dependencies to CSV file.
+   * Scans workbook and downloads report of all table/column references.
+   */
+  async exportFormulaDependencies(): Promise<void> {
+    this.telemetry.logEvent({
+      category: "formula",
+      name: "exportDependencies.clicked",
+      severity: "debug",
+    });
+
+    const scanResult = await this.formulaScanner.scanWorkbook();
+    if (!scanResult.ok || !scanResult.value) {
+      this.telemetry.logEvent({
+        category: "formula",
+        name: "exportDependencies.failed",
+        severity: "warn",
+        context: { error: scanResult.error?.message },
+      });
+      return;
+    }
+
+    const csv = this.formulaScanner.generateReportCsv(scanResult.value.dependencies);
+
+    // Download via Blob URL
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `formula-dependencies-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+
+    this.telemetry.logEvent({
+      category: "formula",
+      name: "exportDependencies.completed",
+      severity: "info",
+      context: {
+        dependencyCount: scanResult.value.dependencies.length,
+        sheetsScanned: scanResult.value.sheetsScanned,
+      },
+    });
   }
 }

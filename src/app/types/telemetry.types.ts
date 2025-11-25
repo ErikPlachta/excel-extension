@@ -6,7 +6,7 @@ export type TelemetrySeverity = "debug" | "info" | "warn" | "error";
 /**
  * High-level category for telemetry events.
  */
-export type TelemetryCategory = "excel" | "auth" | "query" | "ui" | "settings" | "system";
+export type TelemetryCategory = "excel" | "auth" | "query" | "ui" | "settings" | "system" | "formula";
 
 /**
  * Base shape for all telemetry events emitted by the app.
