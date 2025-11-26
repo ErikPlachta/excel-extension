@@ -1,6 +1,4 @@
 export type {
-  QueryParameter,
-  QueryDefinition,
   QueryRunLocation,
   QueryRun,
   QueryWriteMode,

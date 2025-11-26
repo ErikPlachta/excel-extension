@@ -1,30 +1,31 @@
 import { QueryStateService } from "./query-state.service";
-import { QueryApiMockService, ExecuteQueryParams } from "./query-api-mock.service";
-import { QueryDefinition } from "./query-model";
+import { ExecuteQueryParams } from "./query-api-mock.service";
+import { ApiDefinition } from "./query-model";
 import type { QueryParameterValues } from "../types";
 import { StorageHelperService } from "./storage-helper.service";
+import { ApiCatalogService } from "./api-catalog.service";
 
-class QueryApiMockServiceStub {
-  private readonly queries: QueryDefinition[] = [
+class ApiCatalogServiceStub {
+  private readonly apis: ApiDefinition[] = [
     {
       id: "q1",
       name: "Test Query",
       description: "",
-      parameters: [],
-      defaultSheetName: "Sheet1",
-      defaultTableName: "Table1",
-      parameterKeys: ["StartDate", "EndDate", "Group", "SubGroup"],
+      parameters: [
+        { key: "StartDate", type: "date", required: false },
+        { key: "EndDate", type: "date", required: false },
+        { key: "Group", type: "string", required: false },
+        { key: "SubGroup", type: "string", required: false },
+      ],
     },
   ];
 
-  getQueries(): QueryDefinition[] {
-    return this.queries;
+  getApis(): ApiDefinition[] {
+    return this.apis;
   }
 
-  // Unused in these specs but required by the real service signature
-  // so we keep stubs with lenient typing.
-  executeQuery(id: string, _params?: ExecuteQueryParams) {
-    throw new Error("Not implemented in stub");
+  getApiById(id: string): ApiDefinition | undefined {
+    return this.apis.find((a) => a.id === id);
   }
 }
 
@@ -52,7 +53,7 @@ describe("QueryStateService parameter state and persistence", () => {
   it("initializes global/query params and run flags from empty storage", () => {
     const storage = new StorageHelperServiceMock();
     const service = new QueryStateService(
-      new QueryApiMockServiceStub() as unknown as QueryApiMockService,
+      new ApiCatalogServiceStub() as unknown as ApiCatalogService,
       storage as unknown as StorageHelperService
     );
 
@@ -64,7 +65,7 @@ describe("QueryStateService parameter state and persistence", () => {
   it("persists and hydrates global params, per-query params, and run flags", () => {
     const storage = new StorageHelperServiceMock();
     const first = new QueryStateService(
-      new QueryApiMockServiceStub() as unknown as QueryApiMockService,
+      new ApiCatalogServiceStub() as unknown as ApiCatalogService,
       storage as unknown as StorageHelperService
     );
     const globals: QueryParameterValues = {
@@ -80,7 +81,7 @@ describe("QueryStateService parameter state and persistence", () => {
     first.setQueryRunFlag("q1", true);
 
     const second = new QueryStateService(
-      new QueryApiMockServiceStub() as unknown as QueryApiMockService,
+      new ApiCatalogServiceStub() as unknown as ApiCatalogService,
       storage as unknown as StorageHelperService
     );
 
@@ -92,7 +93,7 @@ describe("QueryStateService parameter state and persistence", () => {
   it("computes effective params from globals only when no overrides are present", () => {
     const storage = new StorageHelperServiceMock();
     const service = new QueryStateService(
-      new QueryApiMockServiceStub() as unknown as QueryApiMockService,
+      new ApiCatalogServiceStub() as unknown as ApiCatalogService,
       storage as unknown as StorageHelperService
     );
 
@@ -102,8 +103,8 @@ describe("QueryStateService parameter state and persistence", () => {
       Group: "All",
     });
 
-    const query = service.getQueries()[0];
-    const effective = service.getEffectiveParams(query, "global");
+    const api = service.getApis()[0];
+    const effective = service.getEffectiveParams(api, "global");
 
     const expected: ExecuteQueryParams = {
       StartDate: "2024-01-01",
@@ -117,7 +118,7 @@ describe("QueryStateService parameter state and persistence", () => {
   it("prefers per-query overrides in unique mode and falls back to globals", () => {
     const storage = new StorageHelperServiceMock();
     const service = new QueryStateService(
-      new QueryApiMockServiceStub() as unknown as QueryApiMockService,
+      new ApiCatalogServiceStub() as unknown as ApiCatalogService,
       storage as unknown as StorageHelperService
     );
 
@@ -132,8 +133,8 @@ describe("QueryStateService parameter state and persistence", () => {
       SubGroup: "North",
     });
 
-    const query = service.getQueries()[0];
-    const effective = service.getEffectiveParams(query, "unique");
+    const api = service.getApis()[0];
+    const effective = service.getEffectiveParams(api, "unique");
 
     const expected: ExecuteQueryParams = {
       StartDate: "2024-01-01",

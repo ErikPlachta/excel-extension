@@ -1,7 +1,6 @@
 import { Injectable } from "@angular/core";
 import { ExcelService } from "./excel.service";
-import { QueryDefinition } from "../shared/query-model";
-import { WorkbookOwnershipInfo, WorkbookTableInfo } from "../types";
+import { QueryDefinition, WorkbookOwnershipInfo, WorkbookTableInfo } from "../types";
 
 /**
  * Provides a typed, feature-friendly abstraction over workbook state.
