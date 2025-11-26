@@ -50,3 +50,12 @@ export interface AppSettings {
   telemetry: TelemetrySettings;
   queryExecution?: QueryExecutionSettings;
 }
+
+/**
+ * Type for partial updates to AppSettings.
+ * Allows partial nested objects for deep merge in SettingsService.update().
+ */
+export interface AppSettingsUpdate {
+  telemetry?: Partial<TelemetrySettings>;
+  queryExecution?: Partial<QueryExecutionSettings>;
+}
