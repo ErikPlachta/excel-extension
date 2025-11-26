@@ -21,3 +21,16 @@ export interface ExcelErrorInfo {
   /** Optional raw error object for logging/debugging. */
   raw?: unknown;
 }
+
+/**
+ * Target specification for query table upsert operations.
+ *
+ * Separates execution target (where to write) from API definition (what to fetch).
+ * Used by ExcelService.upsertQueryTable() as part of Phase 1 migration.
+ */
+export interface QueryTableTarget {
+  /** Target worksheet name */
+  sheetName: string;
+  /** Target table name */
+  tableName: string;
+}

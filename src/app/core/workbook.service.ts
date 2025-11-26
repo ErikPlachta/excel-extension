@@ -121,6 +121,10 @@ export class WorkbookService {
    * Excel APIs. The intent is to centralize ownership decisions
    * so features do not need to reason about conflicting user
    * tables themselves.
+   *
+   * @deprecated Phase 1 Migration: With QueryInstance model, callers specify
+   * targetSheetName/targetTableName directly. This method remains for backward
+   * compatibility but is no longer used in production code paths.
    */
   async getOrCreateManagedTableTarget(
     query: QueryDefinition

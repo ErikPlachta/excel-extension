@@ -1,7 +1,7 @@
 import { Injectable } from "@angular/core";
 import { ExecuteQueryResultRow } from "../shared/query-api-mock.service";
-import { QueryDefinition, QueryRunLocation } from "../shared/query-model";
-import { ExcelOperationResult, WorkbookOwnershipInfo, WorkbookTableInfo } from "../types";
+import { QueryRunLocation } from "../shared/query-model";
+import { ExcelOperationResult, QueryTableTarget, WorkbookOwnershipInfo, WorkbookTableInfo } from "../types";
 import { TelemetryService } from "./telemetry.service";
 import { SettingsService } from "./settings.service";
 
@@ -300,17 +300,11 @@ export class ExcelService {
    * replacing all data body rows on rerun. Append mode is intentionally
    * not supported in this branch.
    *
-   * **Architectural Note (Phase 3):**
-   * This method currently contains ownership decision logic (lines
-   * 354-378) that duplicates {@link WorkbookService.getOrCreateManagedTableTarget}.
-   * The proper pattern is:
-   * 1. Features call `WorkbookService.getOrCreateManagedTableTarget(query)`
-   *    to determine the target location.
-   * 2. Features pass the result as `locationHint` to this method.
-   * 3. This method focuses only on writing data to the target.
-   *
-   * TODO(Phase 4): Extract ownership decision logic and require
-   * callers to use WorkbookService for target resolution.
+   * **Phase 1 Migration:**
+   * Signature changed from `(query: QueryDefinition, rows, locationHint?)` to
+   * `(apiId: string, target: QueryTableTarget, rows, locationHint?)`.
+   * This separates the API identifier (for telemetry/ownership) from the
+   * execution target (where to write data).
    *
    * Office.js side effects:
    * - May create new worksheets and tables.
@@ -319,13 +313,11 @@ export class ExcelService {
    * - Always records/update ownership in `_Extension_Ownership` for
    *   the target table.
    *
-   * @param query - The query definition whose results are being written.
+   * @param apiId - API identifier for telemetry and ownership tracking.
+   * @param target - Target location (sheetName, tableName) for the data.
    * @param rows - The executed query result rows to project into the
    * Excel table.
-   * @param locationHint - Optional hint for the desired sheet/table
-   * location; when omitted the ownership model and query defaults are
-   * used to choose a safe target. **Prefer calling WorkbookService
-   * first and passing the result here.**
+   * @param locationHint - Optional hint to override target location.
    *
    * @returns An {@link ExcelOperationResult} whose `value`, on
    * success, is the {@link QueryRunLocation} of the table that was
@@ -333,7 +325,8 @@ export class ExcelService {
    * logged via {@link TelemetryService}) is returned.
    */
   async upsertQueryTable(
-    query: QueryDefinition,
+    apiId: string,
+    target: QueryTableTarget,
     rows: ExecuteQueryResultRow[],
     locationHint?: Partial<QueryRunLocation>
   ): Promise<ExcelOperationResult<QueryRunLocation>> {
@@ -356,7 +349,7 @@ export class ExcelService {
       const writeMode = "overwrite";
 
       const debugContextBase = {
-        queryId: query.id,
+        apiId,
         writeMode,
         headerLength: header.length,
         rowCount: values.length,
@@ -377,18 +370,19 @@ export class ExcelService {
         ownership.some(
           (o) =>
             o.isManaged &&
-            o.queryId === query.id &&
+            o.queryId === apiId &&
             o.tableName === t.name &&
             o.sheetName === t.worksheet
         )
       );
 
-      const defaultSheetName = query.defaultSheetName;
-      const defaultTableName = query.defaultTableName;
+      // Target comes from caller (Phase 1: separated from API definition)
+      const defaultSheetName = target.sheetName;
+      const defaultTableName = target.tableName;
 
       const conflictingUserTable = tables.find((t) => t.name === defaultTableName);
       const safeTableName = conflictingUserTable
-        ? `${defaultTableName}_${query.id}`
+        ? `${defaultTableName}_${apiId}`
         : defaultTableName;
 
       const sheetName = locationHint?.sheetName ?? existingManaged?.worksheet ?? defaultSheetName;
@@ -399,7 +393,7 @@ export class ExcelService {
         name: "upsertQueryTable:target",
         severity: "debug",
         context: {
-          queryId: query.id,
+          apiId,
           sheetName,
           tableName,
           hasExistingManaged: !!existingManaged,
@@ -417,7 +411,7 @@ export class ExcelService {
         }
 
         // Delegate table creation/update to helper
-        await this.writeQueryTableData(ctx, sheet, tableName, header, values, query.id);
+        await this.writeQueryTableData(ctx, sheet, tableName, header, values, apiId);
 
         await ctx.sync();
         this.telemetry.logEvent({
@@ -426,7 +420,7 @@ export class ExcelService {
           severity: "info",
           message: "ok",
           context: {
-            queryId: query.id,
+            apiId,
             sheetName,
             tableName,
             rowCount: rows.length,
@@ -446,7 +440,7 @@ export class ExcelService {
       // that records ownership via an in-memory bridge; a future
       // revision can persist this to a hidden sheet or table
       // without changing the call site.
-      await this.recordOwnership({ tableName, sheetName, queryId: query.id });
+      await this.recordOwnership({ tableName, sheetName, queryId: apiId });
 
       return {
         ok: true,

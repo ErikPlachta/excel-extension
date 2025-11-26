@@ -61,11 +61,9 @@ describe("QueriesComponent", () => {
       "generateReportCsv",
     ]);
 
-    mockQueryApi = jasmine.createSpyObj("QueryApiMockService", ["getQueries", "executeQuery"]);
-    mockQueryApi.getQueries.and.returnValue([
-      { id: "sales-summary", name: "Sales Summary", parameters: [], defaultSheetName: "Sales", defaultTableName: "SalesTable" },
-      { id: "top-customers", name: "Top Customers", parameters: [], defaultSheetName: "Customers", defaultTableName: "CustomersTable" },
-    ]);
+    // Phase 1: Updated to use executeApi instead of deprecated executeQuery
+    mockQueryApi = jasmine.createSpyObj("QueryApiMockService", ["executeApi"]);
+    mockQueryApi.executeApi.and.returnValue(Promise.resolve([]));
 
     mockQueryState = jasmine.createSpyObj("QueryStateService", ["getGlobalParams", "setLastRun"], {
       snapshot: { queryParams: {} },

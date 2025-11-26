@@ -1,9 +1,9 @@
 import { ExcelService } from "./excel.service";
 import { TelemetryService } from "./telemetry.service";
 import { SettingsService } from "./settings.service";
-import { QueryDefinition, QueryRunLocation } from "../shared/query-model";
+import { QueryRunLocation } from "../shared/query-model";
 import { ExecuteQueryResultRow } from "../shared/query-api-mock.service";
-import { ExcelOperationResult } from "../types";
+import { ExcelOperationResult, QueryTableTarget } from "../types";
 
 describe("ExcelService.upsertQueryTable (host-agnostic behavior)", () => {
   let service: ExcelService;
@@ -42,16 +42,14 @@ describe("ExcelService.upsertQueryTable (host-agnostic behavior)", () => {
     (globalThis as unknown as { Office?: unknown }).Office = undefined;
   });
 
-  function createQuery(writeMode: "overwrite" | "append"): QueryDefinition {
+  // Phase 1: Updated test helpers for new upsertQueryTable signature
+  const testApiId = "q-test";
+
+  function createTarget(): QueryTableTarget {
     return {
-      id: "q-test",
-      name: "Test Query",
-      description: "",
-      defaultSheetName: "Sheet1",
-      defaultTableName: "tbl_Test",
-      parameters: [],
-      writeMode,
-    } as QueryDefinition;
+      sheetName: "Sheet1",
+      tableName: "tbl_Test",
+    };
   }
 
   function createRows(): ExecuteQueryResultRow[] {
@@ -62,12 +60,12 @@ describe("ExcelService.upsertQueryTable (host-agnostic behavior)", () => {
   }
 
   async function callUpsert(
-    writeMode: "overwrite" | "append",
+    _writeMode: "overwrite" | "append", // kept for test API compat, but no longer used
     locationHint?: Partial<QueryRunLocation>
   ): Promise<ExcelOperationResult<QueryRunLocation>> {
-    const query = createQuery(writeMode);
+    const target = createTarget();
     const rows = createRows();
-    return service.upsertQueryTable(query, rows, locationHint);
+    return service.upsertQueryTable(testApiId, target, rows, locationHint);
   }
 
   it("returns a typed error when not running inside Excel (overwrite)", async () => {

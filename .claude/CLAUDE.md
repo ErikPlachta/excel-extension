@@ -165,8 +165,9 @@ async ngOnInit() {
   // Prefer WorkbookService for workbook operations
   this.tables = await this.workbook.getTables();
 
-  // Or use ExcelService directly
-  const result = await this.excel.upsertQueryTable(query, rows, params);
+  // Phase 1: Use new upsertQueryTable signature with separated apiId + target
+  const target = { sheetName: 'Sales', tableName: 'tbl_Sales' };
+  const result = await this.excel.upsertQueryTable(apiId, target, rows);
   if (!result.ok) {
     // Handle typed error
     console.error(result.error.message);
@@ -192,13 +193,20 @@ async ngOnInit() {
 - Types in `src/app/types/app-config.types.ts`
 - Add new nav item: edit config + text, no template changes needed
 
-### Query Execution (Current Baseline)
-- Flat catalog of API definitions from `QueryApiMockService`
+### Query Execution (Phase 1 Updated)
+- **API catalog from `ApiCatalogService`** - replaces QueryApiMockService.getQueries()
+- **Types: `ApiDefinition` for catalog, `QueryInstance` for execution**
 - Global + per-query parameter management via `QueryStateService`
 - Batch "Run" with Global or Unique parameter modes
-- Creates/updates Excel tables via `ExcelService.upsertQueryTable`
+- Creates/updates Excel tables via `ExcelService.upsertQueryTable(apiId, target, rows)`
 - Overwrite-only semantics (append removed)
 - Telemetry to console + optional in-workbook log table
+
+**Phase 1 Type Migration:**
+- `QueryDefinition` is **@deprecated** - use `ApiDefinition` for catalog entries
+- `QueryInstance` defines execution config with target sheet/table
+- `QueryApiMockService.executeApi()` replaces deprecated `executeQuery()`
+- `ExcelService.upsertQueryTable` signature: `(apiId, {sheetName, tableName}, rows)`
 
 ### Workbook Ownership Model
 - Metadata stored in hidden `_Extension_Ownership` sheet

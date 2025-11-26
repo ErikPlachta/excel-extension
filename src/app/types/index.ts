@@ -1,5 +1,6 @@
 export * from "./auth.types";
 export * from "./jwt.types";
+export * from "./api.types";
 export * from "./query.types";
 export * from "./query-configuration.types";
 export * from "./query-params.types";

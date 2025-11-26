@@ -6,7 +6,7 @@ import { takeUntil } from "rxjs/operators";
 import { ExcelService, AuthService, TelemetryService, SettingsService, FormulaScannerService } from "../../core";
 import { ExecuteQueryParams, QueryApiMockService } from "../../shared/query-api-mock.service";
 import { QueryStateService } from "../../shared/query-state.service";
-import { QueryDefinition } from "../../shared/query-model";
+import { ApiDefinition } from "../../types/api.types";
 import { QueryConfiguration, QueryParameterValues, QueryWriteMode, QueryImpactAssessment, RoleId } from "../../types";
 import { SectionComponent } from "../../shared/ui/section.component";
 import { TableComponent } from "../../shared/ui/table.component";
@@ -46,7 +46,7 @@ export interface QueryConfigurationItem {
 export class QueriesComponent implements OnDestroy {
   private readonly destroy$ = new Subject<void>();
 
-  apis: QueryDefinition[] = [];
+  apis: ApiDefinition[] = [];
   selectedItems: QueryConfigurationItem[] = [];
 
   // Named configurations
@@ -127,15 +127,10 @@ export class QueriesComponent implements OnDestroy {
     private readonly settings: SettingsService,
     private readonly formulaScanner: FormulaScannerService
   ) {
-    // Phase 1: Use ApiCatalogService with role filtering instead of QueryApiMockService
-    this.apis = this.api.getQueries(); // Keep for backward compat
-    // Filter APIs by user roles - cast to RoleId[] for type safety
+    // Phase 1: Use ApiCatalogService directly with role filtering
     const userRoles = (this.auth.roles || []) as RoleId[];
-    const allowedApis = this.apiCatalog.getApisByRole(userRoles);
-    // Map to QueryDefinition structure for existing UI (temporary Phase 1 compat)
-    const allowedApiIds = new Set(allowedApis.map(a => a.id));
-    this.apis = this.apis.filter(q => allowedApiIds.has(q.id));
-    this.addApiItems = this.apis.map((q) => ({ value: q.id, label: q.name }));
+    this.apis = this.apiCatalog.getApisByRole(userRoles);
+    this.addApiItems = this.apis.map((api) => ({ value: api.id, label: api.name }));
 
     this.configs.configs$.pipe(takeUntil(this.destroy$)).subscribe((all) => {
       this.savedConfigs = all;
@@ -514,7 +509,7 @@ export class QueriesComponent implements OnDestroy {
           backoffMs: 50,
         },
         async (item) => {
-          const api = this.apis.find((q) => q.id === item.apiId);
+          const api = this.apis.find((a) => a.id === item.apiId);
           if (!api) {
             return { ok: false, rowCount: 0 };
           }
@@ -522,14 +517,15 @@ export class QueriesComponent implements OnDestroy {
           const params: ExecuteQueryParams = { ...item.parameters };
 
           try {
-            const result = await this.api.executeQuery(api.id, params);
-            const effectiveQuery = {
-              ...api,
-              defaultSheetName: item.targetSheetName,
-              defaultTableName: item.targetTableName,
-              writeMode: item.writeMode,
+            // Phase 1: Use executeApi() instead of deprecated executeQuery()
+            const rows = await this.api.executeApi(api.id, params);
+
+            // Phase 1: Use new upsertQueryTable signature with separated target
+            const target = {
+              sheetName: item.targetSheetName,
+              tableName: item.targetTableName,
             };
-            const excelResult = await this.excel.upsertQueryTable(effectiveQuery, result.rows);
+            const excelResult = await this.excel.upsertQueryTable(api.id, target, rows);
 
             const ok = excelResult.ok;
 
@@ -537,12 +533,12 @@ export class QueriesComponent implements OnDestroy {
               this.state.setLastRun(api.id, {
                 queryId: api.id,
                 completedAt: new Date(),
-                rowCount: result.rows.length,
+                rowCount: rows.length,
                 location: excelResult.value,
               });
             }
 
-            return { ok, rowCount: result.rows.length };
+            return { ok, rowCount: rows.length };
           } catch {
             return { ok: false, rowCount: 0 };
           }
