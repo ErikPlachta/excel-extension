@@ -68,7 +68,7 @@ Angular 20 task-pane add-in for Excel using standalone components and Office.js.
 
 #### SettingsService (`src/app/core/settings.service.ts`)
 - Application-wide user preferences and configuration
-- **Uses direct localStorage** (not StorageHelperService to avoid circular dependency)
+- **Uses StorageBaseService** (zero-dep wrapper to avoid TelemetryService circular dependency)
 - Deep merge for partial updates (telemetry + queryExecution settings)
 - Comprehensive TSDoc coverage
 - **Phase 6:** `queryExecution` settings for performance (maxRowsPerQuery, chunkSize, enableProgressiveLoading, apiPageSize, chunkBackoffMs)
@@ -104,13 +104,21 @@ Angular 20 task-pane add-in for Excel using standalone components and Office.js.
 - **Phase 6:** Enforces `maxRowsPerQuery` limit with telemetry warnings when truncating
 - Drives flat catalog in current Queries view
 
+#### StorageBaseService (`src/app/shared/storage-base.service.ts`)
+- Zero-dependency localStorage wrapper (no injected services)
+- Breaks circular dependency: TelemetryService → SettingsService → StorageHelperService → TelemetryService
+- Used by SettingsService which cannot depend on TelemetryService
+- `getItem<T>()`, `setItem<T>()`, `removeItem()`, `clear()`
+- SSR-safe with `typeof window` checks
+
 #### StorageHelperService (`src/app/shared/storage-helper.service.ts`)
 - Multi-backend storage abstraction (localStorage + IndexedDB)
-- Type-safe operations with error handling
+- Delegates localStorage ops to StorageBaseService
+- Type-safe operations with telemetry error logging
 - Tier 1 (localStorage): Settings, auth, UI state (< 100 KB)
 - Tier 2 (IndexedDB): Query results, cached data (100 KB+)
 - `getItem<T>()`, `setItem<T>()`, `getLargeItem<T>()`, `setLargeItem<T>()`
-- All services use this instead of direct storage access
+- All services (except SettingsService) use this instead of direct storage access
 
 #### IndexedDBService (`src/app/shared/indexeddb.service.ts`)
 - Large dataset storage for query result caching

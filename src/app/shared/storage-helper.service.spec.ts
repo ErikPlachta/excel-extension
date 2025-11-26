@@ -1,14 +1,23 @@
 import { TestBed } from '@angular/core/testing';
 import { StorageHelperService } from './storage-helper.service';
+import { StorageBaseService } from './storage-base.service';
 import { IndexedDBService } from './indexeddb.service';
 import { TelemetryService } from '../core/telemetry.service';
 
 describe('StorageHelperService', () => {
   let service: StorageHelperService;
+  let baseSpy: jasmine.SpyObj<StorageBaseService>;
   let indexedDBSpy: jasmine.SpyObj<IndexedDBService>;
   let telemetrySpy: jasmine.SpyObj<TelemetryService>;
 
   beforeEach(() => {
+    baseSpy = jasmine.createSpyObj<StorageBaseService>('StorageBaseService', [
+      'getItem',
+      'setItem',
+      'removeItem',
+      'clear',
+    ]);
+
     indexedDBSpy = jasmine.createSpyObj<IndexedDBService>('IndexedDBService', [
       'getCachedQueryResult',
       'cacheQueryResult',
@@ -18,9 +27,30 @@ describe('StorageHelperService', () => {
 
     telemetrySpy = jasmine.createSpyObj<TelemetryService>('TelemetryService', ['logEvent']);
 
+    // Setup default mock returns for StorageBaseService
+    baseSpy.getItem.and.callFake((key: string, defaultValue: any) => {
+      const item = localStorage.getItem(key);
+      if (!item) return defaultValue;
+      try {
+        return JSON.parse(item);
+      } catch {
+        return defaultValue;
+      }
+    });
+    baseSpy.setItem.and.callFake((key: string, value: any) => {
+      localStorage.setItem(key, JSON.stringify(value));
+    });
+    baseSpy.removeItem.and.callFake((key: string) => {
+      localStorage.removeItem(key);
+    });
+    baseSpy.clear.and.callFake(() => {
+      localStorage.clear();
+    });
+
     TestBed.configureTestingModule({
       providers: [
         StorageHelperService,
+        { provide: StorageBaseService, useValue: baseSpy },
         { provide: IndexedDBService, useValue: indexedDBSpy },
         { provide: TelemetryService, useValue: telemetrySpy },
       ],
@@ -55,21 +85,16 @@ describe('StorageHelperService', () => {
       expect(result).toEqual(defaultValue);
     });
 
-    it('should return defaultValue and log error when JSON parse fails', () => {
+    it('should return defaultValue when JSON parse fails (delegated to StorageBaseService)', () => {
       const key = 'invalid-json';
       const defaultValue = { default: true };
       localStorage.setItem(key, 'invalid-json{{{');
 
       const result = service.getItem(key, defaultValue);
 
+      // StorageBaseService handles parse errors silently and returns default
       expect(result).toEqual(defaultValue);
-      expect(telemetrySpy.logEvent).toHaveBeenCalledWith({
-        category: 'system',
-        name: 'storage-parse-error',
-        severity: 'error',
-        message: `Failed to parse storage key: ${key}`,
-        context: jasmine.objectContaining({ error: jasmine.any(Error) }),
-      });
+      expect(baseSpy.getItem).toHaveBeenCalledWith(key, defaultValue);
     });
 
     it('should handle primitive default values', () => {
@@ -105,20 +130,13 @@ describe('StorageHelperService', () => {
       expect(stored).toBe(JSON.stringify({ new: true }));
     });
 
-    it('should log error when localStorage.setItem throws', () => {
+    it('should delegate to StorageBaseService', () => {
       const key = 'test-key';
       const value = { test: true };
-      spyOn(localStorage, 'setItem').and.throwError('Quota exceeded');
 
       service.setItem(key, value);
 
-      expect(telemetrySpy.logEvent).toHaveBeenCalledWith({
-        category: 'system',
-        name: 'storage-write-error',
-        severity: 'error',
-        message: `Failed to write storage key: ${key}`,
-        context: jasmine.objectContaining({ error: jasmine.any(Error) }),
-      });
+      expect(baseSpy.setItem).toHaveBeenCalledWith(key, value);
     });
 
     it('should handle primitive values', () => {

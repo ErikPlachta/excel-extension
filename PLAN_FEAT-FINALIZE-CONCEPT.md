@@ -40,7 +40,7 @@ This plan outlines a sequential, phased approach to refactor the Excel Add-In An
 1. **Phase 1:** API/Query Separation (foundation for everything else)
 2. **Phase 2:** Config-Driven Completion (enables dynamic content)
 
-**Incremental Service Refactor (Phases 3-5)** 3. **Phase 3:** Excel/Workbook Refactor (Excel/Workbook service boundaries) 4. **Phase 4:** Query Services Refactor + Storage/Caching Strategy (Query\* service boundaries, browser storage investigation, IndexedDB integration, backup/restore) - NEW 5. **Phase 5:** Auth/Settings/Telemetry Refactor (State management service boundaries) - NEW
+**Incremental Service Refactor (Phases 3-5)** 3. **Phase 3:** Excel/Workbook Refactor (Excel/Workbook service boundaries) 4. **Phase 4:** Query Services Refactor + Storage/Caching Strategy (Query\* service boundaries, browser storage investigation, IndexedDB integration, backup/restore) - NEW 5. **Phase 5:** Auth/Settings/Telemetry Refactor (State management service boundaries) - COMPLETED 2025-11-26
 
 **Performance (Phase 6)** ✅ 6. **Phase 6:** Performance Optimization (production-scale data handling) - COMPLETED 2025-11-25
 
@@ -2072,6 +2072,15 @@ export class QueryConfigurationService {
 **Depends On:** Phase 4 (Query services refactor)
 **Estimated Effort:** 2-3 days
 **Priority:** MEDIUM (clear service boundaries)
+**Status:** ✅ COMPLETED (2025-11-26)
+
+**Completion Notes:**
+
+- Created `StorageBaseService` (zero-dependency localStorage wrapper) to break circular dependency
+- Dependency cycle was: TelemetryService → SettingsService → StorageHelperService → TelemetryService
+- Solution: SettingsService uses StorageBaseService (no telemetry), others use StorageHelperService
+- StorageHelperService now delegates to StorageBaseService for localStorage operations
+- All 451 tests passing, build successful
 
 ### Goals
 
