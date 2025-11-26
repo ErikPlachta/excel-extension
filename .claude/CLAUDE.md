@@ -294,3 +294,13 @@ this.telemetry.logEvent({
 - **Tests:** Office globals undefined in Karma; keep `isExcel` guards
 - **Blank taskpane:** Dev server not running; start `npm start` or `npm run start:dev`
 - **Append mode removed:** Only overwrite semantics supported; append explicitly removed after proving brittle
+
+## Refactoring Plan
+
+See `.claude/plans/finalize-concept/` for ongoing architecture refactor:
+- `README.md` - Phase status dashboard
+- `phase-1-api-query.md` - API/Query separation (PENDING)
+- `phase-2-config-driven.md` - Config-driven completion (PENDING)
+- `phase-3-excel-workbook.md` - Excel/Workbook refactor (PENDING)
+- `phase-4-query-services.md` - Query services + storage (PENDING)
+- `phases-completed.md` - Archive of completed phases 5-9
