@@ -126,4 +126,52 @@ describe("TableComponent", () => {
       expect(cells[1].textContent).toBe("123");
     });
   });
+
+  describe("accessibility", () => {
+    it("should have aria-label on table", () => {
+      component.columns = [{ field: "name", header: "Name" }];
+      component.rows = [{ name: "Test" }];
+      fixture.detectChanges();
+
+      const table = fixture.nativeElement.querySelector("table");
+      expect(table.getAttribute("aria-label")).toBe("Data table");
+    });
+
+    it("should use custom ariaLabel when provided", () => {
+      component.columns = [{ field: "name", header: "Name" }];
+      component.rows = [{ name: "Test" }];
+      component.ariaLabel = "Custom table";
+      fixture.detectChanges();
+
+      const table = fixture.nativeElement.querySelector("table");
+      expect(table.getAttribute("aria-label")).toBe("Custom table");
+    });
+
+    it("should have role=grid on table", () => {
+      component.columns = [{ field: "name", header: "Name" }];
+      component.rows = [{ name: "Test" }];
+      fixture.detectChanges();
+
+      const table = fixture.nativeElement.querySelector("table");
+      expect(table.getAttribute("role")).toBe("grid");
+    });
+
+    it("should have scope=col on header cells", () => {
+      component.columns = [{ field: "name", header: "Name" }];
+      component.rows = [{ name: "Test" }];
+      fixture.detectChanges();
+
+      const th = fixture.nativeElement.querySelector("th");
+      expect(th.getAttribute("scope")).toBe("col");
+    });
+
+    it("should have role=status on empty message", () => {
+      component.emptyMessage = "No data";
+      component.rows = [];
+      fixture.detectChanges();
+
+      const message = fixture.nativeElement.querySelector("p");
+      expect(message.getAttribute("role")).toBe("status");
+    });
+  });
 });

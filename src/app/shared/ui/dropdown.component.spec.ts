@@ -120,4 +120,35 @@ describe("DropdownComponent", () => {
       expect(placeholder?.textContent).toContain("Choose one");
     });
   });
+
+  describe("accessibility", () => {
+    it("should have aria-labelledby when label is provided", () => {
+      component.label = "Test Label";
+      fixture.detectChanges();
+      const select = fixture.nativeElement.querySelector("select");
+      expect(select.getAttribute("aria-labelledby")).toBeTruthy();
+    });
+
+    it("should have aria-label from placeholder when no label", () => {
+      component.placeholder = "Select option";
+      fixture.detectChanges();
+      const select = fixture.nativeElement.querySelector("select");
+      expect(select.getAttribute("aria-label")).toBe("Select option");
+    });
+
+    it("should support required attribute", () => {
+      component.required = true;
+      fixture.detectChanges();
+      const select = fixture.nativeElement.querySelector("select");
+      expect(select.getAttribute("aria-required")).toBe("true");
+    });
+
+    it("should support disabled state", () => {
+      component.disabled = true;
+      fixture.detectChanges();
+      const select = fixture.nativeElement.querySelector("select");
+      // Angular [disabled] binding sets the property, not attribute
+      expect(select.getAttribute("aria-disabled")).toBe("true");
+    });
+  });
 });

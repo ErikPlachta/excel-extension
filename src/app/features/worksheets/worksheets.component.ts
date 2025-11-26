@@ -16,6 +16,7 @@ export class WorksheetsComponent implements OnInit {
   sheets: string[] = [];
   sheetsAsRows: { name: string }[] = [];
   loadError: string | null = null;
+  isLoading = true;
 
   constructor(
     private readonly excel: ExcelService,
@@ -28,6 +29,10 @@ export class WorksheetsComponent implements OnInit {
   }
 
   async ngOnInit(): Promise<void> {
+    if (!this.isExcel) {
+      this.isLoading = false;
+      return;
+    }
     try {
       this.sheets = await this.workbook.getSheets();
       this.sheetsAsRows = this.sheets.map((name) => ({ name }));
@@ -40,6 +45,8 @@ export class WorksheetsComponent implements OnInit {
         message: "Failed to load worksheets in ngOnInit",
         context: { error: error instanceof Error ? error.message : String(error) },
       });
+    } finally {
+      this.isLoading = false;
     }
   }
 }

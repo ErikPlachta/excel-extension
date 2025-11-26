@@ -1,4 +1,4 @@
-<nav [class]="appConfig.rootIdsAndClasses.navClass">
+<nav [class]="appConfig.rootIdsAndClasses.navClass" role="navigation" aria-label="Main navigation">
   <app-button
     *ngFor="let item of appConfig.navItems"
     [label]="getNavLabel(item.labelKey)"
@@ -7,6 +7,7 @@
     [disabled]="!canAccessNav(item)"
     [ngClass]="{ 'is-active': item.viewId && currentView === item.viewId }"
     [attr.id]="item.domId || null"
+    [attr.aria-current]="item.viewId && currentView === item.viewId ? 'page' : null"
     (clicked)="handleNavClick(item)"
   ></app-button>
 </nav>
@@ -14,6 +15,8 @@
 <section
   [class]="appConfig.rootIdsAndClasses.userBannerClass"
   *ngIf="authSummary.isAuthenticated && authSummary.displayName as displayName"
+  role="region"
+  aria-label="User information"
 >
   <span class="user-banner-name">{{ displayName }}</span>
   <span class="user-banner-role">
@@ -24,6 +27,9 @@
 <section
   [class]="appConfig.rootIdsAndClasses.hostStatusClass"
   *ngIf="!hostStatus.isExcel || !hostStatus.isOnline"
+  role="status"
+  aria-live="polite"
+  aria-label="Application status"
 >
   <ng-container *ngIf="!hostStatus.isExcel; else excelOk">
     <span class="host-status-label">{{ text.hostStatus?.excelNotDetectedLabel }}</span>
@@ -35,7 +41,7 @@
     <span class="host-status-label">{{ text.hostStatus?.excelConnectedLabel }}</span>
   </ng-template>
 
-  <span class="host-status-separator">•</span>
+  <span class="host-status-separator" aria-hidden="true">•</span>
 
   <span class="host-status-label" [class.host-status-offline]="!hostStatus.isOnline">
     {{ hostStatus.isOnline ? text.hostStatus?.onlineLabel : text.hostStatus?.offlineLabel }}
@@ -45,7 +51,7 @@
   </span>
 </section>
 
-<section class="content">
+<main class="content" role="main" aria-label="Main content">
   <app-sso-home *ngIf="currentView === 'sso'"></app-sso-home>
   <app-worksheets
     *ngIf="currentView === 'worksheets' && authSummary.isAuthenticated"
@@ -70,4 +76,4 @@
     *ngIf="currentView === 'debug' && authSummary.isAuthenticated && auth.hasRole('admin')"
   ></app-debug-context>
   <app-settings *ngIf="currentView === 'settings' && authSummary.isAuthenticated"></app-settings>
-</section>
+</main>

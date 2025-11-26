@@ -48,6 +48,10 @@ describe("WorksheetsComponent", () => {
     it("should initialize with null loadError", () => {
       expect(component.loadError).toBeNull();
     });
+
+    it("should initialize with isLoading true", () => {
+      expect(component.isLoading).toBeTrue();
+    });
   });
 
   describe("isExcel getter", () => {
@@ -63,6 +67,7 @@ describe("WorksheetsComponent", () => {
 
   describe("ngOnInit", () => {
     it("should load sheets from workbook service", async () => {
+      Object.defineProperty(mockWorkbook, "isExcel", { value: true });
       mockWorkbook.getSheets.and.returnValue(Promise.resolve(["Sheet1", "Sheet2", "Sheet3"]));
 
       await component.ngOnInit();
@@ -71,6 +76,7 @@ describe("WorksheetsComponent", () => {
     });
 
     it("should convert sheets to row format", async () => {
+      Object.defineProperty(mockWorkbook, "isExcel", { value: true });
       mockWorkbook.getSheets.and.returnValue(Promise.resolve(["Sheet1", "Sheet2"]));
 
       await component.ngOnInit();
@@ -79,6 +85,7 @@ describe("WorksheetsComponent", () => {
     });
 
     it("should set loadError on failure", async () => {
+      Object.defineProperty(mockWorkbook, "isExcel", { value: true });
       mockWorkbook.getSheets.and.rejectWith(new Error("API error"));
 
       await component.ngOnInit();
@@ -87,6 +94,7 @@ describe("WorksheetsComponent", () => {
     });
 
     it("should log telemetry on error", async () => {
+      Object.defineProperty(mockWorkbook, "isExcel", { value: true });
       mockWorkbook.getSheets.and.rejectWith(new Error("API error"));
 
       await component.ngOnInit();
@@ -101,6 +109,7 @@ describe("WorksheetsComponent", () => {
     });
 
     it("should not set loadError on success", async () => {
+      Object.defineProperty(mockWorkbook, "isExcel", { value: true });
       mockWorkbook.getSheets.and.returnValue(Promise.resolve(["Sheet1"]));
 
       await component.ngOnInit();
@@ -109,12 +118,40 @@ describe("WorksheetsComponent", () => {
     });
 
     it("should handle empty sheets list", async () => {
+      Object.defineProperty(mockWorkbook, "isExcel", { value: true });
       mockWorkbook.getSheets.and.returnValue(Promise.resolve([]));
 
       await component.ngOnInit();
 
       expect(component.sheets).toEqual([]);
       expect(component.sheetsAsRows).toEqual([]);
+    });
+
+    it("should set isLoading false after successful load", async () => {
+      Object.defineProperty(mockWorkbook, "isExcel", { value: true });
+      mockWorkbook.getSheets.and.returnValue(Promise.resolve(["Sheet1"]));
+
+      await component.ngOnInit();
+
+      expect(component.isLoading).toBeFalse();
+    });
+
+    it("should set isLoading false after error", async () => {
+      Object.defineProperty(mockWorkbook, "isExcel", { value: true });
+      mockWorkbook.getSheets.and.rejectWith(new Error("API error"));
+
+      await component.ngOnInit();
+
+      expect(component.isLoading).toBeFalse();
+    });
+
+    it("should set isLoading false immediately when not in Excel", async () => {
+      Object.defineProperty(mockWorkbook, "isExcel", { value: false });
+
+      await component.ngOnInit();
+
+      expect(component.isLoading).toBeFalse();
+      expect(mockWorkbook.getSheets).not.toHaveBeenCalled();
     });
   });
 });
