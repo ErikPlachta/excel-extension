@@ -14,20 +14,20 @@ import { Component, Input } from "@angular/core";
   standalone: true,
   imports: [CommonModule],
   template: `
-    <table *ngIf="rows?.length; else empty">
+    <table *ngIf="rows?.length; else empty" [attr.aria-label]="ariaLabel" role="grid">
       <thead>
-        <tr>
-          <th *ngFor="let col of columns">{{ col.header }}</th>
+        <tr role="row">
+          <th *ngFor="let col of columns" scope="col" role="columnheader">{{ col.header }}</th>
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let row of rows">
-          <td *ngFor="let col of columns">{{ row[col.field] }}</td>
+        <tr *ngFor="let row of rows; let i = index" role="row" [attr.aria-rowindex]="i + 2">
+          <td *ngFor="let col of columns" role="gridcell">{{ row[col.field] }}</td>
         </tr>
       </tbody>
     </table>
     <ng-template #empty>
-      <p>{{ emptyMessage }}</p>
+      <p role="status">{{ emptyMessage }}</p>
     </ng-template>
   `,
 })
@@ -38,4 +38,6 @@ export class TableComponent<T = Record<string, unknown>> {
   @Input() rows: T[] = [];
   /** Message to display when `rows` is empty or undefined. */
   @Input() emptyMessage = "";
+  /** Accessible label for the table. */
+  @Input() ariaLabel = "Data table";
 }

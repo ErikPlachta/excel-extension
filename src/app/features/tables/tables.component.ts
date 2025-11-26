@@ -15,6 +15,7 @@ import { TableComponent } from "../../shared/ui/table.component";
 export class TablesComponent implements OnInit {
   tables: Record<string, unknown>[] = [];
   loadError: string | null = null;
+  isLoading = true;
 
   constructor(
     private readonly workbook: WorkbookService,
@@ -26,6 +27,10 @@ export class TablesComponent implements OnInit {
   }
 
   async ngOnInit(): Promise<void> {
+    if (!this.isExcel) {
+      this.isLoading = false;
+      return;
+    }
     try {
       const tables = await this.workbook.getTables();
       const ownership = await this.workbook.getOwnership();
@@ -48,6 +53,8 @@ export class TablesComponent implements OnInit {
         message: "Failed to load tables in ngOnInit",
         context: { error: error instanceof Error ? error.message : String(error) },
       });
+    } finally {
+      this.isLoading = false;
     }
   }
 }

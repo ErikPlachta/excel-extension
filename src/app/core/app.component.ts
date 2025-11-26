@@ -8,7 +8,6 @@ import { SsoHomeComponent } from "../features/sso/sso-home.component";
 import { WorksheetsComponent } from "../features/worksheets/worksheets.component";
 import { TablesComponent } from "../features/tables/tables.component";
 import { UserComponent } from "../features/user/user.component";
-import { QueryHomeOldComponent } from "../features/queries-old/query-home-old.component";
 import { QueriesComponent } from "../features/queries/queries.component";
 import { DebugContextComponent } from "../features/debug/debug-context.component";
 import { SettingsComponent } from "../features/settings/settings.component";
@@ -25,7 +24,6 @@ import { ButtonComponent } from "../shared/ui/button.component";
     WorksheetsComponent,
     TablesComponent,
     UserComponent,
-    QueryHomeOldComponent,
     QueriesComponent,
     DebugContextComponent,
     SettingsComponent,

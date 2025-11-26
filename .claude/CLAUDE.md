@@ -132,6 +132,30 @@ Angular 20 task-pane add-in for Excel using standalone components and Office.js.
 - Returns `{ valid: boolean, errors: string[] }`
 - Used by QueryConfigurationService on save operations
 
+#### JwtHelperService (`src/app/core/jwt-helper.service.ts`)
+- Mock JWT token generation for development
+- Token encoding/decoding with Base64
+- Expiration checking and refresh logic
+- `generateMockTokenPair()`, `decodeMockToken()`, `isTokenExpired()`
+
+#### ApiCatalogService (`src/app/shared/api-catalog.service.ts`)
+- Manages API definitions from AppConfig
+- Role-based API filtering via `getApisByRole()`
+- API lookup by ID via `getApiById()`
+- Used by Queries component for available APIs
+
+#### QueryConfigurationService (`src/app/shared/query-configuration.service.ts`)
+- CRUD operations for query configurations
+- Per-workbook and per-user scoping
+- Observable `configs$` stream for reactive updates
+- `saveConfig()`, `deleteConfig()`, `getConfigs()`
+
+#### QueryQueueService (`src/app/shared/query-queue.service.ts`)
+- Batch query execution with progress tracking
+- Sequential or parallel execution modes
+- Observable `progress$` stream for UI updates
+- Integrates with QueryApiMockService and ExcelService
+
 ### Office.js Integration Pattern
 
 **Always follow this pattern:**

@@ -70,6 +70,8 @@ export class AuthService implements OnDestroy {
   private readonly tokensSubject = new BehaviorSubject<TokenPair | null>(null);
 
   private tokenRefreshTimer?: Subscription;
+  private stateSubscription?: Subscription;
+  private tokensSubscription?: Subscription;
 
   /** Flag to prevent concurrent refresh operations */
   private refreshInProgress = false;
@@ -170,13 +172,13 @@ export class AuthService implements OnDestroy {
       this.storage.removeItem(JWT_CONFIG.STORAGE_KEY);
     }
 
-    // Persist state changes to storage
-    this.state$.subscribe((state) => {
+    // Persist state changes to storage (store subscription for cleanup)
+    this.stateSubscription = this.state$.subscribe((state) => {
       this.storage.setItem(AuthService.STORAGE_KEY, state);
     });
 
-    // Persist token changes to storage
-    this.tokens$.subscribe((tokens) => {
+    // Persist token changes to storage (store subscription for cleanup)
+    this.tokensSubscription = this.tokens$.subscribe((tokens) => {
       if (tokens) {
         this.storage.setItem(JWT_CONFIG.STORAGE_KEY, tokens);
       } else {
@@ -187,6 +189,8 @@ export class AuthService implements OnDestroy {
 
   ngOnDestroy(): void {
     this.stopTokenRefreshTimer();
+    this.stateSubscription?.unsubscribe();
+    this.tokensSubscription?.unsubscribe();
   }
 
   // ────────────────────────────────────────────────────────────────────────────
@@ -336,25 +340,38 @@ export class AuthService implements OnDestroy {
   private startTokenRefreshTimer(): void {
     this.stopTokenRefreshTimer();
 
-    this.tokenRefreshTimer = interval(JWT_CONFIG.TOKEN_CHECK_INTERVAL_MS).subscribe(
-      async () => {
-        const tokens = this.tokensSubject.value;
-        if (!tokens) {
-          this.stopTokenRefreshTimer();
-          return;
-        }
+    this.tokenRefreshTimer = interval(JWT_CONFIG.TOKEN_CHECK_INTERVAL_MS).subscribe(() => {
+      // Use void to indicate fire-and-forget, but wrap in error handler
+      void this.checkAndRefreshTokens();
+    });
+  }
 
-        // Check if access token is expiring soon
-        if (this.jwtHelper.isTokenExpiringSoon(tokens.access)) {
-          await this.refreshAccessToken();
-        }
-
-        // Check if refresh token is expired
-        if (this.jwtHelper.isTokenExpired(tokens.refresh)) {
-          this.signOut();
-        }
+  /**
+   * Check token expiration and refresh if needed.
+   * Separated from timer callback for proper async/await handling.
+   */
+  private async checkAndRefreshTokens(): Promise<void> {
+    try {
+      const tokens = this.tokensSubject.value;
+      if (!tokens) {
+        this.stopTokenRefreshTimer();
+        return;
       }
-    );
+
+      // Check if access token is expiring soon
+      if (this.jwtHelper.isTokenExpiringSoon(tokens.access)) {
+        await this.refreshAccessToken();
+      }
+
+      // Check if refresh token is expired (re-check after potential refresh)
+      const currentTokens = this.tokensSubject.value;
+      if (currentTokens && this.jwtHelper.isTokenExpired(currentTokens.refresh)) {
+        this.signOut();
+      }
+    } catch {
+      // Token refresh failed - sign out to prevent inconsistent state
+      this.signOut();
+    }
   }
 
   /**

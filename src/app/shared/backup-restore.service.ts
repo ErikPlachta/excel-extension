@@ -97,29 +97,37 @@ export class BackupRestoreService {
   async importBackup(file: File): Promise<void> {
     try {
       const text = await file.text();
-      const backup: AppStateBackup = JSON.parse(text);
+      const backup = JSON.parse(text) as unknown;
+
+      // Validate backup structure
+      const validationError = this.validateBackupStructure(backup);
+      if (validationError) {
+        throw new Error(validationError);
+      }
+
+      const validatedBackup = backup as AppStateBackup;
 
       // Validate version compatibility
-      if (!this.isCompatibleVersion(backup.version)) {
+      if (!this.isCompatibleVersion(validatedBackup.version)) {
         throw new Error(
-          `Incompatible backup version: ${backup.version}. ` +
+          `Incompatible backup version: ${validatedBackup.version}. ` +
             `Current app version: ${this.BACKUP_VERSION}. ` +
             `Cannot import backup from different major version.`
         );
       }
 
       // Restore state to localStorage
-      if (backup.authState) {
-        this.storage.setItem('auth-state', backup.authState);
+      if (validatedBackup.authState) {
+        this.storage.setItem('auth-state', validatedBackup.authState);
       }
-      if (backup.settings) {
-        this.storage.setItem('settings', backup.settings);
+      if (validatedBackup.settings) {
+        this.storage.setItem('settings', validatedBackup.settings);
       }
-      if (backup.queryConfigs) {
-        this.restoreQueryConfigs(backup.queryConfigs);
+      if (validatedBackup.queryConfigs) {
+        this.restoreQueryConfigs(validatedBackup.queryConfigs);
       }
-      if (backup.queryState) {
-        this.storage.setItem('query-state', backup.queryState);
+      if (validatedBackup.queryState) {
+        this.storage.setItem('query-state', validatedBackup.queryState);
       }
 
       this.telemetry.logEvent({
@@ -128,8 +136,8 @@ export class BackupRestoreService {
         severity: 'info',
         message: 'Backup restored successfully',
         context: {
-          backupVersion: backup.version,
-          backupTimestamp: backup.timestamp,
+          backupVersion: validatedBackup.version,
+          backupTimestamp: validatedBackup.timestamp,
         },
       });
 
@@ -149,6 +157,38 @@ export class BackupRestoreService {
       }
       throw new Error('Failed to import backup. Invalid file format or version.');
     }
+  }
+
+  /**
+   * Validate backup object structure before import.
+   *
+   * Checks that required fields exist and have correct types to prevent
+   * runtime errors from malformed or corrupted backup files.
+   *
+   * @param backup - Parsed backup object to validate
+   * @returns Error message if invalid, null if valid
+   */
+  private validateBackupStructure(backup: unknown): string | null {
+    if (!backup || typeof backup !== 'object') {
+      return 'Invalid backup: not an object';
+    }
+
+    const obj = backup as Record<string, unknown>;
+
+    // Required fields
+    if (typeof obj['version'] !== 'string' || !obj['version']) {
+      return 'Invalid backup: missing or invalid version';
+    }
+    if (typeof obj['timestamp'] !== 'string' || !obj['timestamp']) {
+      return 'Invalid backup: missing or invalid timestamp';
+    }
+
+    // Optional array field validation
+    if (obj['queryConfigs'] !== undefined && !Array.isArray(obj['queryConfigs'])) {
+      return 'Invalid backup: queryConfigs must be an array';
+    }
+
+    return null;
   }
 
   /**

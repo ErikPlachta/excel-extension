@@ -59,12 +59,9 @@ export class SettingsComponent {
     const maxRows = parseInt(value, 10);
     if (isNaN(maxRows) || maxRows < 100) return;
 
-    const current = this.settings.value.queryExecution;
+    // SettingsService.update() handles deep merge with defaults
     this.settings.update({
-      queryExecution: {
-        ...(current ?? {}),
-        maxRowsPerQuery: maxRows,
-      } as any,
+      queryExecution: { maxRowsPerQuery: maxRows },
     });
     this.telemetry.logEvent(
       this.telemetry.createFeatureEvent({
@@ -80,12 +77,9 @@ export class SettingsComponent {
     const chunkSize = parseInt(value, 10);
     if (isNaN(chunkSize) || chunkSize < 100) return;
 
-    const current = this.settings.value.queryExecution;
+    // SettingsService.update() handles deep merge with defaults
     this.settings.update({
-      queryExecution: {
-        ...(current ?? {}),
-        chunkSize,
-      } as any,
+      queryExecution: { chunkSize },
     });
     this.telemetry.logEvent(
       this.telemetry.createFeatureEvent({
@@ -98,12 +92,9 @@ export class SettingsComponent {
   }
 
   onProgressiveLoadingChange(checked: boolean): void {
-    const current = this.settings.value.queryExecution;
+    // SettingsService.update() handles deep merge with defaults
     this.settings.update({
-      queryExecution: {
-        ...(current ?? {}),
-        enableProgressiveLoading: checked,
-      } as any,
+      queryExecution: { enableProgressiveLoading: checked },
     });
     this.telemetry.logEvent(
       this.telemetry.createFeatureEvent({

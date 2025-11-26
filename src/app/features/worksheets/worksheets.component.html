@@ -1,6 +1,13 @@
 <app-section title="Worksheets">
   <ng-container *ngIf="isExcel; else noExcel">
+    <div *ngIf="isLoading" class="loading" role="status" aria-live="polite">
+      <span>Loading worksheets...</span>
+    </div>
+    <div *ngIf="loadError" class="error" role="alert">
+      {{ loadError }}
+    </div>
     <app-table
+      *ngIf="!isLoading && !loadError"
       [columns]="[{ field: 'name', header: 'Name' }]"
       [rows]="sheetsAsRows"
       emptyMessage="No worksheets found."

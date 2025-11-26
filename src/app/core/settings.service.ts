@@ -1,5 +1,5 @@
 import { Injectable } from "@angular/core";
-import { AppSettings } from "../types";
+import { AppSettings, AppSettingsUpdate } from "../types";
 
 const STORAGE_KEY = "excel-extension.settings";
 
@@ -87,7 +87,7 @@ export class SettingsService {
    *
    * @param partial - Partial settings to merge with current settings
    */
-  update(partial: Partial<AppSettings>): void {
+  update(partial: AppSettingsUpdate): void {
     this.settings = {
       ...this.settings,
       ...partial,

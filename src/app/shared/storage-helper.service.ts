@@ -116,12 +116,12 @@ export class StorageHelperService {
    * Supports TTL-based expiration.
    *
    * @param key - Storage key (typically queryId)
-   * @param value - Value to store
+   * @param value - Array value to store (must be array for IndexedDB schema)
    * @param ttl - Time-to-live in milliseconds (default: 1 hour)
    */
-  async setLargeItem<T>(key: string, value: T, ttl?: number): Promise<void> {
+  async setLargeItem<T extends unknown[]>(key: string, value: T, ttl?: number): Promise<void> {
     try {
-      await this.indexedDB.cacheQueryResult(key, value as any, ttl);
+      await this.indexedDB.cacheQueryResult(key, value, ttl);
     } catch (error) {
       this.telemetry.logEvent({
         category: 'system',

@@ -13,8 +13,16 @@ export interface UiDropdownItem {
   imports: [CommonModule, FormsModule],
   template: `
     <label class="dropdown">
-      <span *ngIf="label" class="dropdown-label">{{ label }}</span>
-      <select [ngModel]="value" (ngModelChange)="onChange($event)">
+      <span *ngIf="label" class="dropdown-label" [id]="labelId">{{ label }}</span>
+      <select
+        [ngModel]="value"
+        (ngModelChange)="onChange($event)"
+        [attr.aria-labelledby]="label ? labelId : null"
+        [attr.aria-label]="!label && placeholder ? placeholder : null"
+        [attr.aria-required]="required"
+        [attr.aria-disabled]="disabled"
+        [disabled]="disabled"
+      >
         <option value="" disabled selected *ngIf="placeholder">{{ placeholder }}</option>
         <option *ngFor="let item of items" [value]="item.value">{{ item.label }}</option>
       </select>
@@ -22,10 +30,15 @@ export interface UiDropdownItem {
   `,
 })
 export class DropdownComponent {
+  private static nextId = 0;
+  readonly labelId = `dropdown-label-${DropdownComponent.nextId++}`;
+
   @Input() items: UiDropdownItem[] = [];
   @Input() value: string | null = null;
   @Input() placeholder = "";
   @Input() label = "";
+  @Input() required = false;
+  @Input() disabled = false;
   @Output() valueChange = new EventEmitter<string>();
 
   onChange(newValue: string): void {
