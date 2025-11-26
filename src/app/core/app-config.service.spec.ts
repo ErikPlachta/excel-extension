@@ -3,6 +3,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { AppConfigService } from './app-config.service';
 import { ConfigValidatorService } from './config-validator.service';
+import { AuthService } from './auth.service';
 import { AppConfig } from '../types/app-config.types';
 
 describe('AppConfigService', () => {
@@ -142,6 +143,60 @@ describe('AppConfigService', () => {
 
       const req = httpMock.expectOne('/custom-config.json');
       expect(req.request.method).toBe('GET');
+      req.error(new ProgressEvent('error'));
+
+      await loadPromise;
+    });
+  });
+
+  describe('JWT Bearer Authentication', () => {
+    let mockAuthService: jasmine.SpyObj<AuthService>;
+
+    beforeEach(() => {
+      // Create mock AuthService to avoid circular dependency
+      mockAuthService = jasmine.createSpyObj('AuthService', ['getAccessToken']);
+
+      // Re-configure TestBed with mock AuthService
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [
+          provideHttpClient(),
+          provideHttpClientTesting(),
+          { provide: AuthService, useValue: mockAuthService },
+        ],
+      });
+
+      service = TestBed.inject(AppConfigService);
+      httpMock = TestBed.inject(HttpTestingController);
+    });
+
+    afterEach(() => {
+      httpMock.verify();
+    });
+
+    it('should include Authorization header when authenticated', async () => {
+      const mockToken = 'mock-jwt-token-12345';
+      mockAuthService.getAccessToken.and.returnValue(mockToken);
+
+      const loadPromise = service.loadRemoteConfig('/secure-config.json');
+
+      const req = httpMock.expectOne('/secure-config.json');
+      expect(req.request.method).toBe('GET');
+      expect(req.request.headers.has('Authorization')).toBeTrue();
+      expect(req.request.headers.get('Authorization')).toBe(`Bearer ${mockToken}`);
+      req.error(new ProgressEvent('error'));
+
+      await loadPromise;
+    });
+
+    it('should not include Authorization header when not authenticated', async () => {
+      mockAuthService.getAccessToken.and.returnValue(null);
+
+      const loadPromise = service.loadRemoteConfig('/public-config.json');
+
+      const req = httpMock.expectOne('/public-config.json');
+      expect(req.request.method).toBe('GET');
+      expect(req.request.headers.has('Authorization')).toBeFalse();
       req.error(new ProgressEvent('error'));
 
       await loadPromise;
