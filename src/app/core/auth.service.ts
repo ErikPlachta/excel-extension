@@ -71,6 +71,9 @@ export class AuthService implements OnDestroy {
 
   private tokenRefreshTimer?: Subscription;
 
+  /** Flag to prevent concurrent refresh operations */
+  private refreshInProgress = false;
+
   /**
    * Observable stream of authentication state changes.
    * Subscribe to react to sign-in/sign-out events.
@@ -240,11 +243,17 @@ export class AuthService implements OnDestroy {
    * Refresh the access token using the refresh token.
    *
    * Called automatically by the refresh timer, but can also be called
-   * manually if needed.
+   * manually if needed. Uses a mutex flag to prevent concurrent refresh
+   * operations which could cause race conditions.
    *
    * @returns True if refresh succeeded, false otherwise
    */
   async refreshAccessToken(): Promise<boolean> {
+    // Prevent concurrent refresh operations
+    if (this.refreshInProgress) {
+      return false;
+    }
+
     const currentTokens = this.tokensSubject.value;
     if (!currentTokens) {
       return false;
@@ -257,24 +266,29 @@ export class AuthService implements OnDestroy {
       return false;
     }
 
-    // Generate new tokens
-    const newTokens = this.jwtHelper.refreshMockTokenPair(currentTokens.refresh);
-    if (!newTokens) {
-      // Refresh failed - sign out
-      this.signOut();
-      return false;
+    this.refreshInProgress = true;
+    try {
+      // Generate new tokens
+      const newTokens = this.jwtHelper.refreshMockTokenPair(currentTokens.refresh);
+      if (!newTokens) {
+        // Refresh failed - sign out
+        this.signOut();
+        return false;
+      }
+
+      // Update tokens
+      this.tokensSubject.next(newTokens);
+
+      // Update access token in auth state
+      this.stateSubject.next({
+        ...this.state,
+        accessToken: newTokens.access.token,
+      });
+
+      return true;
+    } finally {
+      this.refreshInProgress = false;
     }
-
-    // Update tokens
-    this.tokensSubject.next(newTokens);
-
-    // Update access token in auth state
-    this.stateSubject.next({
-      ...this.state,
-      accessToken: newTokens.access.token,
-    });
-
-    return true;
   }
 
   /**

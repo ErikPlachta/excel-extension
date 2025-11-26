@@ -1,6 +1,6 @@
 import { Component, OnInit } from "@angular/core";
 import { CommonModule } from "@angular/common";
-import { ExcelService } from "../../core";
+import { ExcelService, TelemetryService } from "../../core";
 import { WorkbookService } from "../../core/workbook.service";
 import { SectionComponent } from "../../shared/ui/section.component";
 import { TableComponent } from "../../shared/ui/table.component";
@@ -15,9 +15,12 @@ import { TableComponent } from "../../shared/ui/table.component";
 export class WorksheetsComponent implements OnInit {
   sheets: string[] = [];
   sheetsAsRows: { name: string }[] = [];
+  loadError: string | null = null;
+
   constructor(
     private readonly excel: ExcelService,
-    private readonly workbook: WorkbookService
+    private readonly workbook: WorkbookService,
+    private readonly telemetry: TelemetryService
   ) {}
 
   get isExcel(): boolean {
@@ -25,7 +28,18 @@ export class WorksheetsComponent implements OnInit {
   }
 
   async ngOnInit(): Promise<void> {
-    this.sheets = await this.workbook.getSheets();
-    this.sheetsAsRows = this.sheets.map((name) => ({ name }));
+    try {
+      this.sheets = await this.workbook.getSheets();
+      this.sheetsAsRows = this.sheets.map((name) => ({ name }));
+    } catch (error) {
+      this.loadError = "Failed to load worksheets";
+      this.telemetry.logEvent({
+        category: "excel",
+        name: "worksheets.load.error",
+        severity: "error",
+        message: "Failed to load worksheets in ngOnInit",
+        context: { error: error instanceof Error ? error.message : String(error) },
+      });
+    }
   }
 }

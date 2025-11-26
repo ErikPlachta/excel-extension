@@ -1,11 +1,13 @@
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
-import { Component } from "@angular/core";
+import { Component, OnDestroy } from "@angular/core";
+import { Subject } from "rxjs";
+import { takeUntil } from "rxjs/operators";
 import { ExcelService, AuthService, TelemetryService, SettingsService, FormulaScannerService } from "../../core";
 import { ExecuteQueryParams, QueryApiMockService } from "../../shared/query-api-mock.service";
 import { QueryStateService } from "../../shared/query-state.service";
 import { QueryDefinition } from "../../shared/query-model";
-import { QueryConfiguration, QueryParameterValues, QueryWriteMode, QueryImpactAssessment } from "../../types";
+import { QueryConfiguration, QueryParameterValues, QueryWriteMode, QueryImpactAssessment, RoleId } from "../../types";
 import { SectionComponent } from "../../shared/ui/section.component";
 import { TableComponent } from "../../shared/ui/table.component";
 import { DropdownComponent, UiDropdownItem } from "../../shared/ui/dropdown.component";
@@ -41,7 +43,9 @@ export interface QueryConfigurationItem {
   templateUrl: "./queries.component.html",
   styleUrl: "./queries.component.css",
 })
-export class QueriesComponent {
+export class QueriesComponent implements OnDestroy {
+  private readonly destroy$ = new Subject<void>();
+
   apis: QueryDefinition[] = [];
   selectedItems: QueryConfigurationItem[] = [];
 
@@ -125,19 +129,19 @@ export class QueriesComponent {
   ) {
     // Phase 1: Use ApiCatalogService with role filtering instead of QueryApiMockService
     this.apis = this.api.getQueries(); // Keep for backward compat
-    // Filter APIs by user roles
-    const userRoles = this.auth.roles || [];
-    const allowedApis = this.apiCatalog.getApisByRole(userRoles as any);
+    // Filter APIs by user roles - cast to RoleId[] for type safety
+    const userRoles = (this.auth.roles || []) as RoleId[];
+    const allowedApis = this.apiCatalog.getApisByRole(userRoles);
     // Map to QueryDefinition structure for existing UI (temporary Phase 1 compat)
     const allowedApiIds = new Set(allowedApis.map(a => a.id));
     this.apis = this.apis.filter(q => allowedApiIds.has(q.id));
     this.addApiItems = this.apis.map((q) => ({ value: q.id, label: q.name }));
 
-    this.configs.configs$.subscribe((all) => {
+    this.configs.configs$.pipe(takeUntil(this.destroy$)).subscribe((all) => {
       this.savedConfigs = all;
     });
 
-    this.queue.progress$.subscribe((progress) => {
+    this.queue.progress$.pipe(takeUntil(this.destroy$)).subscribe((progress) => {
       this.queueTotal = progress.total;
       this.queueCompleted = progress.completed;
       this.queueCurrentItemId = progress.currentItemId;
@@ -609,5 +613,13 @@ export class QueriesComponent {
         sheetsScanned: scanResult.value.sheetsScanned,
       },
     });
+  }
+
+  /**
+   * Cleanup subscriptions on component destroy to prevent memory leaks.
+   */
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }
