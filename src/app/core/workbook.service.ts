@@ -161,6 +161,58 @@ export class WorkbookService {
   }
 
   /**
+   * Resolves the target sheet/table for a query execution.
+   *
+   * This method encapsulates ownership lookup and conflict resolution:
+   * 1. Returns existing managed table if one exists for this apiId
+   * 2. Avoids conflicts with user-created tables by suffixing
+   * 3. Returns the requested target if no conflicts
+   *
+   * @param apiId - The API identifier for ownership lookup
+   * @param target - Requested target sheet and table names
+   * @returns Resolved target with isExisting flag, or null outside Excel
+   */
+  async resolveTableTarget(
+    apiId: string,
+    target: { sheetName: string; tableName: string }
+  ): Promise<{ sheetName: string; tableName: string; isExisting: boolean } | null> {
+    if (!this.isExcel) return null;
+
+    const [tables, ownership] = await Promise.all([this.getTables(), this.getOwnership()]);
+
+    // Check for existing managed table for this API
+    const existingManaged = tables.find((t) =>
+      ownership.some(
+        (o) =>
+          o.isManaged &&
+          o.queryId === apiId &&
+          o.tableName === t.name &&
+          o.sheetName === t.worksheet
+      )
+    );
+
+    if (existingManaged) {
+      return {
+        sheetName: existingManaged.worksheet,
+        tableName: existingManaged.name,
+        isExisting: true,
+      };
+    }
+
+    // Check for user table conflict
+    const conflictingUserTable = tables.find((t) => t.name === target.tableName);
+    const safeTableName = conflictingUserTable
+      ? `${target.tableName}_${apiId}`
+      : target.tableName;
+
+    return {
+      sheetName: target.sheetName,
+      tableName: safeTableName,
+      isExisting: false,
+    };
+  }
+
+  /**
    * Records ownership for a table, creating or updating the ownership
    * metadata in `_Extension_Ownership`.
    *

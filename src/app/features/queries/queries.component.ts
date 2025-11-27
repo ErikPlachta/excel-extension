@@ -3,7 +3,7 @@ import { FormsModule } from "@angular/forms";
 import { Component, OnDestroy } from "@angular/core";
 import { Subject } from "rxjs";
 import { takeUntil } from "rxjs/operators";
-import { ExcelService, AuthService, TelemetryService, SettingsService, FormulaScannerService } from "../../core";
+import { ExcelService, AuthService, TelemetryService, SettingsService, FormulaScannerService, WorkbookService } from "../../core";
 import { ExecuteQueryParams, QueryApiMockService } from "../../shared/query-api-mock.service";
 import { QueryStateService } from "../../shared/query-state.service";
 import { ApiDefinition } from "../../types/api.types";
@@ -125,7 +125,8 @@ export class QueriesComponent implements OnDestroy {
     private readonly configs: QueryConfigurationService,
     private readonly queue: QueryQueueService,
     private readonly settings: SettingsService,
-    private readonly formulaScanner: FormulaScannerService
+    private readonly formulaScanner: FormulaScannerService,
+    private readonly workbook: WorkbookService
   ) {
     // Phase 1: Use ApiCatalogService directly with role filtering
     const userRoles = (this.auth.roles || []) as RoleId[];
@@ -520,11 +521,14 @@ export class QueriesComponent implements OnDestroy {
             // Phase 1: Use executeApi() instead of deprecated executeQuery()
             const rows = await this.api.executeApi(api.id, params);
 
-            // Phase 1: Use new upsertQueryTable signature with separated target
-            const target = {
+            // Phase 3: Resolve target via WorkbookService for ownership-aware targeting
+            const requestedTarget = {
               sheetName: item.targetSheetName,
               tableName: item.targetTableName,
             };
+            const resolvedTarget = await this.workbook.resolveTableTarget(api.id, requestedTarget);
+            const target = resolvedTarget ?? requestedTarget;
+
             const excelResult = await this.excel.upsertQueryTable(api.id, target, rows);
 
             const ok = excelResult.ok;

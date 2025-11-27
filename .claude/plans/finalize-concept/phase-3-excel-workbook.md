@@ -1,9 +1,20 @@
 # Phase 3: Excel/Workbook Refactor
 
-**Sub-Branch:** `feat/excel-workbook-cleanup`
+**Sub-Branch:** `feat/phase-3-4-service-refactor`
 **Depends On:** Phase 2 (config-driven)
 **Priority:** MEDIUM (cleanup, not blocking)
-**Status:** PENDING
+**Status:** ✅ COMPLETED (2025-11-26)
+
+## Completion Notes
+
+Phase 3 refactor complete with streamlined approach:
+
+1. **WorkbookService.resolveTableTarget()** - New method encapsulates ownership lookup + conflict resolution
+2. **ExcelService.upsertQueryTable** - Simplified to trust passed target (no inline ownership lookup)
+3. **QueriesComponent** - Calls `workbook.resolveTableTarget()` before `excel.upsertQueryTable()`
+4. **Tests** - 4 new tests for resolveTableTarget scenarios
+
+This avoids circular dependency (ExcelService ← WorkbookService, not bidirectional) while centralizing ownership decisions in WorkbookService.
 
 ---
 

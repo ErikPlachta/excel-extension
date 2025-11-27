@@ -348,55 +348,23 @@ export class ExcelService {
 
       const writeMode = "overwrite";
 
-      const debugContextBase = {
-        apiId,
-        writeMode,
-        headerLength: header.length,
-        rowCount: values.length,
-      } as const;
+      // Phase 3: Target resolution now delegated to WorkbookService.resolveTableTarget().
+      // Caller should call that first, then pass resolved target here.
+      // locationHint can still override for specific use cases.
+      const sheetName = locationHint?.sheetName ?? target.sheetName;
+      const tableName = locationHint?.tableName ?? target.tableName;
+
       this.telemetry.logEvent({
         category: "excel",
         name: "upsertQueryTable:start",
         severity: "debug",
-        context: debugContextBase,
-      });
-
-      const [tables, ownership] = await Promise.all([
-        this.getWorkbookTables(),
-        this.getWorkbookOwnership(),
-      ]);
-
-      const existingManaged = tables.find((t) =>
-        ownership.some(
-          (o) =>
-            o.isManaged &&
-            o.queryId === apiId &&
-            o.tableName === t.name &&
-            o.sheetName === t.worksheet
-        )
-      );
-
-      // Target comes from caller (Phase 1: separated from API definition)
-      const defaultSheetName = target.sheetName;
-      const defaultTableName = target.tableName;
-
-      const conflictingUserTable = tables.find((t) => t.name === defaultTableName);
-      const safeTableName = conflictingUserTable
-        ? `${defaultTableName}_${apiId}`
-        : defaultTableName;
-
-      const sheetName = locationHint?.sheetName ?? existingManaged?.worksheet ?? defaultSheetName;
-      const tableName = locationHint?.tableName ?? existingManaged?.name ?? safeTableName;
-
-      this.telemetry.logEvent({
-        category: "excel",
-        name: "upsertQueryTable:target",
-        severity: "debug",
         context: {
           apiId,
+          writeMode,
+          headerLength: header.length,
+          rowCount: values.length,
           sheetName,
           tableName,
-          hasExistingManaged: !!existingManaged,
         },
       });
 
