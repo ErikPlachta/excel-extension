@@ -1,9 +1,33 @@
 # Phase 4: Query Services Refactor + Storage/Caching Strategy
 
-**Sub-Branch:** `feat/query-services-refactor`
+**Sub-Branch:** `feat/phase-3-4-service-refactor`
 **Depends On:** Phase 3 (Excel/Workbook cleanup)
 **Priority:** HIGH (service boundaries + storage architecture)
-**Status:** PENDING
+**Status:** ✅ COMPLETED (2025-11-26)
+
+## Completion Notes
+
+All Phase 4 deliverables implemented and integrated:
+
+### Services Created
+
+| Service | Key Methods |
+|---------|-------------|
+| StorageHelperService | getItem, setItem, getLargeItem, setLargeItem, clearExpiredCache |
+| IndexedDBService | cacheQueryResult, getCachedQueryResult, clearExpiredCache |
+| BackupRestoreService | exportBackup, importBackup (with version validation) |
+| QueryValidationService | validateConfiguration, validateParameters |
+
+### Integrations
+
+- QueryStateService → StorageHelperService (line 40)
+- QueryApiMockService → IndexedDB caching (lines 65, 72)
+- Settings component → Backup/Restore UI
+- AppComponent → clearExpiredCache on init (line 75)
+
+### Documentation
+
+- `.claude/STORAGE-ARCHITECTURE.md` - comprehensive storage strategy + Excel Desktop vs Online differences
 
 ---
 
@@ -20,16 +44,16 @@
 
 ## Success Criteria
 
-- [ ] Each query service has single responsibility
-- [ ] No shared state management logic
-- [ ] Shared helpers extracted (validation, persistence)
-- [ ] Storage strategy evaluated and documented
-- [ ] Excel Desktop vs Online storage differences documented
-- [ ] Service worker feasibility assessed
-- [ ] Backup/restore design completed
-- [ ] StorageHelperService supports multiple backends
-- [ ] All public methods TSDoc'd
-- [ ] Tests pass (100% for refactored services)
+- [x] Each query service has single responsibility
+- [x] No shared state management logic
+- [x] Shared helpers extracted (validation, persistence)
+- [x] Storage strategy evaluated and documented
+- [x] Excel Desktop vs Online storage differences documented
+- [x] Service worker feasibility assessed (deferred to Phase 10+)
+- [x] Backup/restore design completed
+- [x] StorageHelperService supports multiple backends
+- [x] All public methods TSDoc'd
+- [x] Tests pass (100% for refactored services)
 
 ---
 
@@ -230,14 +254,14 @@ export class QueryStateService {
 
 ## Exit Criteria
 
-- [ ] StorageHelperService created (multi-backend)
-- [ ] IndexedDBService created (large data caching)
-- [ ] BackupRestoreService created
-- [ ] QueryValidationService created
-- [ ] All query services use storage helper
-- [ ] Storage strategy documented
-- [ ] Excel Desktop vs Online differences documented
-- [ ] Backup/Restore UI in Settings
-- [ ] Query result caching integrated
-- [ ] Expired cache cleanup on init
-- [ ] Tests pass (100%)
+- [x] StorageHelperService created (multi-backend)
+- [x] IndexedDBService created (large data caching)
+- [x] BackupRestoreService created
+- [x] QueryValidationService created
+- [x] All query services use storage helper
+- [x] Storage strategy documented
+- [x] Excel Desktop vs Online differences documented
+- [x] Backup/Restore UI in Settings
+- [x] Query result caching integrated
+- [x] Expired cache cleanup on init
+- [x] Tests pass (100%)
