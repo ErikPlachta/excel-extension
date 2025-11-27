@@ -7,7 +7,7 @@ import { UiBannerType } from "../../types";
  * and other high-level messages.
  *
  * The `type` input controls the visual treatment, while `title`
- * and `message` carry the rendered text (typically from `APP_TEXT`).
+ * and `message` carry the rendered text (typically from `AppConfig.text`).
  */
 @Component({
   selector: "app-status-banner",

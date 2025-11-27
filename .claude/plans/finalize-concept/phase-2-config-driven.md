@@ -3,7 +3,15 @@
 **Sub-Branch:** `feat/config-finalization`
 **Depends On:** Phase 1 (API/Query separation)
 **Priority:** HIGH (enables dynamic content)
-**Status:** PENDING
+**Status:** ✅ COMPLETED (2025-11-26)
+
+**Completion Notes:**
+- `DEFAULT_APP_CONFIG.apiCatalog` contains all API definitions
+- `DEFAULT_APP_CONFIG.text` contains unified text catalog
+- `ConfigValidatorService` validates apiCatalog and text structure
+- `AppConfigService.loadRemoteConfig()` supports remote config with fallback
+- `ApiCatalogService` loads from `appConfig.config$` observable
+- Deleted dead `app-text.ts` file (was not imported anywhere)
 
 ---
 
