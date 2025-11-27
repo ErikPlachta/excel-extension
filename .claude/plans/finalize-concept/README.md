@@ -9,7 +9,7 @@
 
 | Phase | Name | Status | Completed |
 |-------|------|--------|-----------|
-| 1 | API/Query Separation | **PENDING** | - |
+| 1 | API/Query Separation | COMPLETED | 2025-11-26 |
 | 2 | Config-Driven Completion | **PENDING** | - |
 | 3 | Excel/Workbook Refactor | **PENDING** | - |
 | 4 | Query Services + Storage | **PENDING** | - |

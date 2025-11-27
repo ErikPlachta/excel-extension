@@ -3,7 +3,16 @@
 **Sub-Branch:** `feat/api-query-separation`
 **Depends On:** None (foundation phase)
 **Priority:** HIGHEST (blocks all other phases)
-**Status:** PENDING
+**Status:** ✅ COMPLETED (2025-11-26)
+
+**Completion Notes:**
+- Commits `94fcdb5` and `a449035` implemented Phase 1 type separation
+- `api.types.ts` created with `ApiDefinition`, `ApiParameter`, `ApiColumnDefinition`
+- `api-catalog.service.ts` created with sync + observable methods, loads from AppConfig
+- `query.types.ts` updated with `QueryInstance`, `QueryDefinition` deprecated
+- `query-api-mock.service.ts` has `executeApi()` method
+- `queries.component.ts` uses `ApiDefinition`
+- Deprecated code retained for backward compatibility (not used in production)
 
 ---
 
