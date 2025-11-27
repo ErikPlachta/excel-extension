@@ -11,17 +11,17 @@
 
 All 9 phases of the architecture refactor completed successfully. This refactor established clear service boundaries, data-driven configuration, and comprehensive storage/caching architecture.
 
-| Phase | Name | Status |
-|-------|------|--------|
-| 1 | API/Query Separation | ✅ |
-| 2 | Config-Driven Completion | ✅ |
-| 3 | Excel/Workbook Refactor | ✅ |
-| 4 | Query Services + Storage | ✅ |
-| 5 | Auth/Settings/Telemetry | ✅ |
-| 6 | Performance & Large Datasets | ✅ |
-| 7 | JWT Authentication | ✅ |
-| 8 | Formula Management | ✅ |
-| 9 | Formula-Column Detection | ✅ |
+| Phase | Name                         | Status |
+| ----- | ---------------------------- | ------ |
+| 1     | API/Query Separation         | ✅     |
+| 2     | Config-Driven Completion     | ✅     |
+| 3     | Excel/Workbook Refactor      | ✅     |
+| 4     | Query Services + Storage     | ✅     |
+| 5     | Auth/Settings/Telemetry      | ✅     |
+| 6     | Performance & Large Datasets | ✅     |
+| 7     | JWT Authentication           | ✅     |
+| 8     | Formula Management           | ✅     |
+| 9     | Formula-Column Detection     | ✅     |
 
 ---
 
@@ -50,14 +50,14 @@ All 9 phases of the architecture refactor completed successfully. This refactor 
 
 ### Implementation
 
-| Component | Change |
-|-----------|--------|
-| `WorkbookService.resolveTableTarget()` | New method - ownership lookup + conflict resolution |
-| `WorkbookService.recordOwnership()` | Delegates to ExcelService.writeOwnershipRecord |
-| `WorkbookService.updateOwnership()` | Delegates to ExcelService.writeOwnershipRecord |
-| `WorkbookService.deleteOwnership()` | Delegates to ExcelService.deleteOwnershipRecord |
-| `ExcelService.upsertQueryTable` | Simplified - trusts passed target (no inline lookup) |
-| `QueriesComponent` | Calls `resolveTableTarget()` before `upsertQueryTable()` |
+| Component                              | Change                                                   |
+| -------------------------------------- | -------------------------------------------------------- |
+| `WorkbookService.resolveTableTarget()` | New method - ownership lookup + conflict resolution      |
+| `WorkbookService.recordOwnership()`    | Delegates to ExcelService.writeOwnershipRecord           |
+| `WorkbookService.updateOwnership()`    | Delegates to ExcelService.writeOwnershipRecord           |
+| `WorkbookService.deleteOwnership()`    | Delegates to ExcelService.deleteOwnershipRecord          |
+| `ExcelService.upsertQueryTable`        | Simplified - trusts passed target (no inline lookup)     |
+| `QueriesComponent`                     | Calls `resolveTableTarget()` before `upsertQueryTable()` |
 
 ### Deviation from Plan
 
@@ -71,12 +71,12 @@ All 9 phases of the architecture refactor completed successfully. This refactor 
 
 ### Services Created
 
-| Service | Key Methods |
-|---------|-------------|
-| StorageHelperService | getItem, setItem, getLargeItem, setLargeItem, clearExpiredCache |
-| IndexedDBService | cacheQueryResult, getCachedQueryResult, clearExpiredCache |
-| BackupRestoreService | exportBackup, importBackup (with version validation) |
-| QueryValidationService | validateConfiguration, validateParameters |
+| Service                | Key Methods                                                     |
+| ---------------------- | --------------------------------------------------------------- |
+| StorageHelperService   | getItem, setItem, getLargeItem, setLargeItem, clearExpiredCache |
+| IndexedDBService       | cacheQueryResult, getCachedQueryResult, clearExpiredCache       |
+| BackupRestoreService   | exportBackup, importBackup (with version validation)            |
+| QueryValidationService | validateConfiguration, validateParameters                       |
 
 ### Integrations
 
