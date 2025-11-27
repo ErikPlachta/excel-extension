@@ -6,6 +6,7 @@
 **Status:** ✅ COMPLETED (2025-11-26)
 
 **Completion Notes:**
+
 - Commits `94fcdb5` and `a449035` implemented Phase 1 type separation
 - `api.types.ts` created with `ApiDefinition`, `ApiParameter`, `ApiColumnDefinition`
 - `api-catalog.service.ts` created with sync + observable methods, loads from AppConfig
@@ -195,6 +196,7 @@ export class QueryConfigurationService {
 **Update:** `src/app/features/queries/queries.component.ts`
 
 Two sections:
+
 1. **API Catalog** (browse available APIs, filterable by role)
 2. **Selected Queries** (configured instances for this workbook)
 
@@ -239,11 +241,13 @@ export class QueriesComponent {
 ## File Changes
 
 **New Files:**
+
 - `src/app/types/api.types.ts`
 - `src/app/shared/api-catalog.service.ts`
 - `src/app/shared/api-catalog.service.spec.ts`
 
 **Modified Files:**
+
 - `src/app/types/query.types.ts`
 - `src/app/shared/query-api-mock.service.ts`
 - `src/app/shared/query-configuration.service.ts`
@@ -257,12 +261,14 @@ export class QueriesComponent {
 ## Testing Strategy
 
 **Unit Tests:**
+
 - `ApiCatalogService.spec.ts` - getApis, getApiById, role filtering
 - `QueryApiMockService.spec.ts` - executeApi with valid/invalid apiId
 - `QueryConfigurationService.spec.ts` - CRUD with apiId validation
 - `QueriesComponent.spec.ts` - addQueryFromApi, runQuery with new types
 
 **Integration Tests:**
+
 - Browse API catalog → Add query → Run → Verify Excel table
 - Backward compatibility: `queries-old` component still works
 
@@ -279,6 +285,7 @@ export class QueriesComponent {
 ## Rollback Plan
 
 If issues arise:
+
 - Revert `feat/api-query-separation` branch
 - `queries-old` component provides working baseline
 
