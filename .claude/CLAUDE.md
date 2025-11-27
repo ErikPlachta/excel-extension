@@ -68,7 +68,7 @@ Angular 20 task-pane add-in for Excel using standalone components and Office.js.
 
 #### SettingsService (`src/app/core/settings.service.ts`)
 - Application-wide user preferences and configuration
-- **Uses direct localStorage** (not StorageHelperService to avoid circular dependency)
+- **Uses StorageBaseService** (zero-dep wrapper to avoid TelemetryService circular dependency)
 - Deep merge for partial updates (telemetry + queryExecution settings)
 - Comprehensive TSDoc coverage
 - **Phase 6:** `queryExecution` settings for performance (maxRowsPerQuery, chunkSize, enableProgressiveLoading, apiPageSize, chunkBackoffMs)
@@ -104,13 +104,21 @@ Angular 20 task-pane add-in for Excel using standalone components and Office.js.
 - **Phase 6:** Enforces `maxRowsPerQuery` limit with telemetry warnings when truncating
 - Drives flat catalog in current Queries view
 
+#### StorageBaseService (`src/app/shared/storage-base.service.ts`)
+- Zero-dependency localStorage wrapper (no injected services)
+- Breaks circular dependency: TelemetryService → SettingsService → StorageHelperService → TelemetryService
+- Used by SettingsService which cannot depend on TelemetryService
+- `getItem<T>()`, `setItem<T>()`, `removeItem()`, `clear()`
+- SSR-safe with `typeof window` checks
+
 #### StorageHelperService (`src/app/shared/storage-helper.service.ts`)
 - Multi-backend storage abstraction (localStorage + IndexedDB)
-- Type-safe operations with error handling
+- Delegates localStorage ops to StorageBaseService
+- Type-safe operations with telemetry error logging
 - Tier 1 (localStorage): Settings, auth, UI state (< 100 KB)
 - Tier 2 (IndexedDB): Query results, cached data (100 KB+)
 - `getItem<T>()`, `setItem<T>()`, `getLargeItem<T>()`, `setLargeItem<T>()`
-- All services use this instead of direct storage access
+- All services (except SettingsService) use this instead of direct storage access
 
 #### IndexedDBService (`src/app/shared/indexeddb.service.ts`)
 - Large dataset storage for query result caching
@@ -165,8 +173,9 @@ async ngOnInit() {
   // Prefer WorkbookService for workbook operations
   this.tables = await this.workbook.getTables();
 
-  // Or use ExcelService directly
-  const result = await this.excel.upsertQueryTable(query, rows, params);
+  // Phase 1: Use new upsertQueryTable signature with separated apiId + target
+  const target = { sheetName: 'Sales', tableName: 'tbl_Sales' };
+  const result = await this.excel.upsertQueryTable(apiId, target, rows);
   if (!result.ok) {
     // Handle typed error
     console.error(result.error.message);
@@ -192,13 +201,20 @@ async ngOnInit() {
 - Types in `src/app/types/app-config.types.ts`
 - Add new nav item: edit config + text, no template changes needed
 
-### Query Execution (Current Baseline)
-- Flat catalog of API definitions from `QueryApiMockService`
+### Query Execution (Phase 1 Updated)
+- **API catalog from `ApiCatalogService`** - replaces QueryApiMockService.getQueries()
+- **Types: `ApiDefinition` for catalog, `QueryInstance` for execution**
 - Global + per-query parameter management via `QueryStateService`
 - Batch "Run" with Global or Unique parameter modes
-- Creates/updates Excel tables via `ExcelService.upsertQueryTable`
+- Creates/updates Excel tables via `ExcelService.upsertQueryTable(apiId, target, rows)`
 - Overwrite-only semantics (append removed)
 - Telemetry to console + optional in-workbook log table
+
+**Phase 1 Type Migration:**
+- `QueryDefinition` is **@deprecated** - use `ApiDefinition` for catalog entries
+- `QueryInstance` defines execution config with target sheet/table
+- `QueryApiMockService.executeApi()` replaces deprecated `executeQuery()`
+- `ExcelService.upsertQueryTable` signature: `(apiId, {sheetName, tableName}, rows)`
 
 ### Workbook Ownership Model
 - Metadata stored in hidden `_Extension_Ownership` sheet
@@ -278,3 +294,13 @@ this.telemetry.logEvent({
 - **Tests:** Office globals undefined in Karma; keep `isExcel` guards
 - **Blank taskpane:** Dev server not running; start `npm start` or `npm run start:dev`
 - **Append mode removed:** Only overwrite semantics supported; append explicitly removed after proving brittle
+
+## Refactoring Plan
+
+See `.claude/plans/finalize-concept/` for ongoing architecture refactor:
+- `README.md` - Phase status dashboard
+- `phase-1-api-query.md` - API/Query separation (PENDING)
+- `phase-2-config-driven.md` - Config-driven completion (PENDING)
+- `phase-3-excel-workbook.md` - Excel/Workbook refactor (PENDING)
+- `phase-4-query-services.md` - Query services + storage (PENDING)
+- `phases-completed.md` - Archive of completed phases 5-9

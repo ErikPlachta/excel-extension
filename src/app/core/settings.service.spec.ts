@@ -1,5 +1,6 @@
 import { TestBed } from "@angular/core/testing";
 import { SettingsService } from "./settings.service";
+import { StorageBaseService } from "../shared/storage-base.service";
 
 describe("SettingsService", () => {
   let service: SettingsService;
@@ -9,7 +10,7 @@ describe("SettingsService", () => {
     localStorage.removeItem("excel-extension.settings");
 
     TestBed.configureTestingModule({
-      providers: [SettingsService],
+      providers: [SettingsService, StorageBaseService],
     });
 
     service = TestBed.inject(SettingsService);
@@ -32,7 +33,12 @@ describe("SettingsService", () => {
         },
       });
 
-      const reloaded = new SettingsService();
+      // Create new instance via TestBed to verify persistence
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [SettingsService, StorageBaseService],
+      });
+      const reloaded = TestBed.inject(SettingsService);
       expect(reloaded.value.telemetry.enableWorkbookLogging).toBeTrue();
       expect(reloaded.value.telemetry.enableConsoleLogging).toBeFalse();
     });
@@ -52,7 +58,11 @@ describe("SettingsService", () => {
         queryExecution: { ...currentQE, maxRowsPerQuery: 5000 },
       });
 
-      const reloaded = new SettingsService();
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [SettingsService, StorageBaseService],
+      });
+      const reloaded = TestBed.inject(SettingsService);
       expect(reloaded.value.queryExecution?.maxRowsPerQuery).toBe(5000);
     });
 
@@ -62,7 +72,11 @@ describe("SettingsService", () => {
         queryExecution: { ...currentQE, chunkSize: 500 },
       });
 
-      const reloaded = new SettingsService();
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [SettingsService, StorageBaseService],
+      });
+      const reloaded = TestBed.inject(SettingsService);
       expect(reloaded.value.queryExecution?.chunkSize).toBe(500);
     });
 
@@ -72,7 +86,11 @@ describe("SettingsService", () => {
         queryExecution: { ...currentQE, enableProgressiveLoading: false },
       });
 
-      const reloaded = new SettingsService();
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [SettingsService, StorageBaseService],
+      });
+      const reloaded = TestBed.inject(SettingsService);
       expect(reloaded.value.queryExecution?.enableProgressiveLoading).toBeFalse();
     });
   });
@@ -129,7 +147,11 @@ describe("SettingsService", () => {
       localStorage.setItem("excel-extension.settings", "invalid json{{{");
 
       // Should not throw, should use defaults
-      const newService = new SettingsService();
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [SettingsService, StorageBaseService],
+      });
+      const newService = TestBed.inject(SettingsService);
       expect(newService.value.telemetry.enableConsoleLogging).toBeTrue();
     });
   });

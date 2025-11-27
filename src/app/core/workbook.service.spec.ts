@@ -263,6 +263,84 @@ describe("WorkbookService ownership helpers", () => {
       expect(excelSpy.deleteOwnershipRecord).not.toHaveBeenCalled();
     });
   });
+
+  describe("resolveTableTarget", () => {
+    it("returns existing managed table when one exists for apiId", async () => {
+      const ownershipRows: WorkbookOwnershipInfo[] = [
+        {
+          sheetName: "Sheet1",
+          tableName: "tbl_Sales",
+          queryId: "sales-api",
+          isManaged: true,
+          lastTouchedUtc: "2025-11-26T12:00:00Z",
+        },
+      ];
+      const tables: WorkbookTableInfo[] = [
+        { name: "tbl_Sales", worksheet: "Sheet1", rows: 10 },
+      ];
+
+      excelSpy.getWorkbookOwnership.and.resolveTo(ownershipRows);
+      excelSpy.getWorkbookTables.and.resolveTo(tables);
+
+      const result = await workbook.resolveTableTarget("sales-api", {
+        sheetName: "NewSheet",
+        tableName: "tbl_NewTable",
+      });
+
+      expect(result).toEqual({
+        sheetName: "Sheet1",
+        tableName: "tbl_Sales",
+        isExisting: true,
+      });
+    });
+
+    it("returns requested target when no conflicts", async () => {
+      excelSpy.getWorkbookOwnership.and.resolveTo([]);
+      excelSpy.getWorkbookTables.and.resolveTo([]);
+
+      const result = await workbook.resolveTableTarget("new-api", {
+        sheetName: "MySheet",
+        tableName: "tbl_MyTable",
+      });
+
+      expect(result).toEqual({
+        sheetName: "MySheet",
+        tableName: "tbl_MyTable",
+        isExisting: false,
+      });
+    });
+
+    it("returns suffixed table name when user table conflicts", async () => {
+      const tables: WorkbookTableInfo[] = [
+        { name: "tbl_Sales", worksheet: "UserSheet", rows: 5 },
+      ];
+
+      excelSpy.getWorkbookOwnership.and.resolveTo([]);
+      excelSpy.getWorkbookTables.and.resolveTo(tables);
+
+      const result = await workbook.resolveTableTarget("sales-api", {
+        sheetName: "Sheet1",
+        tableName: "tbl_Sales",
+      });
+
+      expect(result).toEqual({
+        sheetName: "Sheet1",
+        tableName: "tbl_Sales_sales-api",
+        isExisting: false,
+      });
+    });
+
+    it("returns null when not in Excel", async () => {
+      (excelSpy as any).isExcel = false;
+
+      const result = await workbook.resolveTableTarget("api", {
+        sheetName: "Sheet1",
+        tableName: "tbl_Test",
+      });
+
+      expect(result).toBeNull();
+    });
+  });
 });
 import { TestBed } from "@angular/core/testing";
 

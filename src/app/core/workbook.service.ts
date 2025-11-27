@@ -1,7 +1,6 @@
 import { Injectable } from "@angular/core";
 import { ExcelService } from "./excel.service";
-import { QueryDefinition } from "../shared/query-model";
-import { WorkbookOwnershipInfo, WorkbookTableInfo } from "../types";
+import { QueryDefinition, WorkbookOwnershipInfo, WorkbookTableInfo } from "../types";
 
 /**
  * Provides a typed, feature-friendly abstraction over workbook state.
@@ -121,6 +120,10 @@ export class WorkbookService {
    * Excel APIs. The intent is to centralize ownership decisions
    * so features do not need to reason about conflicting user
    * tables themselves.
+   *
+   * @deprecated Phase 1 Migration: With QueryInstance model, callers specify
+   * targetSheetName/targetTableName directly. This method remains for backward
+   * compatibility but is no longer used in production code paths.
    */
   async getOrCreateManagedTableTarget(
     query: QueryDefinition
@@ -154,6 +157,58 @@ export class WorkbookService {
     return {
       sheetName: query.defaultSheetName,
       tableName: defaultTableName,
+    };
+  }
+
+  /**
+   * Resolves the target sheet/table for a query execution.
+   *
+   * This method encapsulates ownership lookup and conflict resolution:
+   * 1. Returns existing managed table if one exists for this apiId
+   * 2. Avoids conflicts with user-created tables by suffixing
+   * 3. Returns the requested target if no conflicts
+   *
+   * @param apiId - The API identifier for ownership lookup
+   * @param target - Requested target sheet and table names
+   * @returns Resolved target with isExisting flag, or null outside Excel
+   */
+  async resolveTableTarget(
+    apiId: string,
+    target: { sheetName: string; tableName: string }
+  ): Promise<{ sheetName: string; tableName: string; isExisting: boolean } | null> {
+    if (!this.isExcel) return null;
+
+    const [tables, ownership] = await Promise.all([this.getTables(), this.getOwnership()]);
+
+    // Check for existing managed table for this API
+    const existingManaged = tables.find((t) =>
+      ownership.some(
+        (o) =>
+          o.isManaged &&
+          o.queryId === apiId &&
+          o.tableName === t.name &&
+          o.sheetName === t.worksheet
+      )
+    );
+
+    if (existingManaged) {
+      return {
+        sheetName: existingManaged.worksheet,
+        tableName: existingManaged.name,
+        isExisting: true,
+      };
+    }
+
+    // Check for user table conflict
+    const conflictingUserTable = tables.find((t) => t.name === target.tableName);
+    const safeTableName = conflictingUserTable
+      ? `${target.tableName}_${apiId}`
+      : target.tableName;
+
+    return {
+      sheetName: target.sheetName,
+      tableName: safeTableName,
+      isExisting: false,
     };
   }
 

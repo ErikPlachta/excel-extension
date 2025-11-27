@@ -1,9 +1,10 @@
 import { Injectable } from "@angular/core";
 import { BehaviorSubject } from "rxjs";
-import { ExecuteQueryParams, QueryApiMockService } from "./query-api-mock.service";
-import { ApiDefinition, QueryDefinition, QueryRun } from "./query-model";
+import { ExecuteQueryParams } from "./query-api-mock.service";
+import { ApiDefinition, QueryRun } from "./query-model";
 import type { QueryParameterValues } from "../types";
 import { StorageHelperService } from "./storage-helper.service";
+import { ApiCatalogService } from "./api-catalog.service";
 
 /**
  * Shape of the in-memory state managed by {@link QueryStateService}.
@@ -13,13 +14,8 @@ import { StorageHelperService } from "./storage-helper.service";
  * latest value via {@link QueryStateService.snapshot}.
  */
 export interface QueryStateSnapshot {
-  /**
-   * Master catalog of API-style definitions that can be invoked as
-   * queries. This is the same shape as {@link ApiDefinition}; we keep
-   * the older {@link QueryDefinition} name here until the rest of the
-   * app is migrated to API-centric terminology.
-   */
-  queries: QueryDefinition[];
+  /** API definitions from catalog, used for query execution. */
+  apis: ApiDefinition[];
   lastParams: Record<string, ExecuteQueryParams>;
   lastRuns: Record<string, QueryRun | undefined>;
   /** Global parameter defaults applied to all queries that opt in. */
@@ -40,15 +36,15 @@ export class QueryStateService {
   private static readonly STORAGE_KEY_RUN_FLAGS = "excel-ext:queries:runFlags";
 
   constructor(
-    private readonly api: QueryApiMockService,
+    private readonly apiCatalog: ApiCatalogService,
     private readonly storage: StorageHelperService
   ) {
-    const queries = this.api.getQueries();
+    const apis = this.apiCatalog.getApis();
 
     const { globalParams, queryParams, queryRunFlags } = this.hydrateFromStorage();
 
     this.stateSubject = new BehaviorSubject<QueryStateSnapshot>({
-      queries,
+      apis,
       lastParams: {},
       lastRuns: {},
       globalParams,
@@ -62,9 +58,9 @@ export class QueryStateService {
     return this.stateSubject.value;
   }
 
-  /** Return the current list of known {@link QueryDefinition} objects. */
-  getQueries(): QueryDefinition[] {
-    return this.snapshot.queries;
+  /** Return the current list of known API definitions. */
+  getApis(): ApiDefinition[] {
+    return this.snapshot.apis;
   }
 
   private hydrateFromStorage(): {
@@ -198,19 +194,19 @@ export class QueryStateService {
   }
 
   /**
-   * Compute the effective ExecuteQueryParams for a query in a given mode
+   * Compute the effective ExecuteQueryParams for an API in a given mode
    * by combining global defaults and per-query overrides.
    *
    * This does not persist any state; callers are responsible for
    * deciding when to store last-used params.
    */
-  getEffectiveParams(query: QueryDefinition, mode: "global" | "unique"): ExecuteQueryParams {
-    const globalValues = this.getGlobalParams();
-    const overrideValues = this.getQueryParams(query.id);
+  getEffectiveParams(api: ApiDefinition, mode: "global" | "unique"): ExecuteQueryParams {
+    const globalValues = this.getGlobalParams() as Record<string, string | undefined>;
+    const overrideValues = this.getQueryParams(api.id) as Record<string, string | undefined> | undefined;
 
     const result: ExecuteQueryParams = {};
 
-    const keys = query.parameterKeys ?? [];
+    const keys = (api.parameters ?? []).map(p => p.key);
     for (const key of keys) {
       if (mode === "unique") {
         const overrideValue = overrideValues?.[key];

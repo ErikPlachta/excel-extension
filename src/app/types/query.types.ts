@@ -33,6 +33,10 @@ export type QueryWriteMode = "overwrite" | "append";
  * The mock layer and UI treat this as the master catalog entry. A single
  * {@link QueryDefinition} (API) may be invoked many times with different
  * parameters and targets when users build configurations.
+ *
+ * @deprecated Use {@link ApiDefinition} from api.types.ts for catalog entries.
+ * QueryDefinition conflates catalog metadata with execution targets (defaultSheetName, etc).
+ * Migration: Use ApiDefinition for catalog, QueryInstance for execution instances.
  */
 export interface QueryDefinition {
   /** Stable id used by API/state. */

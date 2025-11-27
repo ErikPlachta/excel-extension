@@ -50,37 +50,6 @@ describe("QueryApiMockService", () => {
     service = TestBed.inject(QueryApiMockService);
   });
 
-  describe("getQueries", () => {
-    it("should return array of query definitions", () => {
-      const queries = service.getQueries();
-      expect(Array.isArray(queries)).toBeTrue();
-    });
-
-    it("should include expected query ids", () => {
-      const queries = service.getQueries();
-      const ids = queries.map((q) => q.id);
-
-      // Check for actual query IDs in the service
-      expect(ids).toContain("sales-summary");
-      expect(ids).toContain("top-customers");
-    });
-
-    it("should have valid parameter keys on each query", () => {
-      const queries = service.getQueries();
-
-      for (const query of queries) {
-        expect(query.id).toBeDefined();
-        expect(query.name).toBeDefined();
-        expect(Array.isArray(query.parameterKeys)).toBeTrue();
-      }
-    });
-
-    it("should return multiple queries", () => {
-      const queries = service.getQueries();
-      expect(queries.length).toBeGreaterThan(0);
-    });
-  });
-
   describe("executeApi", () => {
     beforeEach(() => {
       // Setup mock API definition
@@ -189,12 +158,6 @@ describe("QueryApiMockService", () => {
   describe("service initialization", () => {
     it("should inject dependencies", () => {
       expect(service).toBeTruthy();
-    });
-
-    it("should have queries available after initialization", () => {
-      const queries = service.getQueries();
-      expect(queries).toBeDefined();
-      expect(queries.length).toBeGreaterThan(0);
     });
   });
 });

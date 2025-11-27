@@ -1,5 +1,6 @@
 import { Injectable } from "@angular/core";
 import { AppSettings, AppSettingsUpdate } from "../types";
+import { StorageBaseService } from "../shared/storage-base.service";
 
 const STORAGE_KEY = "excel-extension.settings";
 
@@ -33,7 +34,7 @@ const DEFAULT_SETTINGS: AppSettings = {
  * Settings Service - Manages application-wide user preferences and configuration.
  *
  * Provides centralized settings management with:
- * - Persistent storage via localStorage
+ * - Persistent storage via StorageBaseService
  * - Default settings fallback
  * - Deep merge for partial updates (especially telemetry settings)
  * - Type-safe access to settings
@@ -52,8 +53,8 @@ const DEFAULT_SETTINGS: AppSettings = {
  *   - chunkBackoffMs: Delay between Excel write chunks
  *
  * **Storage:**
- * Uses direct localStorage access (not StorageHelperService to avoid circular dependency
- * with TelemetryService → StorageHelperService → TelemetryService → SettingsService).
+ * Uses StorageBaseService (zero-dependency) to avoid circular dependency with TelemetryService.
+ * Other services that need telemetry logging should use StorageHelperService instead.
  *
  * **Usage:**
  * ```typescript
@@ -70,7 +71,11 @@ const DEFAULT_SETTINGS: AppSettings = {
  */
 @Injectable({ providedIn: "root" })
 export class SettingsService {
-  private settings: AppSettings = this.load();
+  private settings: AppSettings;
+
+  constructor(private readonly storage: StorageBaseService) {
+    this.settings = this.load();
+  }
 
   /**
    * Current settings snapshot.
@@ -104,34 +109,22 @@ export class SettingsService {
   }
 
   private load(): AppSettings {
-    if (typeof window === "undefined") return DEFAULT_SETTINGS;
-    try {
-      const raw = window.localStorage.getItem(STORAGE_KEY);
-      if (!raw) return DEFAULT_SETTINGS;
-      const parsed = JSON.parse(raw) as AppSettings;
-      return {
-        ...DEFAULT_SETTINGS,
-        ...parsed,
-        telemetry: {
-          ...DEFAULT_SETTINGS.telemetry,
-          ...(parsed.telemetry ?? {}),
-        },
-        queryExecution: {
-          ...DEFAULT_SETTINGS.queryExecution!,
-          ...(parsed.queryExecution ?? {}),
-        },
-      };
-    } catch {
-      return DEFAULT_SETTINGS;
-    }
+    const parsed = this.storage.getItem<AppSettings>(STORAGE_KEY, DEFAULT_SETTINGS);
+    return {
+      ...DEFAULT_SETTINGS,
+      ...parsed,
+      telemetry: {
+        ...DEFAULT_SETTINGS.telemetry,
+        ...(parsed.telemetry ?? {}),
+      },
+      queryExecution: {
+        ...DEFAULT_SETTINGS.queryExecution!,
+        ...(parsed.queryExecution ?? {}),
+      },
+    };
   }
 
   private save(): void {
-    if (typeof window === "undefined") return;
-    try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(this.settings));
-    } catch {
-      // Ignore storage errors.
-    }
+    this.storage.setItem(STORAGE_KEY, this.settings);
   }
 }

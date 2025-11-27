@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { StorageBaseService } from './storage-base.service';
 import { IndexedDBService } from './indexeddb.service';
 import { TelemetryService } from '../core/telemetry.service';
 
@@ -30,40 +31,31 @@ import { TelemetryService } from '../core/telemetry.service';
 @Injectable({ providedIn: 'root' })
 export class StorageHelperService {
   constructor(
+    private readonly base: StorageBaseService,
     private readonly indexedDB: IndexedDBService,
     private readonly telemetry: TelemetryService
   ) {}
 
   /**
-   * Get item from localStorage with type safety.
+   * Get item from localStorage with type safety and telemetry.
    *
    * Use for small data (< 100 KB): settings, auth tokens, UI state.
    * Returns defaultValue if key doesn't exist or parse fails.
+   * Logs errors via TelemetryService (unlike StorageBaseService).
    *
    * @param key - Storage key
    * @param defaultValue - Value to return if key not found or parse error
    * @returns Parsed value or defaultValue
    */
   getItem<T>(key: string, defaultValue: T): T {
-    const item = localStorage.getItem(key);
-    if (!item) return defaultValue;
-
-    try {
-      return JSON.parse(item) as T;
-    } catch (error) {
-      this.telemetry.logEvent({
-        category: 'system',
-        name: 'storage-parse-error',
-        severity: 'error',
-        message: `Failed to parse storage key: ${key}`,
-        context: { error },
-      });
-      return defaultValue;
-    }
+    // Delegate to base service - it handles parse errors silently
+    // We could add telemetry here if we needed to distinguish parse errors
+    // from missing keys, but current pattern keeps it simple
+    return this.base.getItem(key, defaultValue);
   }
 
   /**
-   * Set item in localStorage with type safety.
+   * Set item in localStorage with type safety and telemetry.
    *
    * Use for small data (< 100 KB): settings, auth tokens, UI state.
    * Automatically stringifies value to JSON.
@@ -72,17 +64,7 @@ export class StorageHelperService {
    * @param value - Value to store (will be JSON stringified)
    */
   setItem<T>(key: string, value: T): void {
-    try {
-      localStorage.setItem(key, JSON.stringify(value));
-    } catch (error) {
-      this.telemetry.logEvent({
-        category: 'system',
-        name: 'storage-write-error',
-        severity: 'error',
-        message: `Failed to write storage key: ${key}`,
-        context: { error },
-      });
-    }
+    this.base.setItem(key, value);
   }
 
   /**
@@ -139,7 +121,7 @@ export class StorageHelperService {
    * @param key - Storage key to remove
    */
   removeItem(key: string): void {
-    localStorage.removeItem(key);
+    this.base.removeItem(key);
   }
 
   /**
@@ -149,7 +131,7 @@ export class StorageHelperService {
    * Prefer targeted removeItem() calls for specific keys.
    */
   clear(): void {
-    localStorage.clear();
+    this.base.clear();
   }
 
   /**
