@@ -1,6 +1,6 @@
 # Performance & Large Datasets
 
-Guide to handling large datasets in Excel add-ins with optimal performance.
+Reference guide for handling large datasets in Excel add-ins.
 
 ## Excel Resource Limits
 
@@ -44,7 +44,7 @@ for (let i = 0; i < allRows.length; i += 1000) {
 }
 ```
 
-**Implementation:** See `ExcelService.writeRowsInChunks()` (Phase 6)
+**Implementation:** See `ExcelService.writeRowsInChunks()`
 
 #### 2. Untrack Proxy Objects
 
@@ -77,7 +77,7 @@ for await (const page of queryApi.executeApiPaginated(apiId, params, 1000)) {
 }
 ```
 
-**Status:** `executeApiPaginated()` available but not yet used (Phase 6)
+**Implementation:** `executeApiPaginated()` available in QueryApiMockService
 
 #### 4. Progressive Loading
 
@@ -94,51 +94,6 @@ const remaining = rows.slice(1000);
 ```
 
 **Status:** Deferred (requires append mode or background queue)
-
-## Implementation (Phase 6)
-
-### Chunked Writes
-
-**File:** `src/app/core/excel.service.ts`
-
-**Method:** `writeRowsInChunks(ctx, table, rows, chunkSize, backoffMs)`
-
-- Default chunk size: 1000 rows
-- Default backoff: 100ms between chunks
-- Logs telemetry for each chunk
-- Configurable via `SettingsService.queryExecution.chunkSize`
-
-**Automatically used by:** `upsertQueryTable()` for all query result writes
-
-### User-Configurable Limits
-
-**File:** `src/app/features/settings/settings.component.html`
-
-Settings UI provides controls for:
-
-- **Max rows per query** (default 10,000)
-  - Prevents Excel crashes from massive datasets
-  - Enforced in `QueryApiMockService.executeApiUncached()`
-
-- **Chunk size** (default 1,000)
-  - Rows per batch when writing to Excel
-  - Smaller = slower but safer, larger = faster but riskier
-
-- **Enable progressive loading** (default on)
-  - Show first chunk immediately
-  - (Currently no-op - requires implementation)
-
-### Memory Management
-
-**Current Status:** Proxy objects are NOT untracked after use
-
-**Impact:** Long-running operations may accumulate memory
-
-**Future Work:**
-
-- Add `table.untrack()` calls after reads
-- Use `context.trackedObjects.remove()` for batch cleanup
-- Monitor memory usage via telemetry
 
 ## Testing Large Datasets
 
@@ -292,9 +247,9 @@ Users can customize via Settings UI:
 
 ## Future Enhancements
 
-- [ ] Proxy object untracking (reduce memory)
-- [ ] Progressive loading implementation (fast perceived performance)
-- [ ] API pagination in query execution (stream large datasets)
-- [ ] Memory budget tracking (telemetry for memory usage)
-- [ ] Adaptive chunking (adjust chunk size based on column count)
-- [ ] Background queue for non-blocking writes (append mode)
+- Proxy object untracking (reduce memory)
+- Progressive loading implementation (fast perceived performance)
+- API pagination in query execution (stream large datasets)
+- Memory budget tracking (telemetry for memory usage)
+- Adaptive chunking (adjust chunk size based on column count)
+- Background queue for non-blocking writes (append mode)

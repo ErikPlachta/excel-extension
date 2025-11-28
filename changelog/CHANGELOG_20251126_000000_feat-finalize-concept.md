@@ -69,6 +69,30 @@ All 9 phases of the architecture refactor completed successfully. This refactor 
 
 ## Phase 4: Query Services + Storage
 
+### Before Phase 4
+
+All persistence used localStorage directly:
+
+| Service                   | Storage Key     | Data Size | Use Case                           |
+| ------------------------- | --------------- | --------- | ---------------------------------- |
+| AuthService               | `auth-state`    | < 1 KB    | User auth state, roles             |
+| SettingsService           | `settings`      | < 5 KB    | User preferences, telemetry config |
+| QueryStateService         | `query-state`   | < 10 KB   | Global parameters, run state       |
+| QueryConfigurationService | `query-configs` | < 50 KB   | Saved query configurations         |
+
+**Limitations:**
+- No caching of large query results (10k+ rows)
+- No offline support beyond localStorage persistence
+- No backup/restore functionality
+- Direct localStorage usage scattered across services
+
+### After Phase 4
+
+**Multi-Tiered Storage:**
+- Tier 1: localStorage (< 100 KB) - Settings, auth, UI state
+- Tier 2: IndexedDB (100 KB+) - Query results, cached data
+- Tier 3: Cache API (Future) - HTTP response caching
+
 ### Services Created
 
 | Service                | Key Methods                                                     |
@@ -85,9 +109,17 @@ All 9 phases of the architecture refactor completed successfully. This refactor 
 - Settings component → Backup/Restore UI
 - AppComponent → clearExpiredCache on init
 
-### Documentation
+### Implementation Checklist (Completed)
 
-- `.claude/STORAGE-ARCHITECTURE.md` - comprehensive storage strategy + Excel Desktop vs Online differences
+- [x] IndexedDBService (query result caching)
+- [x] StorageHelperService (multi-backend abstraction)
+- [x] BackupRestoreService (export/import app state)
+- [x] Refactor all services to use StorageHelperService
+- [x] Integrate IndexedDB caching in QueryApiMockService
+- [x] Backup/Restore UI in Settings view
+- [x] Cache cleanup on app init
+
+**Reference:** See `.claude/STORAGE-ARCHITECTURE.md` for storage API comparison and schema details
 
 ---
 
@@ -104,10 +136,48 @@ All 9 phases of the architecture refactor completed successfully. This refactor 
 
 ## Phase 6: Performance & Large Datasets
 
-- Implemented chunked Excel writes (default 1000 rows, 100ms backoff)
-- Enforced row limits in QueryApiMockService with telemetry warnings
-- Added Settings UI for Query Execution config (maxRows, chunkSize, progressive loading)
-- Created comprehensive `.claude/PERFORMANCE.md` documentation
+### Problem
+
+Excel Office.js has resource limits:
+- ~5MB payload per Office.js call
+- ~1 million cells per operation recommendation
+- Proxy objects accumulate in memory
+
+### Solution
+
+**Chunked Writes:** `ExcelService.writeRowsInChunks()`
+- Default chunk size: 1000 rows
+- Default backoff: 100ms between chunks
+- Configurable via `SettingsService.queryExecution`
+
+**Row Limits:** `QueryApiMockService.executeApiUncached()`
+- Default max rows: 10,000
+- Truncates with telemetry warning when exceeded
+
+### User-Configurable Settings
+
+```typescript
+queryExecution: {
+  maxRowsPerQuery: 10000,    // Hard limit
+  chunkSize: 1000,           // Rows per batch
+  enableProgressiveLoading: true,
+  chunkBackoffMs: 100,       // Delay between chunks
+}
+```
+
+### Test Queries
+
+- `large-dataset` (10k rows × 30 columns) - tests chunking
+- `synthetic-expansion` (25k rows × 40 columns) - tests row limit enforcement
+
+### Implementation Checklist (Completed)
+
+- [x] Chunked writes in ExcelService
+- [x] Row limit enforcement in QueryApiMockService
+- [x] Settings UI for Query Execution config
+- [x] Telemetry for chunk progress and warnings
+
+**Reference:** See `.claude/PERFORMANCE.md` for Excel limits, testing guide, and performance tips
 
 ---
 

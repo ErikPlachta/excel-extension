@@ -295,12 +295,11 @@ this.telemetry.logEvent({
 - **Blank taskpane:** Dev server not running; start `npm start` or `npm run start:dev`
 - **Append mode removed:** Only overwrite semantics supported; append explicitly removed after proving brittle
 
-## Refactoring Plan
+## Completed Refactors
 
-See `.claude/plans/finalize-concept/` for ongoing architecture refactor:
-- `README.md` - Phase status dashboard
-- `phase-1-api-query.md` - API/Query separation (PENDING)
-- `phase-2-config-driven.md` - Config-driven completion (PENDING)
-- `phase-3-excel-workbook.md` - Excel/Workbook refactor (PENDING)
-- `phase-4-query-services.md` - Query services + storage (PENDING)
-- `phases-completed.md` - Archive of completed phases 5-9
+Architecture refactor (9 phases) completed November 2025. See `changelog/CHANGELOG_20251126_000000_feat-finalize-concept.md` for details.
+
+**Reference docs:**
+
+- `.claude/STORAGE-ARCHITECTURE.md` - Storage APIs, IndexedDB schema, backup/restore
+- `.claude/PERFORMANCE.md` - Excel limits, chunking, large dataset handling
