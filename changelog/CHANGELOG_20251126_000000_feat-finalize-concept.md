@@ -81,6 +81,7 @@ All persistence used localStorage directly:
 | QueryConfigurationService | `query-configs` | < 50 KB   | Saved query configurations         |
 
 **Limitations:**
+
 - No caching of large query results (10k+ rows)
 - No offline support beyond localStorage persistence
 - No backup/restore functionality
@@ -89,6 +90,7 @@ All persistence used localStorage directly:
 ### After Phase 4
 
 **Multi-Tiered Storage:**
+
 - Tier 1: localStorage (< 100 KB) - Settings, auth, UI state
 - Tier 2: IndexedDB (100 KB+) - Query results, cached data
 - Tier 3: Cache API (Future) - HTTP response caching
@@ -139,6 +141,7 @@ All persistence used localStorage directly:
 ### Problem
 
 Excel Office.js has resource limits:
+
 - ~5MB payload per Office.js call
 - ~1 million cells per operation recommendation
 - Proxy objects accumulate in memory
@@ -146,11 +149,13 @@ Excel Office.js has resource limits:
 ### Solution
 
 **Chunked Writes:** `ExcelService.writeRowsInChunks()`
+
 - Default chunk size: 1000 rows
 - Default backoff: 100ms between chunks
 - Configurable via `SettingsService.queryExecution`
 
 **Row Limits:** `QueryApiMockService.executeApiUncached()`
+
 - Default max rows: 10,000
 - Truncates with telemetry warning when exceeded
 
