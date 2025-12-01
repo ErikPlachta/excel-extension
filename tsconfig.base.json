@@ -28,6 +28,7 @@
       "@excel-platform/core/auth": ["libs/core/auth/src/index.ts"],
       "@excel-platform/core/telemetry": ["libs/core/telemetry/src/index.ts"],
       "@excel-platform/core/settings": ["libs/core/settings/src/index.ts"],
+      "@excel-platform/core/excel": ["libs/core/excel/src/index.ts"],
       "@excel-platform/office/excel": ["libs/office/excel/src/index.ts"],
       "@excel-platform/office/common": ["libs/office/common/src/index.ts"],
       "@excel-platform/data/query": ["libs/data/query/src/index.ts"],

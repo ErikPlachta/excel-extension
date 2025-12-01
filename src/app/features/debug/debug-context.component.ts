@@ -1,8 +1,9 @@
 import { CommonModule } from "@angular/common";
 import { Component } from "@angular/core";
-import { AuthService, AppContextService } from "../../core";
+import { AuthService } from "@excel-platform/core/auth";
+import { WorkbookService } from "@excel-platform/core/excel";
+import { AppContextService } from "../../core";
 import { QueryStateService } from "../../shared/query-state.service";
-import { WorkbookService } from "../../core/workbook.service";
 
 @Component({
   selector: "app-debug-context",

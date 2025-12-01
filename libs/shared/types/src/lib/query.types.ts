@@ -1,4 +1,19 @@
 /**
+ * Concrete parameter values supplied when invoking a query against a
+ * particular API definition.
+ */
+export interface ExecuteQueryParams {
+  [key: string]: string | number | boolean | Date | null | undefined;
+}
+
+/**
+ * A single row returned from a query invocation against an API.
+ */
+export interface ExecuteQueryResultRow {
+  [column: string]: string | number | boolean | Date | null;
+}
+
+/**
  * Simple parameter definition for a query invocation, including type and default value.
  *
  * In this refactor, a "query" should be thought of as a call against a

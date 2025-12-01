@@ -5,7 +5,7 @@ import {
   FormulaScanResult,
   QueryImpactAssessment,
   TableColumnReference,
-} from "../types";
+} from "@excel-platform/shared/types";
 import { ExcelService } from "./excel.service";
 import { TelemetryService } from "@excel-platform/core/telemetry";
 

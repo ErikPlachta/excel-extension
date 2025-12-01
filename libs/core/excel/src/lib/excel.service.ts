@@ -1,7 +1,12 @@
 import { Injectable } from "@angular/core";
-import { ExecuteQueryResultRow } from "../shared/query-api-mock.service";
-import { QueryRunLocation } from "../shared/query-model";
-import { ExcelOperationResult, QueryTableTarget, WorkbookOwnershipInfo, WorkbookTableInfo } from "../types";
+import {
+  ExecuteQueryResultRow,
+  ExcelOperationResult,
+  QueryRunLocation,
+  QueryTableTarget,
+  WorkbookOwnershipInfo,
+  WorkbookTableInfo,
+} from "@excel-platform/shared/types";
 import { TelemetryService } from "@excel-platform/core/telemetry";
 import { SettingsService } from "@excel-platform/core/settings";
 
@@ -69,12 +74,6 @@ export class ExcelService {
   }
 
   /**
-   * Ensures the Office.js runtime has completed its `Office.onReady`
-   * initialization handshake before any Excel APIs are used.
-   *
-   * Outside Excel this resolves immediately.
-   */
-  /**
    * Waits for the Office.js runtime to finish its `Office.onReady`
    * handshake before attempting to call any Excel APIs.
    *
@@ -102,11 +101,6 @@ export class ExcelService {
   }
 
   /**
-   * Returns the list of worksheet names in the active workbook.
-   *
-   * Outside Excel this resolves to an empty array.
-   */
-  /**
    * Lists the names of all worksheets in the active workbook.
    *
    * @returns An array of worksheet names; returns an empty array when
@@ -115,8 +109,6 @@ export class ExcelService {
   async getWorksheets(): Promise<string[]> {
     if (!this.isExcel) return [];
     await this.ensureOfficeReady();
-    // Excel.run provides an untyped RequestContext from Office.js; we
-    // treat it as any here but keep the surface area small.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return Excel!.run(async (ctx: any) => {
       const sheets = ctx.workbook.worksheets.load("items/name");
@@ -126,19 +118,7 @@ export class ExcelService {
   }
 
   /**
-   * Returns a lightweight description of all tables in the workbook.
-   *
-   * Each entry includes the table name, the owning worksheet name and
-   * the current data row count. This method is used by
-   * {@link WorkbookService} to build {@link WorkbookTableInfo}
-   * instances.
-   */
-  /**
    * Lists all tables in the workbook as simple anonymous objects.
-   *
-   * This is a thin, untyped projection over Office.js used internally
-   * by {@link getWorkbookTables}. Callers should prefer the typed
-   * helper instead where possible.
    *
    * @returns A list of tables with their name, owning worksheet name
    * and row count; returns an empty array when not running inside
@@ -170,11 +150,6 @@ export class ExcelService {
   }
 
   /**
-   * Returns a lightweight description of all tables in the workbook.
-   * This is a typed wrapper around `getTables` for use by
-   * `WorkbookService` and features.
-   */
-  /**
    * Returns a strongly typed view over the workbook's tables for use
    * by {@link WorkbookService} and features.
    *
@@ -187,39 +162,8 @@ export class ExcelService {
   }
 
   /**
-   * Reads ownership metadata for extension-managed tables.
-   *
-   * Ownership is stored in a hidden worksheet named
-   * "_Extension_Ownership" with a simple table layout:
-   *
-   *   A: sheetName
-   *   B: tableName
-   *   C: queryId
-   *   D: isManaged ("true"/"false")
-   *   E: lastTouchedUtc (ISO string)
-   *
-   * This sheet is created on demand and kept out of the way of
-   * normal user content, so the model can be evolved without
-   * affecting feature code.
-   */
-  /**
    * Reads ownership metadata for extension-managed tables from the
    * hidden `_Extension_Ownership` worksheet.
-   *
-   * Each row in the ownership sheet records the sheet name, table
-   * name, optional query id, a managed flag and the last-touched
-   * timestamp. This allows workbook features to distinguish
-   * extension-managed tables from user tables and make safe geometry
-   * decisions.
-   */
-  /**
-   * Reads ownership metadata for extension-managed tables from the
-   * hidden `_Extension_Ownership` worksheet.
-   *
-   * Office.js objects are kept as `any` within the implementation so
-   * that the public surface can return strongly typed
-   * {@link WorkbookOwnershipInfo} models without leaking Office.js
-   * types into the rest of the app.
    *
    * @returns An array of {@link WorkbookOwnershipInfo} entries, or an
    * empty array when ownership has not yet been recorded or when not
@@ -273,45 +217,8 @@ export class ExcelService {
   }
 
   /**
-   * Creates or updates the Excel table backing a query run.
-   *
-   * Current behavior is **overwrite-only**:
-   *
-   * - On first run, a new table is created at a stable anchor (A1)
-   *   using the query's default sheet and table names, and a single
-   *   header row plus data body is written.
-   * - On subsequent runs for the same managed table, the header row
-   *   is kept in place, all data rows are deleted, and the new data
-   *   rows are appended via `table.rows.add`.
-   *
-   * Table ownership is tracked in `_Extension_Ownership` so future
-   * runs and navigation can safely treat the target as
-   * extension-managed without overwriting user tables.
-   *
-   * Errors are normalized and logged via {@link TelemetryService}.
-   */
-  /**
    * Creates or overwrites the Excel table that represents the result
    * of a query run.
-   *
-   * This method currently supports **overwrite-only** semantics: it
-   * will either create a new table for the query or reuse an existing
-   * extension-managed table, keeping the header anchored and
-   * replacing all data body rows on rerun. Append mode is intentionally
-   * not supported in this branch.
-   *
-   * **Phase 1 Migration:**
-   * Signature changed from `(query: QueryDefinition, rows, locationHint?)` to
-   * `(apiId: string, target: QueryTableTarget, rows, locationHint?)`.
-   * This separates the API identifier (for telemetry/ownership) from the
-   * execution target (where to write data).
-   *
-   * Office.js side effects:
-   * - May create new worksheets and tables.
-   * - May delete and recreate an existing table when the header shape
-   *   changes.
-   * - Always records/update ownership in `_Extension_Ownership` for
-   *   the target table.
    *
    * @param apiId - API identifier for telemetry and ownership tracking.
    * @param target - Target location (sheetName, tableName) for the data.
@@ -321,8 +228,7 @@ export class ExcelService {
    *
    * @returns An {@link ExcelOperationResult} whose `value`, on
    * success, is the {@link QueryRunLocation} of the table that was
-   * written. On failure, `ok` is false and a normalized error (already
-   * logged via {@link TelemetryService}) is returned.
+   * written.
    */
   async upsertQueryTable(
     apiId: string,
@@ -343,14 +249,9 @@ export class ExcelService {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return Excel!.run(async (ctx: any) => {
-      // Transform query result rows into Excel header/data format
       const { header, values } = this.computeHeaderAndValues(rows);
 
       const writeMode = "overwrite";
-
-      // Phase 3: Target resolution now delegated to WorkbookService.resolveTableTarget().
-      // Caller should call that first, then pass resolved target here.
-      // locationHint can still override for specific use cases.
       const sheetName = locationHint?.sheetName ?? target.sheetName;
       const tableName = locationHint?.tableName ?? target.tableName;
 
@@ -378,7 +279,6 @@ export class ExcelService {
           sheet = worksheets.add(sheetName);
         }
 
-        // Delegate table creation/update to helper
         await this.writeQueryTableData(ctx, sheet, tableName, header, values, apiId);
 
         await ctx.sync();
@@ -402,12 +302,6 @@ export class ExcelService {
         );
       }
 
-      // Track ownership for the table we just touched so that
-      // future runs and navigation can safely treat it as
-      // extension-managed. This is a placeholder implementation
-      // that records ownership via an in-memory bridge; a future
-      // revision can persist this to a hidden sheet or table
-      // without changing the call site.
       await this.recordOwnership({ tableName, sheetName, queryId: apiId });
 
       return {
@@ -421,18 +315,8 @@ export class ExcelService {
   }
 
   /**
-   * Appends a single log entry to the `_Extension_Log` worksheet,
-   * creating it on demand. Intended for internal telemetry and
-   * diagnostics when workbook logging is enabled.
-   */
-  /**
    * Appends a single telemetry log entry to the `_Extension_Log`
    * worksheet, creating it on demand.
-   *
-   * Office.js side effects:
-   * - May create the `_Extension_Log` sheet and its header row.
-   * - Appends one row per call with the timestamp, level, operation
-   *   name and message.
    *
    * @param entry - The structured log entry to append.
    */
@@ -476,16 +360,6 @@ export class ExcelService {
    * Writes or updates an ownership record in the `_Extension_Ownership`
    * worksheet.
    *
-   * This low-level helper creates the ownership sheet if needed, then
-   * inserts or updates a single row for the given table/query
-   * combination. The `lastTouchedUtc` field is always updated to the
-   * current timestamp.
-   *
-   * Office.js side effects:
-   * - May create the `_Extension_Ownership` sheet and its header row.
-   * - Inserts or updates a single row for the specified
-   *   `(sheetName, tableName, queryId)` combination.
-   *
    * @param info - Identifiers for the managed table and owning query.
    */
   async writeOwnershipRecord(info: {
@@ -525,7 +399,7 @@ export class ExcelService {
         }
       }
 
-      const headerOffset = 1; // row index after header
+      const headerOffset = 1;
       const now = new Date().toISOString();
       let rowIndex = -1;
 
@@ -555,14 +429,6 @@ export class ExcelService {
    * Deletes an ownership record from the `_Extension_Ownership`
    * worksheet.
    *
-   * This low-level helper removes the row matching the given
-   * table/query combination. If no matching row exists, this is a
-   * no-op.
-   *
-   * Office.js side effects:
-   * - Deletes the row for the specified `(sheetName, tableName,
-   *   queryId)` combination if found.
-   *
    * @param info - Identifiers for the managed table and owning query.
    */
   async deleteOwnershipRecord(info: {
@@ -581,14 +447,14 @@ export class ExcelService {
       await ctx.sync();
 
       if (sheet.isNullObject) {
-        return; // No ownership sheet means no records to delete
+        return;
       }
 
       const usedRange = sheet.getUsedRangeOrNullObject();
       await ctx.sync();
 
       if (usedRange.isNullObject) {
-        return; // No data in ownership sheet
+        return;
       }
 
       usedRange.load("values");
@@ -596,7 +462,7 @@ export class ExcelService {
 
       const values: unknown[][] = (usedRange.values as unknown[][]) || [];
       if (values.length <= 1) {
-        return; // Only header row, no data to delete
+        return;
       }
 
       const headerOffset = 1;
@@ -617,10 +483,9 @@ export class ExcelService {
       }
 
       if (rowIndex === -1) {
-        return; // No matching record found
+        return;
       }
 
-      // Delete the row by shifting all rows below up
       const range = sheet.getRange(`A${rowIndex + 1}:E${rowIndex + 1}`);
       range.delete(Excel.DeleteShiftDirection.up);
 
@@ -629,8 +494,7 @@ export class ExcelService {
   }
 
   /**
-   * @deprecated Use writeOwnershipRecord() instead. This private method
-   * is kept for backward compatibility during refactoring.
+   * @deprecated Use writeOwnershipRecord() instead.
    */
   private async recordOwnership(info: {
     tableName: string;
@@ -642,14 +506,6 @@ export class ExcelService {
 
   /**
    * Computes the header row and data values array from query result rows.
-   *
-   * This helper normalizes empty results to a single-column "Value"
-   * table with a null data row, ensuring Excel tables always have at
-   * least one column and one data row.
-   *
-   * @param rows - Query result rows as returned by the mock API.
-   * @returns An object with `header` (column names) and `values` (2D
-   * array of data rows).
    */
   private computeHeaderAndValues(rows: ExecuteQueryResultRow[]): {
     header: string[];
@@ -668,9 +524,6 @@ export class ExcelService {
 
   /**
    * Sleep helper for throttling between chunks.
-   *
-   * @param ms - Milliseconds to sleep
-   * @returns Promise that resolves after delay
    */
   private sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -678,22 +531,6 @@ export class ExcelService {
 
   /**
    * Write table rows in chunks to avoid Excel payload limits.
-   *
-   * Breaks large datasets into smaller batches and syncs after each batch
-   * to stay within Office.js ~5MB payload limit. Adds configurable backoff
-   * between chunks to prevent Excel throttling.
-   *
-   * **Performance:**
-   * - Default chunk size: 1000 rows (configurable via SettingsService)
-   * - Backoff delay: 100ms between chunks (configurable)
-   * - Telemetry logged for each chunk
-   *
-   * @param ctx - Excel.run context
-   * @param table - Excel table object
-   * @param rows - All rows to write (2D array)
-   * @param chunkSize - Rows per batch (default 1000)
-   * @param backoffMs - Delay between chunks in ms (default 100)
-   * @param onChunkWritten - Optional progress callback (chunkIndex, totalChunks)
    */
   private async writeRowsInChunks(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -713,11 +550,9 @@ export class ExcelService {
       const chunk = rows.slice(i, i + chunkSize);
       const chunkIndex = Math.floor(i / chunkSize);
 
-      // Write chunk
       table.rows.add(null, chunk);
       await ctx.sync();
 
-      // Telemetry
       this.telemetry.logEvent({
         category: 'excel',
         name: 'writeRowsInChunks:chunk',
@@ -730,12 +565,10 @@ export class ExcelService {
         },
       });
 
-      // Progress callback
       if (onChunkWritten) {
         onChunkWritten(chunkIndex, totalChunks);
       }
 
-      // Backoff between chunks (prevent throttling)
       if (i + chunkSize < rows.length) {
         await this.sleep(backoffMs);
       }
@@ -744,20 +577,6 @@ export class ExcelService {
 
   /**
    * Writes or overwrites data in an Excel table for a query.
-   *
-   * This low-level helper encapsulates the complex table creation and
-   * update logic. It handles:
-   * - Creating new tables at A1 when none exist
-   * - Detecting header shape mismatches and recreating tables
-   * - Overwriting data rows while preserving the header row
-   *
-   * @param ctx - Office.js request context.
-   * @param sheet - The worksheet where the table should be created.
-   * @param tableName - The target table name.
-   * @param header - Column names for the table header row.
-   * @param values - 2D array of data rows to write.
-   * @param queryId - Query ID for telemetry.
-   * @returns The Office.js table object after writing data.
    */
   private async writeQueryTableData(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -774,14 +593,13 @@ export class ExcelService {
     table.load("name,worksheet,showHeaders");
     await ctx.sync();
 
-    // Helper: create a new table with header + data starting at A1.
     const createNewTable = () => {
       const startCell = sheet.getRange("A1");
       const totalRowCount = 1 + values.length;
       const totalColumnCount = header.length;
       const dataRange = startCell.getResizedRange(totalRowCount - 1, totalColumnCount - 1);
       dataRange.values = [header, ...values];
-      const newTable = ctx.workbook.tables.add(dataRange, true /* hasHeaders */);
+      const newTable = ctx.workbook.tables.add(dataRange, true);
       newTable.name = tableName;
       return newTable;
     };
@@ -800,9 +618,6 @@ export class ExcelService {
       });
       table = createNewTable();
     } else {
-      // Existing table: work with header and data body using standard
-      // Excel patterns: header row stays fixed; overwrite clears and
-      // rewrites data rows.
       if (!table.showHeaders) {
         table.showHeaders = true;
       }
@@ -816,9 +631,6 @@ export class ExcelService {
       const currentHeaderValues = (headerRange.values as unknown[][])[0] as string[];
       const currentColumnCount = headerRange.columnCount as number;
 
-      // Basic header validation: if the new header shape differs, we fall
-      // back to creating a fresh table instead of trying to force a resize
-      // that can misalign the existing table.
       const headerShapeMatches =
         currentColumnCount === header.length && currentHeaderValues.length === header.length;
 
@@ -848,14 +660,8 @@ export class ExcelService {
         table.delete();
         table = createNewTable();
       } else {
-        // Header shape matches: overwrite header text in place so
-        // labels stay aligned with the columns, then always
-        // overwrite data rows.
         headerRange.values = [header];
 
-        // Overwrite: delete all existing data rows, then add new
-        // rows via table.rows.add so the array shape always
-        // matches.
         const currentRowCount = dataBodyRange.rowCount;
         if (currentRowCount > 0) {
           const rowsCollection = table.rows;
@@ -885,7 +691,6 @@ export class ExcelService {
             },
           });
 
-          // Use chunked writes for large datasets
           await this.writeRowsInChunks(ctx, table, values, chunkSize, backoffMs, (chunk, total) => {
             this.telemetry.logEvent({
               category: 'excel',
@@ -909,18 +714,9 @@ export class ExcelService {
 
   /**
    * Activates the worksheet and selects the range for a previously
-   * recorded query location, if running inside Excel.
-   */
-  /**
-   * Activates the worksheet and selects the range for a previously
    * recorded query location.
    *
-   * Office.js side effects:
-   * - Activates the specified worksheet.
-   * - Selects the full range of the target table.
-   *
-   * @param location - The last known location of the query results. If
-   * undefined, null, or not running inside Excel, this is a no-op.
+   * @param location - The last known location of the query results.
    */
   async activateQueryLocation(location: QueryRunLocation | undefined | null): Promise<void> {
     if (!this.isExcel || !location) return;
@@ -940,8 +736,6 @@ export class ExcelService {
 
   /**
    * Excel calculation mode type.
-   * - 'Automatic': Formulas recalculate on every change (default Excel behavior)
-   * - 'Manual': Formulas only recalculate when explicitly requested
    */
   static readonly CalculationMode = {
     Automatic: "Automatic",
@@ -950,10 +744,6 @@ export class ExcelService {
 
   /**
    * Sets the Excel workbook calculation mode.
-   *
-   * Use this to temporarily disable formula recalculation during
-   * large data writes, then restore afterward. This prevents
-   * expensive recalculations after each row/chunk write.
    *
    * @param mode - 'Automatic' (default) or 'Manual'
    * @returns ExcelOperationResult indicating success/failure
@@ -982,7 +772,6 @@ export class ExcelService {
 
         const previousMode = application.calculationMode;
 
-        // Map mode string to Excel enum value
         const excelMode =
           mode === "Manual" ? Excel.CalculationMode.manual : Excel.CalculationMode.automatic;
 
@@ -1054,32 +843,8 @@ export class ExcelService {
 
   /**
    * Removes all tables and worksheets that are marked as
-   * extension-managed in the ownership sheet, then deletes
-   * the ownership sheet itself. Intended as a dev-only
-   * "clean slate" helper when iterating on table behavior.
-   */
-  /**
-   * Removes all tables and worksheets that are marked as
    * extension-managed in the ownership sheet, then deletes the
    * ownership sheet itself.
-   *
-   * This is a dev-only "clean slate" helper when iterating on table
-   * behavior and is not intended for end users.
-   */
-  /**
-   * Removes all tables and worksheets that are marked as
-   * extension-managed in the ownership sheet, then deletes the
-   * ownership sheet itself.
-   *
-   * This is a dev-only "clean slate" helper when iterating on table
-   * behavior and is not intended for end users.
-   *
-   * Office.js side effects:
-   * - Deletes extension-managed tables referenced in
-   *   `_Extension_Ownership`.
-   * - Deletes any now-empty worksheets that previously hosted only
-   *   managed tables.
-   * - Deletes the `_Extension_Ownership` worksheet.
    */
   async purgeExtensionManagedContent(): Promise<void> {
     if (!this.isExcel) return;
@@ -1115,7 +880,7 @@ export class ExcelService {
         return;
       }
 
-      const [, ...rows] = values; // skip header
+      const [, ...rows] = values;
       const managedTargets = rows
         .filter((r) => r && r.length >= 4)
         .map((r) => {

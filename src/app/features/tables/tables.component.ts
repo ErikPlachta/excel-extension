@@ -1,7 +1,7 @@
 import { Component, OnInit } from "@angular/core";
 import { CommonModule } from "@angular/common";
-import { TelemetryService } from "../../core";
-import { WorkbookService } from "../../core/workbook.service";
+import { TelemetryService } from "@excel-platform/core/telemetry";
+import { WorkbookService } from "@excel-platform/core/excel";
 import { SectionComponent, TableComponent } from '@excel-platform/shared/ui';
 
 @Component({
