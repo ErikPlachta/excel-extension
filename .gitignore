@@ -44,3 +44,8 @@ Thumbs.db
 ehthumbs.db
 Desktop.ini
 
+
+# Nx
+.nx/cache
+.nx/workspace-data
+tmp/

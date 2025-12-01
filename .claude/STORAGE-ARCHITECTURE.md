@@ -5,6 +5,7 @@ Reference guide for browser storage APIs used in the Excel Add-In extension.
 ## Overview
 
 Multi-tiered storage strategy:
+
 - **localStorage** for small, frequently-accessed state (< 100KB)
 - **IndexedDB** for large datasets and query result caching (100KB+)
 - **Service Workers** deferred to post-MVP
@@ -38,17 +39,20 @@ All storage APIs supported in modern browsers and Office.js environments:
 ## Storage Tiers
 
 **Tier 1: localStorage (< 100 KB)**
+
 - User authentication state
 - User preferences and settings
 - UI state, global query parameters
 - Saved query configurations
 
 **Tier 2: IndexedDB (100 KB+)**
+
 - Query result caching (10k+ row datasets)
 - Large API response caching
 - Backup snapshots
 
 **Tier 3: Cache API (Future)**
+
 - HTTP response caching for real API calls
 
 ## IndexedDB Schema

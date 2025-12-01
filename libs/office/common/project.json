@@ -1,0 +1,7 @@
+{
+  "name": "office-common",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/office/common/src",
+  "projectType": "library",
+  "tags": ["scope:office", "type:util"]
+}
