@@ -1,8 +1,8 @@
 import { TestBed } from "@angular/core/testing";
 import { AuthService } from "./auth.service";
-import { StorageHelperService } from "../shared/storage-helper.service";
+import { StorageHelperService } from "../../../../../src/app/shared/storage-helper.service";
 import { JwtHelperService } from "./jwt-helper.service";
-import { JWT_CONFIG } from "../types";
+import { JWT_CONFIG } from "@excel-platform/shared/types";
 
 describe("AuthService", () => {
   let service: AuthService;

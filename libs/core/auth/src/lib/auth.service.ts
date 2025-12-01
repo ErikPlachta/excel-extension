@@ -1,8 +1,10 @@
 import { Injectable, OnDestroy } from "@angular/core";
 import { BehaviorSubject, Subscription, interval } from "rxjs";
-import { getSsoAuthResult, SsoUserProfile } from "../../helpers/sso-helper";
-import { AuthState, TokenPair, JWT_CONFIG } from "../types";
-import { StorageHelperService } from "../shared/storage-helper.service";
+import { getSsoAuthResult, SsoUserProfile } from "../../../../../src/helpers/sso-helper";
+import type { AuthState, TokenPair } from "@excel-platform/shared/types";
+import { JWT_CONFIG } from "@excel-platform/shared/types";
+// StorageHelperService remains in app until Phase 5 (data/storage migration)
+import { StorageHelperService } from "../../../../../src/app/shared/storage-helper.service";
 import { JwtHelperService } from "./jwt-helper.service";
 
 /**

@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { BackupRestoreService, AppStateBackup } from './backup-restore.service';
 import { StorageHelperService } from './storage-helper.service';
-import { TelemetryService } from '../core/telemetry.service';
+import { TelemetryService } from "@excel-platform/core/telemetry";
 import { WINDOW } from '../core/window.token';
 
 describe('BackupRestoreService', () => {

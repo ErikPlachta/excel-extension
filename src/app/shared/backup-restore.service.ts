@@ -1,6 +1,6 @@
 import { Injectable, Inject } from '@angular/core';
 import { StorageHelperService } from './storage-helper.service';
-import { TelemetryService } from '../core/telemetry.service';
+import { TelemetryService } from "@excel-platform/core/telemetry";
 import { WINDOW } from '../core/window.token';
 
 /**

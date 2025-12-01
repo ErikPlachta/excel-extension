@@ -1,6 +1,6 @@
 import { TestBed } from "@angular/core/testing";
 import { AppContextService, AppHostStatus, AppAuthSummary } from "./app-context.service";
-import { AuthService } from "./auth.service";
+import { AuthService } from "@excel-platform/core/auth";
 
 describe("AppContextService", () => {
   let service: AppContextService;

@@ -1,7 +1,7 @@
 import { TestBed } from "@angular/core/testing";
 import { FormulaScannerService } from "./formula-scanner.service";
 import { ExcelService } from "./excel.service";
-import { TelemetryService } from "./telemetry.service";
+import { TelemetryService } from "@excel-platform/core/telemetry";
 
 describe("FormulaScannerService", () => {
   let service: FormulaScannerService;

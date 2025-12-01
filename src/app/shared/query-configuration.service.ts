@@ -1,7 +1,7 @@
 import { Injectable } from "@angular/core";
 import { BehaviorSubject } from "rxjs";
 import { QueryConfiguration } from "../types";
-import { AuthService } from "../core/auth.service";
+import { AuthService } from "@excel-platform/core/auth";
 import { ApiCatalogService } from './api-catalog.service';
 import { StorageHelperService } from './storage-helper.service';
 import { QueryValidationService } from './query-validation.service';

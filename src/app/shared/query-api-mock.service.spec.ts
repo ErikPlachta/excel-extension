@@ -2,8 +2,8 @@ import { TestBed } from "@angular/core/testing";
 import { QueryApiMockService, ExecuteQueryParams } from "./query-api-mock.service";
 import { ApiCatalogService } from "./api-catalog.service";
 import { IndexedDBService } from "./indexeddb.service";
-import { SettingsService } from "../core/settings.service";
-import { TelemetryService } from "../core/telemetry.service";
+import { SettingsService } from "@excel-platform/core/settings";
+import { TelemetryService } from "@excel-platform/core/telemetry";
 
 describe("QueryApiMockService", () => {
   let service: QueryApiMockService;

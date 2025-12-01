@@ -1,13 +1,13 @@
 import { Injectable } from "@angular/core";
-import {
+import type {
   AccessToken,
   RefreshToken,
   TokenHeader,
   TokenPair,
   TokenPayload,
   TokenValidationResult,
-  JWT_CONFIG,
-} from "../types";
+} from "@excel-platform/shared/types";
+import { JWT_CONFIG } from "@excel-platform/shared/types";
 
 /**
  * JWT Helper Service - Mock JWT generation and validation for development.

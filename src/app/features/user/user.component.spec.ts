@@ -1,6 +1,6 @@
 import { TestBed } from "@angular/core/testing";
 import { UserComponent } from "./user.component";
-import { AuthService } from "../../core/auth.service";
+import { AuthService } from "@excel-platform/core/auth";
 
 describe("UserComponent", () => {
   let component: UserComponent;
