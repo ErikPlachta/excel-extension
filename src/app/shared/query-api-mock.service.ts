@@ -1,6 +1,6 @@
 import { Injectable } from "@angular/core";
 import { ApiCatalogService } from './api-catalog.service';
-import { IndexedDBService } from './indexeddb.service';
+import { IndexedDBService } from "@excel-platform/data/storage";
 import { SettingsService } from "@excel-platform/core/settings";
 import { TelemetryService } from "@excel-platform/core/telemetry";
 
@@ -64,7 +64,7 @@ export class QueryApiMockService {
     const cacheKey = this.generateCacheKey(apiId, params);
     const cachedResult = await this.indexedDB.getCachedQueryResult(cacheKey);
     if (cachedResult) {
-      return cachedResult;
+      return cachedResult as ExecuteQueryResultRow[];
     }
 
     // Cache miss - execute and cache

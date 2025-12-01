@@ -3,7 +3,7 @@ import { Component } from "@angular/core";
 import { ExcelService } from "@excel-platform/core/excel";
 import { SettingsService } from "@excel-platform/core/settings";
 import { TelemetryService } from "@excel-platform/core/telemetry";
-import { BackupRestoreService } from "../../shared/backup-restore.service";
+import { BackupRestoreService } from "@excel-platform/data/storage";
 
 @Component({
   selector: "app-settings",

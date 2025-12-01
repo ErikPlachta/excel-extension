@@ -2,7 +2,7 @@ import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { Component, OnInit } from "@angular/core";
 import { ExcelService, AuthService, AppContextService, AppConfigService, AppHostStatus, AppAuthSummary } from ".";
-import { IndexedDBService } from "../shared/indexeddb.service";
+import { IndexedDBService } from "@excel-platform/data/storage";
 import { NavItemConfig, ViewId, TextCatalog } from "../shared/app-config";
 import { SsoHomeComponent } from "../features/sso/sso-home.component";
 import { WorksheetsComponent } from "../features/worksheets/worksheets.component";

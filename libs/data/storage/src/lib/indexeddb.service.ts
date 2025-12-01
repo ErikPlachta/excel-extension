@@ -73,7 +73,7 @@ export class IndexedDBService {
    */
   async cacheQueryResult(
     queryId: string,
-    rows: any[],
+    rows: unknown[],
     expiresIn: number = 3600000 // 1 hour default
   ): Promise<void> {
     if (!this.db) await this.init();
@@ -104,7 +104,7 @@ export class IndexedDBService {
    * @param queryId - Query identifier
    * @returns Cached rows or null
    */
-  async getCachedQueryResult(queryId: string): Promise<any[] | null> {
+  async getCachedQueryResult(queryId: string): Promise<unknown[] | null> {
     if (!this.db) await this.init();
 
     return new Promise((resolve, reject) => {
@@ -191,7 +191,7 @@ export interface QueryResultCache {
   /** Query identifier (indexed) */
   queryId: string;
   /** Cached result rows */
-  rows: any[];
+  rows: unknown[];
   /** Cache creation timestamp (indexed) */
   timestamp: number;
   /** TTL expiration timestamp */

@@ -1,6 +1,6 @@
 import { TestBed } from "@angular/core/testing";
 import { SettingsService } from "./settings.service";
-import { StorageBaseService } from "../../../../../src/app/shared/storage-base.service";
+import { StorageBaseService } from "@excel-platform/data/storage";
 
 describe("SettingsService", () => {
   let service: SettingsService;

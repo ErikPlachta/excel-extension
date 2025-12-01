@@ -2,7 +2,7 @@ import { QueryStateService } from "./query-state.service";
 import { ExecuteQueryParams } from "./query-api-mock.service";
 import { ApiDefinition } from "./query-model";
 import type { QueryParameterValues } from "../types";
-import { StorageHelperService } from "./storage-helper.service";
+import { StorageHelperService } from "@excel-platform/data/storage";
 import { ApiCatalogService } from "./api-catalog.service";
 
 class ApiCatalogServiceStub {

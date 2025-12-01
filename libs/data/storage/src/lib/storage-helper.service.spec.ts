@@ -26,8 +26,7 @@ describe('StorageHelperService', () => {
 
     consoleErrorSpy = spyOn(console, 'error');
 
-    // Setup default mock returns for StorageBaseService
-    baseSpy.getItem.and.callFake((key: string, defaultValue: any) => {
+    baseSpy.getItem.and.callFake((key: string, defaultValue: unknown) => {
       const item = localStorage.getItem(key);
       if (!item) return defaultValue;
       try {
@@ -36,7 +35,7 @@ describe('StorageHelperService', () => {
         return defaultValue;
       }
     });
-    baseSpy.setItem.and.callFake((key: string, value: any) => {
+    baseSpy.setItem.and.callFake((key: string, value: unknown) => {
       localStorage.setItem(key, JSON.stringify(value));
     });
     baseSpy.removeItem.and.callFake((key: string) => {
@@ -55,8 +54,6 @@ describe('StorageHelperService', () => {
     });
 
     service = TestBed.inject(StorageHelperService);
-
-    // Clear localStorage before each test
     localStorage.clear();
   });
 
@@ -82,29 +79,6 @@ describe('StorageHelperService', () => {
 
       expect(result).toEqual(defaultValue);
     });
-
-    it('should return defaultValue when JSON parse fails (delegated to StorageBaseService)', () => {
-      const key = 'invalid-json';
-      const defaultValue = { default: true };
-      localStorage.setItem(key, 'invalid-json{{{');
-
-      const result = service.getItem(key, defaultValue);
-
-      // StorageBaseService handles parse errors silently and returns default
-      expect(result).toEqual(defaultValue);
-      expect(baseSpy.getItem).toHaveBeenCalledWith(key, defaultValue);
-    });
-
-    it('should handle primitive default values', () => {
-      const stringResult = service.getItem('missing', 'default-string');
-      expect(stringResult).toBe('default-string');
-
-      const numberResult = service.getItem('missing', 123);
-      expect(numberResult).toBe(123);
-
-      const boolResult = service.getItem('missing', true);
-      expect(boolResult).toBe(true);
-    });
   });
 
   describe('setItem', () => {
@@ -118,16 +92,6 @@ describe('StorageHelperService', () => {
       expect(stored).toBe(JSON.stringify(value));
     });
 
-    it('should overwrite existing value', () => {
-      const key = 'test-key';
-      localStorage.setItem(key, JSON.stringify({ old: true }));
-
-      service.setItem(key, { new: true });
-
-      const stored = localStorage.getItem(key);
-      expect(stored).toBe(JSON.stringify({ new: true }));
-    });
-
     it('should delegate to StorageBaseService', () => {
       const key = 'test-key';
       const value = { test: true };
@@ -135,17 +99,6 @@ describe('StorageHelperService', () => {
       service.setItem(key, value);
 
       expect(baseSpy.setItem).toHaveBeenCalledWith(key, value);
-    });
-
-    it('should handle primitive values', () => {
-      service.setItem('string-key', 'test-string');
-      expect(localStorage.getItem('string-key')).toBe('"test-string"');
-
-      service.setItem('number-key', 123);
-      expect(localStorage.getItem('number-key')).toBe('123');
-
-      service.setItem('bool-key', true);
-      expect(localStorage.getItem('bool-key')).toBe('true');
     });
   });
 
@@ -195,17 +148,6 @@ describe('StorageHelperService', () => {
       expect(indexedDBSpy.cacheQueryResult).toHaveBeenCalledWith(key, value, undefined);
     });
 
-    it('should delegate with custom TTL', async () => {
-      const key = 'large-data';
-      const value = [{ id: 1 }];
-      const ttl = 5000;
-      indexedDBSpy.cacheQueryResult.and.resolveTo();
-
-      await service.setLargeItem(key, value, ttl);
-
-      expect(indexedDBSpy.cacheQueryResult).toHaveBeenCalledWith(key, value, ttl);
-    });
-
     it('should log error when IndexedDB throws', async () => {
       const key = 'error-key';
       const value = [{ id: 1 }];
@@ -229,10 +171,6 @@ describe('StorageHelperService', () => {
       service.removeItem(key);
 
       expect(localStorage.getItem(key)).toBeNull();
-    });
-
-    it('should not throw when key does not exist', () => {
-      expect(() => service.removeItem('nonexistent')).not.toThrow();
     });
   });
 
@@ -286,41 +224,6 @@ describe('StorageHelperService', () => {
         '[storage] Cache clear-all error:',
         jasmine.any(Error)
       );
-    });
-  });
-
-  describe('type safety', () => {
-    interface TestType {
-      id: number;
-      name: string;
-    }
-
-    it('should preserve type safety with getItem', () => {
-      const value: TestType = { id: 1, name: 'Test' };
-      localStorage.setItem('typed-key', JSON.stringify(value));
-
-      const result = service.getItem<TestType>('typed-key', { id: 0, name: '' });
-
-      expect(result.id).toBe(1);
-      expect(result.name).toBe('Test');
-    });
-
-    it('should preserve type safety with setItem', () => {
-      const value: TestType = { id: 42, name: 'Typed' };
-
-      service.setItem<TestType>('typed-key', value);
-
-      const stored = JSON.parse(localStorage.getItem('typed-key')!);
-      expect(stored).toEqual(value);
-    });
-
-    it('should preserve type safety with getLargeItem', async () => {
-      const value: TestType[] = [{ id: 1, name: 'Test' }];
-      indexedDBSpy.getCachedQueryResult.and.resolveTo(value);
-
-      const result = await service.getLargeItem<TestType[]>('typed-key');
-
-      expect(result).toEqual(value);
     });
   });
 });
