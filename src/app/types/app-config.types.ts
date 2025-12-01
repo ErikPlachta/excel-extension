@@ -3,7 +3,13 @@
  * used to allow a modular and data-driven design.
  */
 
-import { UiLayoutHints, ApiDefinition, RoleId } from '@excel-platform/shared/types';
+import {
+  UiLayoutHints,
+  ApiDefinition,
+  RoleId,
+  UiButtonVariant,
+  UiButtonSize
+} from '@excel-platform/shared/types';
 
 // Re-export RoleId for backward compatibility
 export type { RoleId };
@@ -45,9 +51,9 @@ export interface NavItemConfig {
   /** Optional extra CSS class names for the nav element. */
   classNames?: string;
   /** Optional button variant hint for this nav item. */
-  buttonVariant?: import("./ui/primitives.types").UiButtonVariant;
+  buttonVariant?: UiButtonVariant;
   /** Optional button size hint for this nav item. */
-  buttonSize?: import("./ui/primitives.types").UiButtonSize;
+  buttonSize?: UiButtonSize;
   /** What action this nav item performs when clicked. */
   actionType: NavActionType;
   /** Whether authentication is required for this nav item. */
@@ -136,9 +142,9 @@ export interface AppConfig {
    */
   ui?: {
     /** Variant for navigation buttons. */
-    navButtonVariant?: import("./ui/primitives.types").UiButtonVariant;
+    navButtonVariant?: UiButtonVariant;
     /** Size for navigation buttons. */
-    navButtonSize?: import("./ui/primitives.types").UiButtonSize;
+    navButtonSize?: UiButtonSize;
     /** Type for host status banner. */
     hostStatusBannerType?: string;
     /** Optional per-view layout hints consumed by section/card primitives. */
