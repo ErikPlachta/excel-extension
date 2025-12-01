@@ -2,13 +2,12 @@ import { TestBed } from '@angular/core/testing';
 import { StorageHelperService } from './storage-helper.service';
 import { StorageBaseService } from './storage-base.service';
 import { IndexedDBService } from './indexeddb.service';
-import { TelemetryService } from '../core/telemetry.service';
 
 describe('StorageHelperService', () => {
   let service: StorageHelperService;
   let baseSpy: jasmine.SpyObj<StorageBaseService>;
   let indexedDBSpy: jasmine.SpyObj<IndexedDBService>;
-  let telemetrySpy: jasmine.SpyObj<TelemetryService>;
+  let consoleErrorSpy: jasmine.Spy;
 
   beforeEach(() => {
     baseSpy = jasmine.createSpyObj<StorageBaseService>('StorageBaseService', [
@@ -25,7 +24,7 @@ describe('StorageHelperService', () => {
       'clearAllCache',
     ]);
 
-    telemetrySpy = jasmine.createSpyObj<TelemetryService>('TelemetryService', ['logEvent']);
+    consoleErrorSpy = spyOn(console, 'error');
 
     // Setup default mock returns for StorageBaseService
     baseSpy.getItem.and.callFake((key: string, defaultValue: any) => {
@@ -52,7 +51,6 @@ describe('StorageHelperService', () => {
         StorageHelperService,
         { provide: StorageBaseService, useValue: baseSpy },
         { provide: IndexedDBService, useValue: indexedDBSpy },
-        { provide: TelemetryService, useValue: telemetrySpy },
       ],
     });
 
@@ -178,13 +176,11 @@ describe('StorageHelperService', () => {
       const result = await service.getLargeItem(key);
 
       expect(result).toBeNull();
-      expect(telemetrySpy.logEvent).toHaveBeenCalledWith({
-        category: 'system',
-        name: 'storage-indexeddb-read-error',
-        severity: 'error',
-        message: `Failed to read from IndexedDB: ${key}`,
-        context: jasmine.objectContaining({ error: jasmine.any(Error) }),
-      });
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        '[storage] IndexedDB read error:',
+        key,
+        jasmine.any(Error)
+      );
     });
   });
 
@@ -217,13 +213,11 @@ describe('StorageHelperService', () => {
 
       await service.setLargeItem(key, value);
 
-      expect(telemetrySpy.logEvent).toHaveBeenCalledWith({
-        category: 'system',
-        name: 'storage-indexeddb-write-error',
-        severity: 'error',
-        message: `Failed to write to IndexedDB: ${key}`,
-        context: jasmine.objectContaining({ error: jasmine.any(Error) }),
-      });
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        '[storage] IndexedDB write error:',
+        key,
+        jasmine.any(Error)
+      );
     });
   });
 
@@ -267,13 +261,10 @@ describe('StorageHelperService', () => {
 
       await service.clearExpiredCache();
 
-      expect(telemetrySpy.logEvent).toHaveBeenCalledWith({
-        category: 'system',
-        name: 'storage-cache-cleanup-error',
-        severity: 'error',
-        message: 'Failed to clear expired cache',
-        context: jasmine.objectContaining({ error: jasmine.any(Error) }),
-      });
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        '[storage] Cache cleanup error:',
+        jasmine.any(Error)
+      );
     });
   });
 
@@ -291,13 +282,10 @@ describe('StorageHelperService', () => {
 
       await service.clearAllCache();
 
-      expect(telemetrySpy.logEvent).toHaveBeenCalledWith({
-        category: 'system',
-        name: 'storage-cache-clear-all-error',
-        severity: 'error',
-        message: 'Failed to clear all cache',
-        context: jasmine.objectContaining({ error: jasmine.any(Error) }),
-      });
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        '[storage] Cache clear-all error:',
+        jasmine.any(Error)
+      );
     });
   });
 

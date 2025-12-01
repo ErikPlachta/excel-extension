@@ -2,7 +2,8 @@ export * from "./app.component";
 export * from "./app.config";
 export * from "./app-config.service";
 export * from "./config-validator.service";
-export * from "./app.routes";
+// Note: app.routes intentionally not exported from barrel to avoid circular dependency
+// Import directly from ./app.routes when needed
 export * from "./excel.service";
 export * from "./auth.service";
 export * from "./app-context.service";
