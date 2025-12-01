@@ -2,8 +2,8 @@ import { Injectable } from "@angular/core";
 import { ExecuteQueryResultRow } from "../shared/query-api-mock.service";
 import { QueryRunLocation } from "../shared/query-model";
 import { ExcelOperationResult, QueryTableTarget, WorkbookOwnershipInfo, WorkbookTableInfo } from "../types";
-import { TelemetryService } from "./telemetry.service";
-import { SettingsService } from "./settings.service";
+import { TelemetryService } from "@excel-platform/core/telemetry";
+import { SettingsService } from "@excel-platform/core/settings";
 
 /**
  * Low-level wrapper around the Office.js Excel APIs.

@@ -4,7 +4,7 @@ import { BehaviorSubject, Observable, firstValueFrom } from 'rxjs';
 import { AppConfig } from '../types/app-config.types';
 import { DEFAULT_APP_CONFIG } from '../shared/app-config.default';
 import { ConfigValidatorService } from './config-validator.service';
-import { AuthService } from './auth.service';
+import { AuthService } from "@excel-platform/core/auth";
 
 /**
  * AppConfig Service - Manages application configuration with observable pattern.

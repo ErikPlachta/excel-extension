@@ -1,14 +1,14 @@
 import { Injectable } from "@angular/core";
 import { AppContextService } from "./app-context.service";
-import {
+import type {
   AppTelemetryEvent,
   ExcelErrorInfo,
   ExcelOperationResult,
   FeatureTelemetryEvent,
   TelemetrySeverity,
   WorkflowTelemetryEvent,
-} from "../types";
-import { SettingsService } from "./settings.service";
+} from "@excel-platform/shared/types";
+import { SettingsService } from "@excel-platform/core/settings";
 
 // Office.js globals are provided at runtime by Excel; they deliberately remain
 // loosely typed here and are always guarded by host checks before use.

@@ -7,7 +7,7 @@ import {
   TableColumnReference,
 } from "../types";
 import { ExcelService } from "./excel.service";
-import { TelemetryService } from "./telemetry.service";
+import { TelemetryService } from "@excel-platform/core/telemetry";
 
 // Office.js globals provided at runtime by Excel
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

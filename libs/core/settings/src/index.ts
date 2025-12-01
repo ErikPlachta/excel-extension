@@ -1,1 +1,4 @@
-// @excel-platform/core/settings - Placeholder
+// @excel-platform/core/settings
+// Core settings service for application configuration
+
+export * from './lib/settings.service';

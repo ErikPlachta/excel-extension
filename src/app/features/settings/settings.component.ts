@@ -1,8 +1,8 @@
 import { CommonModule } from "@angular/common";
 import { Component } from "@angular/core";
 import { ExcelService } from "../../core/excel.service";
-import { SettingsService } from "../../core/settings.service";
-import { TelemetryService } from "../../core";
+import { SettingsService } from "@excel-platform/core/settings";
+import { TelemetryService } from "@excel-platform/core/telemetry";
 import { BackupRestoreService } from "../../shared/backup-restore.service";
 
 @Component({

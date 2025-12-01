@@ -1,6 +1,6 @@
 import { TestBed } from "@angular/core/testing";
 import { TelemetryService } from "./telemetry.service";
-import { SettingsService } from "./settings.service";
+import { SettingsService } from "@excel-platform/core/settings";
 import { AppContextService, AppAuthSummary, AppHostStatus } from "./app-context.service";
 
 class MockSettingsService {

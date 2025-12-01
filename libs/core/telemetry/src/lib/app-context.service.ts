@@ -1,5 +1,5 @@
 import { Injectable } from "@angular/core";
-import { AuthService } from "./auth.service";
+import { AuthService } from "@excel-platform/core/auth";
 
 /**
  * Host environment status information.

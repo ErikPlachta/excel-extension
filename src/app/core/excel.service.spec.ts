@@ -1,6 +1,6 @@
 import { ExcelService } from "./excel.service";
-import { TelemetryService } from "./telemetry.service";
-import { SettingsService } from "./settings.service";
+import { TelemetryService } from "@excel-platform/core/telemetry";
+import { SettingsService } from "@excel-platform/core/settings";
 import { QueryRunLocation } from "../shared/query-model";
 import { ExecuteQueryResultRow } from "../shared/query-api-mock.service";
 import { ExcelOperationResult, QueryTableTarget } from "../types";

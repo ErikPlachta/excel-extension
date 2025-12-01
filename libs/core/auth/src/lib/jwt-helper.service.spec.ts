@@ -1,5 +1,5 @@
 import { JwtHelperService } from "./jwt-helper.service";
-import { JWT_CONFIG } from "../types";
+import { JWT_CONFIG } from "@excel-platform/shared/types";
 
 describe("JwtHelperService", () => {
   let service: JwtHelperService;

@@ -1,6 +1,7 @@
 import { Injectable } from "@angular/core";
-import { AppSettings, AppSettingsUpdate } from "../types";
-import { StorageBaseService } from "../shared/storage-base.service";
+import { AppSettings, AppSettingsUpdate } from "@excel-platform/shared/types";
+// StorageBaseService remains in app until Phase 5 (data/storage migration)
+import { StorageBaseService } from "../../../../../src/app/shared/storage-base.service";
 
 const STORAGE_KEY = "excel-extension.settings";
 
