@@ -2,7 +2,7 @@ import { TestBed } from "@angular/core/testing";
 import { provideRouter } from "@angular/router";
 import { provideHttpClient } from "@angular/common/http";
 import { AppComponent } from "./app.component";
-import { ExcelService } from "./excel.service";
+import { ExcelService } from "@excel-platform/core/excel";
 import { AuthService } from "@excel-platform/core/auth";
 import { AppContextService } from "@excel-platform/core/telemetry";
 import { AppConfigService } from "./app-config.service";

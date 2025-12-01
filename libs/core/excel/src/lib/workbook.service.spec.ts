@@ -1,6 +1,7 @@
+import { TestBed } from "@angular/core/testing";
 import { WorkbookService } from "./workbook.service";
 import { ExcelService } from "./excel.service";
-import { WorkbookOwnershipInfo, WorkbookTableInfo, QueryDefinition } from "../types";
+import { WorkbookOwnershipInfo, WorkbookTableInfo, QueryDefinition } from "@excel-platform/shared/types";
 
 describe("WorkbookService ownership helpers", () => {
   let workbook: WorkbookService;
@@ -342,7 +343,6 @@ describe("WorkbookService ownership helpers", () => {
     });
   });
 });
-import { TestBed } from "@angular/core/testing";
 
 // TODO: Add TSDocs for WorkbookService and its methods.
 class ExcelServiceStub {

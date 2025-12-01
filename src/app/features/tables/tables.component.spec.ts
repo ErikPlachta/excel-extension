@@ -1,6 +1,6 @@
 import { TestBed } from "@angular/core/testing";
 import { TablesComponent } from "./tables.component";
-import { WorkbookService } from "../../core/workbook.service";
+import { WorkbookService } from "@excel-platform/core/excel";
 import { TelemetryService } from "@excel-platform/core/telemetry";
 
 describe("TablesComponent", () => {

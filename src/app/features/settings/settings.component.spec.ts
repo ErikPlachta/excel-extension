@@ -1,7 +1,7 @@
 import { TestBed } from "@angular/core/testing";
 import { SettingsComponent } from "./settings.component";
 import { SettingsService } from "@excel-platform/core/settings";
-import { ExcelService } from "../../core/excel.service";
+import { ExcelService } from "@excel-platform/core/excel";
 import { TelemetryService } from "@excel-platform/core/telemetry";
 import { BackupRestoreService } from "../../shared/backup-restore.service";
 
