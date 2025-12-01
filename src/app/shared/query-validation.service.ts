@@ -1,7 +1,5 @@
 import { Injectable } from '@angular/core';
-import { ApiDefinition, ApiParameter } from '../types/api.types';
-import { QueryConfiguration } from '../types';
-import { QueryConfigurationItem } from '../features/queries/queries.component';
+import { ApiDefinition, ApiParameter, QueryConfiguration, QueryConfigurationItem } from '@excel-platform/shared/types';
 import { ApiCatalogService } from './api-catalog.service';
 
 /**

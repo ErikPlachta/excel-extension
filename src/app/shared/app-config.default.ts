@@ -8,7 +8,7 @@
  */
 
 import { AppConfig } from "./app-config";
-import { ApiDefinition } from "../types/api.types";
+import { ApiDefinition } from '@excel-platform/shared/types';
 
 /**
  * Default application configuration.

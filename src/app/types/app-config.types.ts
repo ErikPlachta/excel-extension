@@ -3,18 +3,10 @@
  * used to allow a modular and data-driven design.
  */
 
-import { UiLayoutHints } from "./ui/primitives.types";
-import { ApiDefinition } from "./api.types";
+import { UiLayoutHints, ApiDefinition, RoleId } from '@excel-platform/shared/types';
 
-/**
- * Known User Role identifiers in the system.
- *
- * These role IDs are used throughout the application to manage
- * access control and permissions for different features and views.
- * Each role ID corresponds to a specific set of capabilities within the app.
- * The roles are designed to be flexible and extensible, allowing for future growth.
- */
-export type RoleId = "analyst" | "admin";
+// Re-export RoleId for backward compatibility
+export type { RoleId };
 
 /**
  * View identifiers used by the SPA shell.

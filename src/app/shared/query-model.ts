@@ -2,7 +2,8 @@ export type {
   QueryRunLocation,
   QueryRun,
   QueryWriteMode,
-} from "../types";
-
-// Re-export ApiDefinition directly from api.types
-export type { ApiDefinition, ApiParameter, ApiColumnDefinition, ApiCatalogUiConfig } from "../types/api.types";
+  ApiDefinition,
+  ApiParameter,
+  ApiColumnDefinition,
+  ApiCatalogUiConfig
+} from '@excel-platform/shared/types';

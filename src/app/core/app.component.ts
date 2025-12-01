@@ -11,7 +11,7 @@ import { UserComponent } from "../features/user/user.component";
 import { QueriesComponent } from "../features/queries/queries.component";
 import { DebugContextComponent } from "../features/debug/debug-context.component";
 import { SettingsComponent } from "../features/settings/settings.component";
-import { ButtonComponent } from "../shared/ui/button.component";
+import { ButtonComponent } from '@excel-platform/shared/ui';
 
 @Component({
   selector: "app-root",

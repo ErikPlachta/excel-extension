@@ -1,6 +1,6 @@
 import { QueryQueueService } from './query-queue.service';
 import { TelemetryService } from '../core/telemetry.service';
-import { QueryConfigurationItem } from '../features/queries/queries.component';
+import { QueryConfigurationItem } from '@excel-platform/shared/types';
 
 describe('QueryQueueService', () => {
   let service: QueryQueueService;

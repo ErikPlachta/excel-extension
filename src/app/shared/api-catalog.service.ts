@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Observable, map } from 'rxjs';
-import { ApiDefinition, ApiParameter } from '../types/api.types';
+import { ApiDefinition, ApiParameter } from '@excel-platform/shared/types';
 import { RoleId } from '../types/app-config.types';
 import { AppConfigService } from '../core/app-config.service';
 
