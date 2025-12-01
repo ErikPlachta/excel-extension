@@ -297,7 +297,7 @@ this.telemetry.logEvent({
 
 ## Completed Refactors
 
-Architecture refactor (9 phases) completed November 2025. See `changelog/CHANGELOG_20251126_000000_feat-finalize-concept.md` for details.
+Architecture refactor (9 phases) completed November 2025. See `docs/changelog/CHANGELOG_20251126_000000_feat-finalize-concept.md` for details.
 
 **Reference docs:**
 
