@@ -1,6 +1,6 @@
 import { Component } from "@angular/core";
 import { CommonModule } from "@angular/common";
-import { ExcelService } from "../../core";
+import { ExcelService } from "../../core/excel.service";
 
 @Component({
   selector: "app-home",

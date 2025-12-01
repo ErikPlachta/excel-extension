@@ -1,7 +1,7 @@
 import { Injectable } from "@angular/core";
 import { BehaviorSubject, Observable } from "rxjs";
 import { TelemetryService } from "../core/telemetry.service";
-import { QueryConfigurationItem } from "../features/queries/queries.component";
+import { QueryConfigurationItem } from '@excel-platform/shared/types';
 
 /**
  * Simple in-memory execution queue for `QueryConfigurationItem` entries.

@@ -2,9 +2,8 @@ import { CommonModule } from "@angular/common";
 import { Component } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { AuthService } from "../../core";
-import { truncateToken } from "../../shared/util";
-import { SectionComponent } from "../../shared/ui/section.component";
-import { CardComponent } from "../../shared/ui/card.component";
+import { truncateToken } from '@excel-platform/shared/util';
+import { SectionComponent, CardComponent } from '@excel-platform/shared/ui';
 
 /**
  * SSO Home Component - Authentication view with JWT sign-in.

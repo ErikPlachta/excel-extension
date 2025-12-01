@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { ApiCatalogService } from './api-catalog.service';
-import { ApiDefinition } from '../types/api.types';
+import { ApiDefinition } from '@excel-platform/shared/types';
 
 describe('ApiCatalogService', () => {
   let service: ApiCatalogService;

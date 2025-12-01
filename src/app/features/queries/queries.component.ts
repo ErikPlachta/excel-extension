@@ -6,27 +6,12 @@ import { takeUntil } from "rxjs/operators";
 import { ExcelService, AuthService, TelemetryService, SettingsService, FormulaScannerService, WorkbookService } from "../../core";
 import { ExecuteQueryParams, QueryApiMockService } from "../../shared/query-api-mock.service";
 import { QueryStateService } from "../../shared/query-state.service";
-import { ApiDefinition } from "../../types/api.types";
-import { QueryConfiguration, QueryParameterValues, QueryWriteMode, QueryImpactAssessment, RoleId } from "../../types";
-import { SectionComponent } from "../../shared/ui/section.component";
-import { TableComponent } from "../../shared/ui/table.component";
-import { DropdownComponent, UiDropdownItem } from "../../shared/ui/dropdown.component";
-import { ButtonComponent } from "../../shared/ui/button.component";
-import { ProgressIndicatorComponent } from "../../shared/ui/progress-indicator.component";
+import { ApiDefinition, QueryConfiguration, QueryConfigurationItem, QueryParameterValues, QueryWriteMode, QueryImpactAssessment } from '@excel-platform/shared/types';
+import { RoleId } from "../../types";
+import { SectionComponent, TableComponent, DropdownComponent, UiDropdownItem, ButtonComponent, ProgressIndicatorComponent } from '@excel-platform/shared/ui';
 import { QueryConfigurationService } from "../../shared/query-configuration.service";
 import { QueryQueueService } from "../../shared/query-queue.service";
 import { ApiCatalogService } from "../../shared/api-catalog.service";
-
-export interface QueryConfigurationItem {
-  id: string;
-  apiId: string;
-  displayName: string;
-  parameters: QueryParameterValues;
-  targetSheetName: string;
-  targetTableName: string;
-  writeMode: QueryWriteMode;
-  includeInBatch: boolean;
-}
 
 @Component({
   selector: "app-queries",

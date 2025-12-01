@@ -1,7 +1,10 @@
 import { Injectable } from '@angular/core';
 import { StorageBaseService } from './storage-base.service';
 import { IndexedDBService } from './indexeddb.service';
-import { TelemetryService } from '../core/telemetry.service';
+
+// Note: TelemetryService removed to break circular dependency:
+// TelemetryService → AppContextService → AuthService → StorageHelperService → TelemetryService
+// Error logging uses console.error as fallback (same pattern as StorageBaseService)
 
 /**
  * Storage Helper Service - Centralized storage operations with multi-backend support.
@@ -32,8 +35,7 @@ import { TelemetryService } from '../core/telemetry.service';
 export class StorageHelperService {
   constructor(
     private readonly base: StorageBaseService,
-    private readonly indexedDB: IndexedDBService,
-    private readonly telemetry: TelemetryService
+    private readonly indexedDB: IndexedDBService
   ) {}
 
   /**
@@ -80,13 +82,7 @@ export class StorageHelperService {
     try {
       return (await this.indexedDB.getCachedQueryResult(key)) as T | null;
     } catch (error) {
-      this.telemetry.logEvent({
-        category: 'system',
-        name: 'storage-indexeddb-read-error',
-        severity: 'error',
-        message: `Failed to read from IndexedDB: ${key}`,
-        context: { error },
-      });
+      console.error('[storage] IndexedDB read error:', key, error);
       return null;
     }
   }
@@ -105,13 +101,7 @@ export class StorageHelperService {
     try {
       await this.indexedDB.cacheQueryResult(key, value, ttl);
     } catch (error) {
-      this.telemetry.logEvent({
-        category: 'system',
-        name: 'storage-indexeddb-write-error',
-        severity: 'error',
-        message: `Failed to write to IndexedDB: ${key}`,
-        context: { error },
-      });
+      console.error('[storage] IndexedDB write error:', key, error);
     }
   }
 
@@ -144,13 +134,7 @@ export class StorageHelperService {
     try {
       await this.indexedDB.clearExpiredCache();
     } catch (error) {
-      this.telemetry.logEvent({
-        category: 'system',
-        name: 'storage-cache-cleanup-error',
-        severity: 'error',
-        message: 'Failed to clear expired cache',
-        context: { error },
-      });
+      console.error('[storage] Cache cleanup error:', error);
     }
   }
 
@@ -164,13 +148,7 @@ export class StorageHelperService {
     try {
       await this.indexedDB.clearAllCache();
     } catch (error) {
-      this.telemetry.logEvent({
-        category: 'system',
-        name: 'storage-cache-clear-all-error',
-        severity: 'error',
-        message: 'Failed to clear all cache',
-        context: { error },
-      });
+      console.error('[storage] Cache clear-all error:', error);
     }
   }
 }

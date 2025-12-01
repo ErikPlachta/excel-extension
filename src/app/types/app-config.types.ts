@@ -3,18 +3,16 @@
  * used to allow a modular and data-driven design.
  */
 
-import { UiLayoutHints } from "./ui/primitives.types";
-import { ApiDefinition } from "./api.types";
+import {
+  UiLayoutHints,
+  ApiDefinition,
+  RoleId,
+  UiButtonVariant,
+  UiButtonSize
+} from '@excel-platform/shared/types';
 
-/**
- * Known User Role identifiers in the system.
- *
- * These role IDs are used throughout the application to manage
- * access control and permissions for different features and views.
- * Each role ID corresponds to a specific set of capabilities within the app.
- * The roles are designed to be flexible and extensible, allowing for future growth.
- */
-export type RoleId = "analyst" | "admin";
+// Re-export RoleId for backward compatibility
+export type { RoleId };
 
 /**
  * View identifiers used by the SPA shell.
@@ -53,9 +51,9 @@ export interface NavItemConfig {
   /** Optional extra CSS class names for the nav element. */
   classNames?: string;
   /** Optional button variant hint for this nav item. */
-  buttonVariant?: import("./ui/primitives.types").UiButtonVariant;
+  buttonVariant?: UiButtonVariant;
   /** Optional button size hint for this nav item. */
-  buttonSize?: import("./ui/primitives.types").UiButtonSize;
+  buttonSize?: UiButtonSize;
   /** What action this nav item performs when clicked. */
   actionType: NavActionType;
   /** Whether authentication is required for this nav item. */
@@ -144,9 +142,9 @@ export interface AppConfig {
    */
   ui?: {
     /** Variant for navigation buttons. */
-    navButtonVariant?: import("./ui/primitives.types").UiButtonVariant;
+    navButtonVariant?: UiButtonVariant;
     /** Size for navigation buttons. */
-    navButtonSize?: import("./ui/primitives.types").UiButtonSize;
+    navButtonSize?: UiButtonSize;
     /** Type for host status banner. */
     hostStatusBannerType?: string;
     /** Optional per-view layout hints consumed by section/card primitives. */

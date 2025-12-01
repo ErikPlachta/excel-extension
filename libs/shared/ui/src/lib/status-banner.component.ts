@@ -1,6 +1,6 @@
 import { CommonModule } from "@angular/common";
 import { Component, Input } from "@angular/core";
-import { UiBannerType } from "../../types";
+import type { UiBannerType } from '@excel-platform/shared/types';
 
 /**
  * Simple status/host banner used to surface Excel/online state

@@ -2,8 +2,7 @@ import { Component, OnInit } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { TelemetryService } from "../../core";
 import { WorkbookService } from "../../core/workbook.service";
-import { SectionComponent } from "../../shared/ui/section.component";
-import { TableComponent } from "../../shared/ui/table.component";
+import { SectionComponent, TableComponent } from '@excel-platform/shared/ui';
 
 @Component({
   selector: "app-tables",

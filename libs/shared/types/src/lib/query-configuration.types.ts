@@ -1,6 +1,20 @@
-import type { QueryConfigurationItem } from "../features/queries/queries.component";
 import type { QueryParameterValues } from "./query-params.types";
 import type { QueryWriteMode } from "./query.types";
+
+/**
+ * Single item in a query configuration - represents one query with its settings.
+ * Moved from queries.component.ts to break circular dependency.
+ */
+export interface QueryConfigurationItem {
+  id: string;
+  apiId: string;
+  displayName: string;
+  parameters: QueryParameterValues;
+  targetSheetName: string;
+  targetTableName: string;
+  writeMode: QueryWriteMode;
+  includeInBatch: boolean;
+}
 
 /**
  * Host-agnostic description of a named query configuration for a

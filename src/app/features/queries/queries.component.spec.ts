@@ -1,5 +1,6 @@
 import { TestBed } from "@angular/core/testing";
-import { QueriesComponent, QueryConfigurationItem } from "./queries.component";
+import { QueriesComponent } from "./queries.component";
+import { QueryConfigurationItem } from '@excel-platform/shared/types';
 import { ExcelService } from "../../core/excel.service";
 import { AuthService } from "../../core/auth.service";
 import { TelemetryService } from "../../core/telemetry.service";

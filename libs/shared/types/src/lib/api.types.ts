@@ -1,4 +1,8 @@
-import { RoleId } from './app-config.types';
+/**
+ * Known User Role identifiers in the system.
+ * Moved from app-config.types to shared types for API definitions.
+ */
+export type RoleId = "analyst" | "admin";
 
 /**
  * API Definition - Catalog of available data source APIs.

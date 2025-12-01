@@ -2,12 +2,14 @@
 
 > ⚠️ **PLAN MODE REQUIRED**
 > Before executing this plan:
+>
 > 1. Enter plan mode: Review this plan thoroughly
 > 2. Verify integrity: Check all file paths exist, dependencies are correct
 > 3. Confirm pre-conditions: Ensure Phase 7 completed
 > 4. Exit plan mode only when ready to execute
 
 ## Metadata
+
 - **Branch:** `refactor/cicd-nx`
 - **Depends On:** Phase 7 (Jest Migration)
 - **Estimated Effort:** 0.5 days (4 hours)
@@ -17,11 +19,13 @@
 ---
 
 ## Objective
+
 Update GitHub Actions workflows to use Nx commands, leverage affected commands for faster CI, and add Nx caching for improved build performance.
 
 ---
 
 ## Pre-Conditions
+
 - [ ] Phase 7 completed: Jest migration done and PR merged
 - [ ] On migration branch: `git checkout refactor/nx-monorepo-migration && git pull`
 - [ ] All tests passing: `nx run-many --target=test --all`
@@ -31,6 +35,7 @@ Update GitHub Actions workflows to use Nx commands, leverage affected commands f
 ---
 
 ## Success Criteria
+
 - [ ] CI workflow updated with Nx commands
 - [ ] CD workflow updated for Nx build
 - [ ] Affected commands used for PR validation
@@ -44,15 +49,19 @@ Update GitHub Actions workflows to use Nx commands, leverage affected commands f
 ## Detailed Steps
 
 ### Step 1: Create Branch for Phase 8
+
 **Action:** Create dedicated branch for CI/CD updates
 **Commands:**
+
 ```bash
 cd /Users/erikplachta/repo/excel-extension
 git checkout refactor/nx-monorepo-migration
 git pull origin refactor/nx-monorepo-migration
 git checkout -b refactor/cicd-nx
 ```
+
 **Validation:**
+
 ```bash
 git branch --show-current
 # Should return: refactor/cicd-nx
@@ -61,8 +70,10 @@ git branch --show-current
 ---
 
 ### Step 2: Update CI Workflow
+
 **Action:** Update .github/workflows/ci.yml for Nx
 **Commands:**
+
 ```bash
 cat > .github/workflows/ci.yml << 'EOF'
 name: CI
@@ -125,7 +136,9 @@ jobs:
           fail_ci_if_error: false
 EOF
 ```
+
 **Validation:**
+
 ```bash
 cat .github/workflows/ci.yml
 ```
@@ -133,8 +146,10 @@ cat .github/workflows/ci.yml
 ---
 
 ### Step 3: Update CD Workflow
+
 **Action:** Update .github/workflows/deploy.yml for Nx build
 **Commands:**
+
 ```bash
 cat > .github/workflows/deploy.yml << 'EOF'
 name: Deploy
@@ -205,7 +220,9 @@ jobs:
         uses: actions/deploy-pages@v4
 EOF
 ```
+
 **Validation:**
+
 ```bash
 cat .github/workflows/deploy.yml
 ```
@@ -213,8 +230,10 @@ cat .github/workflows/deploy.yml
 ---
 
 ### Step 4: Create nx.json CI Configuration
+
 **Action:** Add CI-specific settings to nx.json
 **Commands:**
+
 ```bash
 # Update nx.json to add CI configuration
 # This should already have targetDefaults, add:
@@ -223,6 +242,7 @@ cat .github/workflows/deploy.yml
 
 **Manual Edit Required (nx.json):**
 Add the following to nx.json:
+
 ```json
 {
   "tasksRunnerOptions": {
@@ -239,8 +259,10 @@ Add the following to nx.json:
 ---
 
 ### Step 5: Update nx.json for Better Caching
+
 **Action:** Configure Nx caching settings
 **Commands:**
+
 ```bash
 # Verify caching is properly configured
 npx nx show projects
@@ -254,8 +276,10 @@ npx nx affected --target=build --dry-run
 ---
 
 ### Step 6: Verify CI Locally
+
 **Action:** Run CI-like commands locally to verify
 **Commands:**
+
 ```bash
 # Simulate what CI will run
 NX_BASE=origin/main
@@ -270,15 +294,19 @@ npx nx affected --target=test --base=$NX_BASE --head=$NX_HEAD --ci
 # Build affected
 npx nx affected --target=build --base=$NX_BASE --head=$NX_HEAD
 ```
+
 **Expected Output:**
+
 - All commands succeed
 - Only affected projects are processed
 
 ---
 
 ### Step 7: Add GitHub Actions Validation Script
+
 **Action:** Create script to validate workflows locally
 **Commands:**
+
 ```bash
 mkdir -p tools/scripts
 
@@ -307,7 +335,9 @@ EOF
 
 chmod +x tools/scripts/validate-ci.sh
 ```
+
 **Validation:**
+
 ```bash
 ./tools/scripts/validate-ci.sh
 ```
@@ -315,8 +345,10 @@ chmod +x tools/scripts/validate-ci.sh
 ---
 
 ### Step 8: Update Package.json Scripts
+
 **Action:** Add CI-related npm scripts
 **Commands:**
+
 ```bash
 npm pkg set scripts.ci="npx nx affected --target=lint && npx nx affected --target=test --ci && npx nx affected --target=build"
 npm pkg set scripts.ci:all="npx nx run-many --target=lint --all && npx nx run-many --target=test --all --ci && npx nx run-many --target=build --all"
@@ -329,8 +361,10 @@ npm pkg set scripts.affected:build="npx nx affected --target=build"
 ---
 
 ### Step 9: Create Dependabot Configuration
+
 **Action:** Configure Dependabot for dependency updates
 **Commands:**
+
 ```bash
 mkdir -p .github
 
@@ -370,8 +404,10 @@ EOF
 ---
 
 ### Step 10: Verify Workflows Syntax
+
 **Action:** Validate GitHub Actions workflow syntax
 **Commands:**
+
 ```bash
 # Install act if not present (optional, for local testing)
 # brew install act
@@ -387,8 +423,10 @@ cat .github/workflows/deploy.yml | head -20
 ---
 
 ### Step 11: Commit Phase 8 Changes
+
 **Action:** Commit all CI/CD updates
 **Commands:**
+
 ```bash
 git add .
 git status
@@ -429,9 +467,11 @@ EOF
 ---
 
 ### Step 12: Create PR for Phase 8
+
 **Action:** Push branch and create pull request
 **Commands:**
-```bash
+
+````bash
 git push -u origin refactor/cicd-nx
 
 gh pr create --title "[Phase 8] Update CI/CD for Nx" --body "$(cat <<'EOF'
@@ -468,21 +508,24 @@ Update GitHub Actions workflows to use Nx commands for better performance.
 npm run ci           # Run affected lint, test, build
 npm run ci:all       # Run all projects
 npm run affected     # Run any affected target
-```
+````
 
 ## Testing
+
 - [x] CI workflow passes
 - [x] CD workflow passes
 - [x] Affected commands work correctly
 - [x] Caching is effective
 
 ## Next Steps
+
 Phase 9: Add Compodoc for API documentation
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 EOF
 )"
-```
+
+````
 
 ---
 
@@ -523,11 +566,12 @@ git checkout -- .
 git clean -fd
 git checkout refactor/nx-monorepo-migration
 git branch -D refactor/cicd-nx
-```
+````
 
 ---
 
 ## Exit Criteria
+
 - [ ] All success criteria met
 - [ ] All integrity checks pass
 - [ ] PR created and CI passes
@@ -537,6 +581,7 @@ git branch -D refactor/cicd-nx
 ---
 
 ## Notes
+
 - Affected commands significantly speed up CI for large monorepos
 - Nx caching can save 50-80% of CI time on repeat runs
 - The nrwl/nx-set-shas action is critical for proper affected calculation

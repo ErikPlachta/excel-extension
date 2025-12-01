@@ -2,12 +2,14 @@
 
 > ⚠️ **PLAN MODE REQUIRED**
 > Before executing this plan:
+>
 > 1. Enter plan mode: Review this plan thoroughly
 > 2. Verify integrity: Check all file paths exist, dependencies are correct
 > 3. Confirm pre-conditions: Ensure Phase 9 completed
 > 4. Exit plan mode only when ready to execute
 
 ## Metadata
+
 - **Branch:** `chore/doc-reorganization`
 - **Depends On:** Phase 9 (Compodoc)
 - **Estimated Effort:** 0.5 days (4 hours)
@@ -17,11 +19,13 @@
 ---
 
 ## Objective
+
 Reorganize documentation following the hybrid approach: keep `.claude/CLAUDE.md` as the AI index, move reference docs to `docs/`, and establish clear documentation structure for the monorepo.
 
 ---
 
 ## Pre-Conditions
+
 - [ ] Phase 9 completed: Compodoc setup and PR merged
 - [ ] On migration branch: `git checkout refactor/nx-monorepo-migration && git pull`
 - [ ] Documentation generates: `npm run docs`
@@ -30,6 +34,7 @@ Reorganize documentation following the hybrid approach: keep `.claude/CLAUDE.md`
 ---
 
 ## Success Criteria
+
 - [ ] `.claude/CLAUDE.md` serves as AI-focused index
 - [ ] Reference docs moved to `docs/` directory
 - [ ] Architecture docs in `docs/architecture/`
@@ -44,15 +49,19 @@ Reorganize documentation following the hybrid approach: keep `.claude/CLAUDE.md`
 ## Detailed Steps
 
 ### Step 1: Create Branch for Phase 10
+
 **Action:** Create dedicated branch for documentation reorganization
 **Commands:**
+
 ```bash
 cd /Users/erikplachta/repo/excel-extension
 git checkout refactor/nx-monorepo-migration
 git pull origin refactor/nx-monorepo-migration
 git checkout -b chore/doc-reorganization
 ```
+
 **Validation:**
+
 ```bash
 git branch --show-current
 # Should return: chore/doc-reorganization
@@ -61,15 +70,19 @@ git branch --show-current
 ---
 
 ### Step 2: Create Documentation Structure
+
 **Action:** Create the docs directory structure
 **Commands:**
+
 ```bash
 mkdir -p docs/architecture
 mkdir -p docs/guides
 mkdir -p docs/changelog
 mkdir -p docs/api
 ```
+
 **Validation:**
+
 ```bash
 tree docs/
 ```
@@ -77,20 +90,24 @@ tree docs/
 ---
 
 ### Step 3: Move Architecture Documentation
+
 **Action:** Move architecture reference docs from .claude/
 **Files to Move:**
 
-| Source | Destination |
-|--------|-------------|
+| Source                            | Destination                                 |
+| --------------------------------- | ------------------------------------------- |
 | `.claude/STORAGE-ARCHITECTURE.md` | `docs/architecture/STORAGE-ARCHITECTURE.md` |
-| `.claude/PERFORMANCE.md` | `docs/architecture/PERFORMANCE.md` |
+| `.claude/PERFORMANCE.md`          | `docs/architecture/PERFORMANCE.md`          |
 
 **Commands:**
+
 ```bash
 mv .claude/STORAGE-ARCHITECTURE.md docs/architecture/
 mv .claude/PERFORMANCE.md docs/architecture/
 ```
+
 **Validation:**
+
 ```bash
 ls docs/architecture/
 # Should show STORAGE-ARCHITECTURE.md and PERFORMANCE.md
@@ -99,19 +116,23 @@ ls docs/architecture/
 ---
 
 ### Step 4: Move Changelog
+
 **Action:** Move changelog to docs/changelog/
 **Files to Move:**
 
-| Source | Destination |
-|--------|-------------|
+| Source       | Destination       |
+| ------------ | ----------------- |
 | `changelog/` | `docs/changelog/` |
 
 **Commands:**
+
 ```bash
 mv changelog/* docs/changelog/
 rmdir changelog
 ```
+
 **Validation:**
+
 ```bash
 ls docs/changelog/
 ```
@@ -119,8 +140,10 @@ ls docs/changelog/
 ---
 
 ### Step 5: Update .claude/CLAUDE.md
+
 **Action:** Update CLAUDE.md to reference new doc locations
 **Commands:**
+
 ```bash
 # Update references in CLAUDE.md
 # Change:
@@ -131,6 +154,7 @@ ls docs/changelog/
 
 **Manual Edit Required (.claude/CLAUDE.md):**
 Update the "Reference docs" section at the end:
+
 ```markdown
 ## Reference Docs
 
@@ -146,8 +170,10 @@ Architecture refactor (9 phases) completed November 2025. See `docs/changelog/CH
 ---
 
 ### Step 6: Create Documentation Index
+
 **Action:** Create main documentation index
 **Commands:**
+
 ```bash
 cat > docs/README.md << 'EOF'
 # Excel Platform Documentation
@@ -157,18 +183,20 @@ Welcome to the Excel Platform documentation. This monorepo contains an Angular a
 ## Documentation Structure
 
 ```
+
 docs/
-├── README.md           # This file
-├── architecture/       # System design and architecture
-│   ├── STORAGE-ARCHITECTURE.md
-│   └── PERFORMANCE.md
-├── guides/             # Development guides
-│   └── GETTING-STARTED.md
-├── api/                # Generated API docs (Compodoc)
-│   └── README.md
-└── changelog/          # Historical changes
-    └── CHANGELOG_*.md
-```
+├── README.md # This file
+├── architecture/ # System design and architecture
+│ ├── STORAGE-ARCHITECTURE.md
+│ └── PERFORMANCE.md
+├── guides/ # Development guides
+│ └── GETTING-STARTED.md
+├── api/ # Generated API docs (Compodoc)
+│ └── README.md
+└── changelog/ # Historical changes
+└── CHANGELOG\_\*.md
+
+````
 
 ## Quick Links
 
@@ -189,25 +217,27 @@ docs/
 npm run docs          # Generate API docs
 npm run docs:serve    # Serve at localhost:8080
 npm run docs:watch    # Watch mode
-```
+````
 
 ## Libraries
 
-| Library | Description |
-|---------|-------------|
-| `@excel-platform/shared/types` | Domain type definitions |
-| `@excel-platform/shared/ui` | Reusable UI components |
-| `@excel-platform/shared/util` | Utility functions |
-| `@excel-platform/core/auth` | Authentication services |
-| `@excel-platform/core/telemetry` | Logging and telemetry |
-| `@excel-platform/core/settings` | User preferences |
-| `@excel-platform/office/excel` | Excel.js integration |
-| `@excel-platform/office/common` | Shared Office utilities |
-| `@excel-platform/data/storage` | Storage abstraction |
-| `@excel-platform/data/api` | API catalog and mocks |
-| `@excel-platform/data/query` | Query management |
+| Library                          | Description             |
+| -------------------------------- | ----------------------- |
+| `@excel-platform/shared/types`   | Domain type definitions |
+| `@excel-platform/shared/ui`      | Reusable UI components  |
+| `@excel-platform/shared/util`    | Utility functions       |
+| `@excel-platform/core/auth`      | Authentication services |
+| `@excel-platform/core/telemetry` | Logging and telemetry   |
+| `@excel-platform/core/settings`  | User preferences        |
+| `@excel-platform/office/excel`   | Excel.js integration    |
+| `@excel-platform/office/common`  | Shared Office utilities |
+| `@excel-platform/data/storage`   | Storage abstraction     |
+| `@excel-platform/data/api`       | API catalog and mocks   |
+| `@excel-platform/data/query`     | Query management        |
+
 EOF
-```
+
+````
 
 ---
 
@@ -239,7 +269,7 @@ npm ci
 
 # Start development server
 npm start
-```
+````
 
 ## Development Commands
 
@@ -304,8 +334,9 @@ npx nx affected --target=test # Test affected projects
 - Read the [Storage Architecture](../architecture/STORAGE-ARCHITECTURE.md)
 - Check the [Performance Guide](../architecture/PERFORMANCE.md)
 - Browse the [API Documentation](../api/README.md)
-EOF
-```
+  EOF
+
+````
 
 ---
 
@@ -350,13 +381,15 @@ cat > .compodocrc.json << 'EOF'
   "language": "en-US"
 }
 EOF
-```
+````
 
 ---
 
 ### Step 9: Update .gitignore for New Locations
+
 **Action:** Update .gitignore for docs structure
 **Commands:**
+
 ```bash
 # Update .gitignore
 cat >> .gitignore << 'EOF'
@@ -369,8 +402,10 @@ EOF
 ---
 
 ### Step 10: Clean Up .claude/ Directory
+
 **Action:** Remove moved files and update structure
 **Commands:**
+
 ```bash
 # List remaining .claude contents
 ls -la .claude/
@@ -380,14 +415,17 @@ ls -la .claude/
 ```
 
 **Decision Point:**
+
 - Keep `.claude/plans/` for now (contains migration plans)
 - These can be archived after migration completes
 
 ---
 
 ### Step 11: Update Root README.md
+
 **Action:** Update project README with new doc structure
 **Commands:**
+
 ```bash
 # Update README.md to reference docs structure
 # Add section pointing to docs/
@@ -395,6 +433,7 @@ ls -la .claude/
 
 **Manual Edit Required (README.md):**
 Add documentation section:
+
 ```markdown
 ## Documentation
 
@@ -407,8 +446,10 @@ Add documentation section:
 ---
 
 ### Step 12: Verify All Links Work
+
 **Action:** Check that all documentation links are valid
 **Commands:**
+
 ```bash
 # Check for broken links in markdown files
 grep -r "\.claude/" docs/
@@ -420,12 +461,16 @@ grep -r "changelog/" docs/
 ---
 
 ### Step 13: Regenerate API Documentation
+
 **Action:** Generate docs with new output location
 **Commands:**
+
 ```bash
 npm run docs
 ```
+
 **Validation:**
+
 ```bash
 ls docs/api/generated/
 # Should show index.html and documentation files
@@ -434,8 +479,10 @@ ls docs/api/generated/
 ---
 
 ### Step 14: Commit Phase 10 Changes
+
 **Action:** Commit all documentation reorganization
 **Commands:**
+
 ```bash
 git add .
 git status
@@ -447,17 +494,19 @@ Reorganize docs following hybrid approach:
 
 ## Structure
 ```
+
 docs/
-├── README.md                    # Documentation index
-├── architecture/                # System design
-│   ├── STORAGE-ARCHITECTURE.md  # (moved from .claude/)
-│   └── PERFORMANCE.md           # (moved from .claude/)
-├── guides/                      # Development guides
-│   └── GETTING-STARTED.md       # New onboarding guide
-├── api/                         # Compodoc output
-│   ├── README.md
-│   └── generated/               # Generated docs
-└── changelog/                   # (moved from changelog/)
+├── README.md # Documentation index
+├── architecture/ # System design
+│ ├── STORAGE-ARCHITECTURE.md # (moved from .claude/)
+│ └── PERFORMANCE.md # (moved from .claude/)
+├── guides/ # Development guides
+│ └── GETTING-STARTED.md # New onboarding guide
+├── api/ # Compodoc output
+│ ├── README.md
+│ └── generated/ # Generated docs
+└── changelog/ # (moved from changelog/)
+
 ```
 
 ## .claude/
@@ -483,8 +532,10 @@ EOF
 ---
 
 ### Step 15: Create PR for Phase 10
+
 **Action:** Push branch and create pull request
 **Commands:**
+
 ```bash
 git push -u origin chore/doc-reorganization
 
@@ -496,12 +547,14 @@ Reorganize documentation with hybrid approach for .claude/ and docs/.
 
 ### New Structure
 ```
+
 docs/
-├── README.md              # Documentation index
-├── architecture/          # Moved from .claude/
-├── guides/                # Development guides
-├── api/                   # Compodoc output
-└── changelog/             # Moved from changelog/
+├── README.md # Documentation index
+├── architecture/ # Moved from .claude/
+├── guides/ # Development guides
+├── api/ # Compodoc output
+└── changelog/ # Moved from changelog/
+
 ```
 
 ### Moved Files
@@ -539,21 +592,24 @@ EOF
 ## File Migration Map
 
 ### From .claude/ to docs/
-| Source | Destination |
-|--------|-------------|
+
+| Source                            | Destination                                 |
+| --------------------------------- | ------------------------------------------- |
 | `.claude/STORAGE-ARCHITECTURE.md` | `docs/architecture/STORAGE-ARCHITECTURE.md` |
-| `.claude/PERFORMANCE.md` | `docs/architecture/PERFORMANCE.md` |
+| `.claude/PERFORMANCE.md`          | `docs/architecture/PERFORMANCE.md`          |
 
 ### From changelog/ to docs/
-| Source | Destination |
-|--------|-------------|
+
+| Source        | Destination        |
+| ------------- | ------------------ |
 | `changelog/*` | `docs/changelog/*` |
 
 ### Files Remaining in .claude/
-| File | Purpose |
-|------|---------|
-| `CLAUDE.md` | AI-focused index for Claude Code |
-| `plans/` | Migration plans (archive after complete) |
+
+| File        | Purpose                                  |
+| ----------- | ---------------------------------------- |
+| `CLAUDE.md` | AI-focused index for Claude Code         |
+| `plans/`    | Migration plans (archive after complete) |
 
 ---
 
@@ -582,7 +638,9 @@ excel-extension/
 ---
 
 ## Integrity Checks
+
 Run ALL before marking complete:
+
 - [ ] `docs/README.md` exists and is complete
 - [ ] `docs/architecture/STORAGE-ARCHITECTURE.md` exists
 - [ ] `docs/architecture/PERFORMANCE.md` exists
@@ -596,6 +654,7 @@ Run ALL before marking complete:
 ---
 
 ## Gap Identification
+
 - **Risk 1:** Broken links after move → **Mitigation:** Grep for old paths
 - **Risk 2:** CLAUDE.md loses context → **Mitigation:** Keep as authoritative AI index
 - **Risk 3:** Developers can't find docs → **Mitigation:** Update root README
@@ -604,7 +663,9 @@ Run ALL before marking complete:
 ---
 
 ## Rollback Procedure
+
 If this phase fails:
+
 ```bash
 # Restore moved files
 git checkout HEAD -- .claude/STORAGE-ARCHITECTURE.md
@@ -632,6 +693,7 @@ git branch -D chore/doc-reorganization
 ---
 
 ## Exit Criteria
+
 - [ ] All success criteria met
 - [ ] All integrity checks pass
 - [ ] PR created and CI passes
@@ -641,6 +703,7 @@ git branch -D chore/doc-reorganization
 ---
 
 ## Notes
+
 - This is the final phase of the Nx migration
 - After this phase, merge migration branch to develop
 - Archive .claude/plans/ after successful migration

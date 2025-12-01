@@ -2,12 +2,14 @@
 
 > ⚠️ **PLAN MODE REQUIRED**
 > Before executing this plan:
+>
 > 1. Enter plan mode: Review this plan thoroughly
 > 2. Verify integrity: Check all file paths exist, dependencies are correct
 > 3. Confirm pre-conditions: Ensure Phase 2 completed
 > 4. Exit plan mode only when ready to execute
 
 ## Metadata
+
 - **Branch:** `refactor/core-libs`
 - **Depends On:** Phase 2 (Shared Libs)
 - **Estimated Effort:** 1 day (8 hours)
@@ -17,11 +19,13 @@
 ---
 
 ## Objective
+
 Migrate core services (auth, telemetry, settings) to their respective Nx libraries. These services form the foundation layer that other services depend on.
 
 ---
 
 ## Pre-Conditions
+
 - [ ] Phase 2 completed: Shared libraries migrated and PR merged
 - [ ] On migration branch: `git checkout refactor/nx-monorepo-migration && git pull`
 - [ ] `@excel-platform/shared/types` resolves correctly
@@ -31,6 +35,7 @@ Migrate core services (auth, telemetry, settings) to their respective Nx librari
 ---
 
 ## Success Criteria
+
 - [ ] AuthService and JwtHelperService migrated to `libs/core/auth/`
 - [ ] TelemetryService and AppContextService migrated to `libs/core/telemetry/`
 - [ ] SettingsService migrated to `libs/core/settings/`
@@ -44,15 +49,19 @@ Migrate core services (auth, telemetry, settings) to their respective Nx librari
 ## Detailed Steps
 
 ### Step 1: Create Branch for Phase 3
+
 **Action:** Create dedicated branch for core libs migration
 **Commands:**
+
 ```bash
 cd /Users/erikplachta/repo/excel-extension
 git checkout refactor/nx-monorepo-migration
 git pull origin refactor/nx-monorepo-migration
 git checkout -b refactor/core-libs
 ```
+
 **Validation:**
+
 ```bash
 git branch --show-current
 # Should return: refactor/core-libs
@@ -61,18 +70,20 @@ git branch --show-current
 ---
 
 ### Step 2: Analyze Core Service Dependencies
+
 **Action:** Map dependencies before migration to ensure correct order
 **Dependency Analysis:**
 
-| Service | Lines | Dependencies |
-|---------|-------|--------------|
-| JwtHelperService | 302 | None (pure functions) |
-| AuthService | 459 | JwtHelperService, StorageHelperService |
-| AppContextService | 88 | AuthService |
-| TelemetryService | 271 | AppContextService, SettingsService |
-| SettingsService | 130 | StorageBaseService |
+| Service           | Lines | Dependencies                           |
+| ----------------- | ----- | -------------------------------------- |
+| JwtHelperService  | 302   | None (pure functions)                  |
+| AuthService       | 459   | JwtHelperService, StorageHelperService |
+| AppContextService | 88    | AuthService                            |
+| TelemetryService  | 271   | AppContextService, SettingsService     |
+| SettingsService   | 130   | StorageBaseService                     |
 
 **Migration Order:**
+
 1. JwtHelperService (no deps)
 2. SettingsService (only StorageBaseService - stays in data/storage)
 3. AuthService (needs JwtHelper, StorageHelper)
@@ -84,15 +95,17 @@ git branch --show-current
 ---
 
 ### Step 3: Migrate JwtHelperService to libs/core/auth
+
 **Action:** Move JwtHelperService (pure functions, no dependencies)
 **Files to Move:**
 
-| Source | Destination |
-|--------|-------------|
-| `src/app/core/jwt-helper.service.ts` | `libs/core/auth/src/lib/jwt-helper.service.ts` |
+| Source                                    | Destination                                         |
+| ----------------------------------------- | --------------------------------------------------- |
+| `src/app/core/jwt-helper.service.ts`      | `libs/core/auth/src/lib/jwt-helper.service.ts`      |
 | `src/app/core/jwt-helper.service.spec.ts` | `libs/core/auth/src/lib/jwt-helper.service.spec.ts` |
 
 **Commands:**
+
 ```bash
 # Copy files
 cp src/app/core/jwt-helper.service.ts libs/core/auth/src/lib/
@@ -103,16 +116,18 @@ cp src/app/core/jwt-helper.service.spec.ts libs/core/auth/src/lib/
 ```
 
 **Manual Edit Required:**
+
 ```typescript
 // libs/core/auth/src/lib/jwt-helper.service.ts
 // Before
-import { JwtPayload, TokenPair } from '../types/jwt.types';
+import { JwtPayload, TokenPair } from "../types/jwt.types";
 
 // After
-import { JwtPayload, TokenPair } from '@excel-platform/shared/types';
+import { JwtPayload, TokenPair } from "@excel-platform/shared/types";
 ```
 
 **Validation:**
+
 ```bash
 ls libs/core/auth/src/lib/jwt-helper*
 # Should show service and spec files
@@ -121,38 +136,42 @@ ls libs/core/auth/src/lib/jwt-helper*
 ---
 
 ### Step 4: Migrate AuthService to libs/core/auth
+
 **Action:** Move AuthService with its dependencies
 **Files to Move:**
 
-| Source | Destination |
-|--------|-------------|
-| `src/app/core/auth.service.ts` | `libs/core/auth/src/lib/auth.service.ts` |
+| Source                              | Destination                                   |
+| ----------------------------------- | --------------------------------------------- |
+| `src/app/core/auth.service.ts`      | `libs/core/auth/src/lib/auth.service.ts`      |
 | `src/app/core/auth.service.spec.ts` | `libs/core/auth/src/lib/auth.service.spec.ts` |
 
 **Commands:**
+
 ```bash
 cp src/app/core/auth.service.ts libs/core/auth/src/lib/
 cp src/app/core/auth.service.spec.ts libs/core/auth/src/lib/
 ```
 
 **Manual Edit Required:**
+
 ```typescript
 // libs/core/auth/src/lib/auth.service.ts
 // Before
-import { AuthState, UserInfo, Role } from '../types/auth.types';
-import { JwtHelperService } from './jwt-helper.service';
-import { StorageHelperService } from '../shared/storage-helper.service';
+import { AuthState, UserInfo, Role } from "../types/auth.types";
+import { JwtHelperService } from "./jwt-helper.service";
+import { StorageHelperService } from "../shared/storage-helper.service";
 
 // After
-import { AuthState, UserInfo, Role } from '@excel-platform/shared/types';
-import { JwtHelperService } from './jwt-helper.service'; // Same library, relative OK
+import { AuthState, UserInfo, Role } from "@excel-platform/shared/types";
+import { JwtHelperService } from "./jwt-helper.service"; // Same library, relative OK
 // StorageHelperService - temporary relative import until Phase 5
-import { StorageHelperService } from '../../../../src/app/shared/storage-helper.service';
+import { StorageHelperService } from "../../../../src/app/shared/storage-helper.service";
 ```
 
 **Note:** StorageHelperService import will be updated in Phase 5 when data/storage is migrated.
 
 **Validation:**
+
 ```bash
 ls libs/core/auth/src/lib/auth*
 # Should show service and spec files
@@ -161,8 +180,10 @@ ls libs/core/auth/src/lib/auth*
 ---
 
 ### Step 5: Create Barrel Export for Auth Library
+
 **Action:** Update index.ts to export auth services
 **Commands:**
+
 ```bash
 cat > libs/core/auth/src/index.ts << 'EOF'
 // @excel-platform/core/auth
@@ -172,7 +193,9 @@ export * from './lib/jwt-helper.service';
 export * from './lib/auth.service';
 EOF
 ```
+
 **Validation:**
+
 ```bash
 cat libs/core/auth/src/index.ts
 # Should show both exports
@@ -181,8 +204,10 @@ cat libs/core/auth/src/index.ts
 ---
 
 ### Step 6: Create tsconfig.json Files for Auth Library
+
 **Action:** Create library-specific TypeScript configuration
 **Commands:**
+
 ```bash
 cat > libs/core/auth/tsconfig.json << 'EOF'
 {
@@ -235,7 +260,9 @@ cat > libs/core/auth/tsconfig.spec.json << 'EOF'
 }
 EOF
 ```
+
 **Validation:**
+
 ```bash
 ls libs/core/auth/tsconfig*.json | wc -l
 # Should return: 3
@@ -244,34 +271,38 @@ ls libs/core/auth/tsconfig*.json | wc -l
 ---
 
 ### Step 7: Migrate SettingsService to libs/core/settings
+
 **Action:** Move SettingsService
 **Files to Move:**
 
-| Source | Destination |
-|--------|-------------|
-| `src/app/core/settings.service.ts` | `libs/core/settings/src/lib/settings.service.ts` |
+| Source                                  | Destination                                           |
+| --------------------------------------- | ----------------------------------------------------- |
+| `src/app/core/settings.service.ts`      | `libs/core/settings/src/lib/settings.service.ts`      |
 | `src/app/core/settings.service.spec.ts` | `libs/core/settings/src/lib/settings.service.spec.ts` |
 
 **Commands:**
+
 ```bash
 cp src/app/core/settings.service.ts libs/core/settings/src/lib/
 cp src/app/core/settings.service.spec.ts libs/core/settings/src/lib/
 ```
 
 **Manual Edit Required:**
+
 ```typescript
 // libs/core/settings/src/lib/settings.service.ts
 // Before
-import { AppSettings, TelemetrySettings } from '../types/settings.types';
-import { StorageBaseService } from '../shared/storage-base.service';
+import { AppSettings, TelemetrySettings } from "../types/settings.types";
+import { StorageBaseService } from "../shared/storage-base.service";
 
 // After
-import { AppSettings, TelemetrySettings } from '@excel-platform/shared/types';
+import { AppSettings, TelemetrySettings } from "@excel-platform/shared/types";
 // StorageBaseService - temporary relative import until Phase 5
-import { StorageBaseService } from '../../../../src/app/shared/storage-base.service';
+import { StorageBaseService } from "../../../../src/app/shared/storage-base.service";
 ```
 
 **Validation:**
+
 ```bash
 ls libs/core/settings/src/lib/settings*
 # Should show service and spec files
@@ -280,8 +311,10 @@ ls libs/core/settings/src/lib/settings*
 ---
 
 ### Step 8: Create Barrel Export for Settings Library
+
 **Action:** Update index.ts to export settings service
 **Commands:**
+
 ```bash
 cat > libs/core/settings/src/index.ts << 'EOF'
 // @excel-platform/core/settings
@@ -290,7 +323,9 @@ cat > libs/core/settings/src/index.ts << 'EOF'
 export * from './lib/settings.service';
 EOF
 ```
+
 **Validation:**
+
 ```bash
 cat libs/core/settings/src/index.ts
 ```
@@ -298,8 +333,10 @@ cat libs/core/settings/src/index.ts
 ---
 
 ### Step 9: Create tsconfig.json Files for Settings Library
+
 **Action:** Create library-specific TypeScript configuration
 **Commands:**
+
 ```bash
 cat > libs/core/settings/tsconfig.json << 'EOF'
 {
@@ -352,7 +389,9 @@ cat > libs/core/settings/tsconfig.spec.json << 'EOF'
 }
 EOF
 ```
+
 **Validation:**
+
 ```bash
 ls libs/core/settings/tsconfig*.json | wc -l
 # Should return: 3
@@ -361,31 +400,35 @@ ls libs/core/settings/tsconfig*.json | wc -l
 ---
 
 ### Step 10: Migrate AppContextService to libs/core/telemetry
+
 **Action:** Move AppContextService
 **Files to Move:**
 
-| Source | Destination |
-|--------|-------------|
-| `src/app/core/app-context.service.ts` | `libs/core/telemetry/src/lib/app-context.service.ts` |
+| Source                                     | Destination                                               |
+| ------------------------------------------ | --------------------------------------------------------- |
+| `src/app/core/app-context.service.ts`      | `libs/core/telemetry/src/lib/app-context.service.ts`      |
 | `src/app/core/app-context.service.spec.ts` | `libs/core/telemetry/src/lib/app-context.service.spec.ts` |
 
 **Commands:**
+
 ```bash
 cp src/app/core/app-context.service.ts libs/core/telemetry/src/lib/
 cp src/app/core/app-context.service.spec.ts libs/core/telemetry/src/lib/
 ```
 
 **Manual Edit Required:**
+
 ```typescript
 // libs/core/telemetry/src/lib/app-context.service.ts
 // Before
-import { AuthService } from './auth.service';
+import { AuthService } from "./auth.service";
 
 // After
-import { AuthService } from '@excel-platform/core/auth';
+import { AuthService } from "@excel-platform/core/auth";
 ```
 
 **Validation:**
+
 ```bash
 ls libs/core/telemetry/src/lib/app-context*
 ```
@@ -393,35 +436,39 @@ ls libs/core/telemetry/src/lib/app-context*
 ---
 
 ### Step 11: Migrate TelemetryService to libs/core/telemetry
+
 **Action:** Move TelemetryService
 **Files to Move:**
 
-| Source | Destination |
-|--------|-------------|
-| `src/app/core/telemetry.service.ts` | `libs/core/telemetry/src/lib/telemetry.service.ts` |
+| Source                                   | Destination                                             |
+| ---------------------------------------- | ------------------------------------------------------- |
+| `src/app/core/telemetry.service.ts`      | `libs/core/telemetry/src/lib/telemetry.service.ts`      |
 | `src/app/core/telemetry.service.spec.ts` | `libs/core/telemetry/src/lib/telemetry.service.spec.ts` |
 
 **Commands:**
+
 ```bash
 cp src/app/core/telemetry.service.ts libs/core/telemetry/src/lib/
 cp src/app/core/telemetry.service.spec.ts libs/core/telemetry/src/lib/
 ```
 
 **Manual Edit Required:**
+
 ```typescript
 // libs/core/telemetry/src/lib/telemetry.service.ts
 // Before
-import { TelemetryEvent, TelemetrySettings } from '../types/telemetry.types';
-import { AppContextService } from './app-context.service';
-import { SettingsService } from './settings.service';
+import { TelemetryEvent, TelemetrySettings } from "../types/telemetry.types";
+import { AppContextService } from "./app-context.service";
+import { SettingsService } from "./settings.service";
 
 // After
-import { TelemetryEvent, TelemetrySettings } from '@excel-platform/shared/types';
-import { AppContextService } from './app-context.service'; // Same library
-import { SettingsService } from '@excel-platform/core/settings';
+import { TelemetryEvent, TelemetrySettings } from "@excel-platform/shared/types";
+import { AppContextService } from "./app-context.service"; // Same library
+import { SettingsService } from "@excel-platform/core/settings";
 ```
 
 **Validation:**
+
 ```bash
 ls libs/core/telemetry/src/lib/telemetry*
 ```
@@ -429,8 +476,10 @@ ls libs/core/telemetry/src/lib/telemetry*
 ---
 
 ### Step 12: Create Barrel Export for Telemetry Library
+
 **Action:** Update index.ts to export telemetry services
 **Commands:**
+
 ```bash
 cat > libs/core/telemetry/src/index.ts << 'EOF'
 // @excel-platform/core/telemetry
@@ -440,7 +489,9 @@ export * from './lib/app-context.service';
 export * from './lib/telemetry.service';
 EOF
 ```
+
 **Validation:**
+
 ```bash
 cat libs/core/telemetry/src/index.ts
 ```
@@ -448,8 +499,10 @@ cat libs/core/telemetry/src/index.ts
 ---
 
 ### Step 13: Create tsconfig.json Files for Telemetry Library
+
 **Action:** Create library-specific TypeScript configuration
 **Commands:**
+
 ```bash
 cat > libs/core/telemetry/tsconfig.json << 'EOF'
 {
@@ -502,7 +555,9 @@ cat > libs/core/telemetry/tsconfig.spec.json << 'EOF'
 }
 EOF
 ```
+
 **Validation:**
+
 ```bash
 ls libs/core/telemetry/tsconfig*.json | wc -l
 # Should return: 3
@@ -511,22 +566,24 @@ ls libs/core/telemetry/tsconfig*.json | wc -l
 ---
 
 ### Step 14: Update App Imports to Use Core Aliases
+
 **Action:** Find and replace all imports from old locations
 
 **Import Path Changes:**
 
-| Old Import | New Import |
-|------------|------------|
-| `from './auth.service'` | `from '@excel-platform/core/auth'` |
-| `from '../core/auth.service'` | `from '@excel-platform/core/auth'` |
-| `from './jwt-helper.service'` | `from '@excel-platform/core/auth'` |
-| `from './settings.service'` | `from '@excel-platform/core/settings'` |
-| `from '../core/settings.service'` | `from '@excel-platform/core/settings'` |
-| `from './telemetry.service'` | `from '@excel-platform/core/telemetry'` |
+| Old Import                         | New Import                              |
+| ---------------------------------- | --------------------------------------- |
+| `from './auth.service'`            | `from '@excel-platform/core/auth'`      |
+| `from '../core/auth.service'`      | `from '@excel-platform/core/auth'`      |
+| `from './jwt-helper.service'`      | `from '@excel-platform/core/auth'`      |
+| `from './settings.service'`        | `from '@excel-platform/core/settings'`  |
+| `from '../core/settings.service'`  | `from '@excel-platform/core/settings'`  |
+| `from './telemetry.service'`       | `from '@excel-platform/core/telemetry'` |
 | `from '../core/telemetry.service'` | `from '@excel-platform/core/telemetry'` |
-| `from './app-context.service'` | `from '@excel-platform/core/telemetry'` |
+| `from './app-context.service'`     | `from '@excel-platform/core/telemetry'` |
 
 **Commands:**
+
 ```bash
 # Find all files importing these services
 grep -rl "from '.*auth.service'" src/app/
@@ -539,8 +596,10 @@ grep -rl "from '.*app-context.service'" src/app/
 ---
 
 ### Step 15: Delete Original Core Service Files
+
 **Action:** Remove original files after confirming build works
 **Commands:**
+
 ```bash
 # Only after build succeeds!
 rm src/app/core/auth.service.ts
@@ -554,7 +613,9 @@ rm src/app/core/telemetry.service.spec.ts
 rm src/app/core/app-context.service.ts
 rm src/app/core/app-context.service.spec.ts
 ```
+
 **Validation:**
+
 ```bash
 ls src/app/core/*service*.ts 2>/dev/null
 # Should only show services not yet migrated (excel, workbook, formula-scanner, app-config, config-validator)
@@ -563,22 +624,28 @@ ls src/app/core/*service*.ts 2>/dev/null
 ---
 
 ### Step 16: Verify Build and Tests
+
 **Action:** Ensure everything still works after migration
 **Commands:**
+
 ```bash
 npm run lint
 npm run build
 npm run test:ci
 ```
+
 **Expected Output:**
+
 - All commands pass
 - No circular dependency errors
 
 ---
 
 ### Step 17: Commit Phase 3 Changes
+
 **Action:** Commit all core library migration changes
 **Commands:**
+
 ```bash
 git add .
 git status
@@ -613,8 +680,10 @@ EOF
 ---
 
 ### Step 18: Create PR for Phase 3
+
 **Action:** Push branch and create pull request
 **Commands:**
+
 ```bash
 git push -u origin refactor/core-libs
 
@@ -658,46 +727,51 @@ EOF
 ## File Migration Map
 
 ### libs/core/auth
-| Source | Destination | Notes |
-|--------|-------------|-------|
-| `src/app/core/jwt-helper.service.ts` | `libs/core/auth/src/lib/jwt-helper.service.ts` | Pure functions, no deps |
-| `src/app/core/jwt-helper.service.spec.ts` | `libs/core/auth/src/lib/jwt-helper.service.spec.ts` | Tests |
-| `src/app/core/auth.service.ts` | `libs/core/auth/src/lib/auth.service.ts` | Depends on JwtHelper |
-| `src/app/core/auth.service.spec.ts` | `libs/core/auth/src/lib/auth.service.spec.ts` | Tests |
+
+| Source                                    | Destination                                         | Notes                   |
+| ----------------------------------------- | --------------------------------------------------- | ----------------------- |
+| `src/app/core/jwt-helper.service.ts`      | `libs/core/auth/src/lib/jwt-helper.service.ts`      | Pure functions, no deps |
+| `src/app/core/jwt-helper.service.spec.ts` | `libs/core/auth/src/lib/jwt-helper.service.spec.ts` | Tests                   |
+| `src/app/core/auth.service.ts`            | `libs/core/auth/src/lib/auth.service.ts`            | Depends on JwtHelper    |
+| `src/app/core/auth.service.spec.ts`       | `libs/core/auth/src/lib/auth.service.spec.ts`       | Tests                   |
 
 ### libs/core/settings
-| Source | Destination | Notes |
-|--------|-------------|-------|
-| `src/app/core/settings.service.ts` | `libs/core/settings/src/lib/settings.service.ts` | Depends on StorageBase |
-| `src/app/core/settings.service.spec.ts` | `libs/core/settings/src/lib/settings.service.spec.ts` | Tests |
+
+| Source                                  | Destination                                           | Notes                  |
+| --------------------------------------- | ----------------------------------------------------- | ---------------------- |
+| `src/app/core/settings.service.ts`      | `libs/core/settings/src/lib/settings.service.ts`      | Depends on StorageBase |
+| `src/app/core/settings.service.spec.ts` | `libs/core/settings/src/lib/settings.service.spec.ts` | Tests                  |
 
 ### libs/core/telemetry
-| Source | Destination | Notes |
-|--------|-------------|-------|
-| `src/app/core/app-context.service.ts` | `libs/core/telemetry/src/lib/app-context.service.ts` | Depends on Auth |
-| `src/app/core/app-context.service.spec.ts` | `libs/core/telemetry/src/lib/app-context.service.spec.ts` | Tests |
-| `src/app/core/telemetry.service.ts` | `libs/core/telemetry/src/lib/telemetry.service.ts` | Depends on AppContext, Settings |
-| `src/app/core/telemetry.service.spec.ts` | `libs/core/telemetry/src/lib/telemetry.service.spec.ts` | Tests |
+
+| Source                                     | Destination                                               | Notes                           |
+| ------------------------------------------ | --------------------------------------------------------- | ------------------------------- |
+| `src/app/core/app-context.service.ts`      | `libs/core/telemetry/src/lib/app-context.service.ts`      | Depends on Auth                 |
+| `src/app/core/app-context.service.spec.ts` | `libs/core/telemetry/src/lib/app-context.service.spec.ts` | Tests                           |
+| `src/app/core/telemetry.service.ts`        | `libs/core/telemetry/src/lib/telemetry.service.ts`        | Depends on AppContext, Settings |
+| `src/app/core/telemetry.service.spec.ts`   | `libs/core/telemetry/src/lib/telemetry.service.spec.ts`   | Tests                           |
 
 ---
 
 ## Import Path Changes
 
-| Old Import | New Import |
-|------------|------------|
-| `from '../core/auth.service'` | `from '@excel-platform/core/auth'` |
-| `from '../core/jwt-helper.service'` | `from '@excel-platform/core/auth'` |
-| `from './auth.service'` | `from '@excel-platform/core/auth'` |
-| `from '../core/settings.service'` | `from '@excel-platform/core/settings'` |
-| `from './settings.service'` | `from '@excel-platform/core/settings'` |
-| `from '../core/telemetry.service'` | `from '@excel-platform/core/telemetry'` |
-| `from './telemetry.service'` | `from '@excel-platform/core/telemetry'` |
+| Old Import                           | New Import                              |
+| ------------------------------------ | --------------------------------------- |
+| `from '../core/auth.service'`        | `from '@excel-platform/core/auth'`      |
+| `from '../core/jwt-helper.service'`  | `from '@excel-platform/core/auth'`      |
+| `from './auth.service'`              | `from '@excel-platform/core/auth'`      |
+| `from '../core/settings.service'`    | `from '@excel-platform/core/settings'`  |
+| `from './settings.service'`          | `from '@excel-platform/core/settings'`  |
+| `from '../core/telemetry.service'`   | `from '@excel-platform/core/telemetry'` |
+| `from './telemetry.service'`         | `from '@excel-platform/core/telemetry'` |
 | `from '../core/app-context.service'` | `from '@excel-platform/core/telemetry'` |
 
 ---
 
 ## Integrity Checks
+
 Run ALL before marking complete:
+
 - [ ] `npm run lint` passes
 - [ ] `npm run build` passes
 - [ ] `npm run test:ci` passes
@@ -711,6 +785,7 @@ Run ALL before marking complete:
 ---
 
 ## Gap Identification
+
 - **Risk 1:** Circular dependency between core services → **Mitigation:** Migration order respects dependency graph
 - **Risk 2:** StorageHelperService not yet migrated → **Mitigation:** Temporary relative imports, updated in Phase 5
 - **Risk 3:** Tests fail due to missing mocks → **Mitigation:** Update test imports and mock paths
@@ -719,7 +794,9 @@ Run ALL before marking complete:
 ---
 
 ## Rollback Procedure
+
 If this phase fails:
+
 ```bash
 # Restore original files
 git checkout HEAD -- src/app/core/auth.service.ts
@@ -753,6 +830,7 @@ git branch -D refactor/core-libs
 ---
 
 ## Exit Criteria
+
 - [ ] All success criteria met
 - [ ] All integrity checks pass
 - [ ] PR created and CI passes
@@ -762,6 +840,7 @@ git branch -D refactor/core-libs
 ---
 
 ## Notes
+
 - Core services are foundational - many features depend on them
 - Thorough import updates are critical for this phase
 - Temporary relative imports for storage services are acceptable

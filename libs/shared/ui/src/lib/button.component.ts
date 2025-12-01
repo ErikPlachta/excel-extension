@@ -1,6 +1,6 @@
 import { CommonModule } from "@angular/common";
 import { Component, EventEmitter, Input, Output } from "@angular/core";
-import { UiButtonSize, UiButtonVariant } from "../../types";
+import type { UiButtonSize, UiButtonVariant } from '@excel-platform/shared/types';
 
 /**
  * Reusable button primitive used throughout the shell and features.

@@ -5,6 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ### Development
+
 ```bash
 npm ci                  # Install dependencies
 npm start               # Dev server at http://localhost:4200/
@@ -15,6 +16,7 @@ npm run build           # Production build
 ```
 
 ### Testing & Linting
+
 ```bash
 npm test                # Unit tests (Karma/Jasmine, interactive)
 npm run test:ci         # Headless tests (single run, ChromeHeadless)
@@ -26,6 +28,7 @@ npm run validate:dev-manifest  # Validate dev-manifest.xml
 ```
 
 ### Excel Sideloading
+
 1. Run dev server: `npm start` or `npm run start:dev`
 2. In Excel: **Insert → My Add-ins → Upload My Add-in**
 3. Select `dev-manifest.xml` from repo
@@ -36,6 +39,7 @@ npm run validate:dev-manifest  # Validate dev-manifest.xml
 Angular 20 task-pane add-in for Excel using standalone components and Office.js. No NgModules. Entry at `src/main.ts` bootstraps `AppComponent` with `provideRouter(routes)`.
 
 ### Directory Structure
+
 - **`src/app/core/`** – Root shell, core services (`ExcelService`, `WorkbookService`, `AuthService`, `TelemetryService`, `SettingsService`), app bootstrap/config
 - **`src/app/features/`** – Feature views (SSO, home, worksheets, tables, queries, user)
 - **`src/app/shared/`** – Query domain models/services, utilities, UI primitives
@@ -47,6 +51,7 @@ Angular 20 task-pane add-in for Excel using standalone components and Office.js.
 ### Key Services
 
 #### ExcelService (`src/app/core/excel.service.ts`)
+
 - Wraps Office.js `Excel.run()` with `isExcel` guard for safe host detection
 - Provides workbook operations: `upsertQueryTable`, `activateQueryLocation`, ownership helpers
 - Returns typed `ExcelOperationResult<T>` instead of throwing
@@ -54,12 +59,14 @@ Angular 20 task-pane add-in for Excel using standalone components and Office.js.
 - **Phase 6:** Chunked writes for large datasets via `writeRowsInChunks()` (default 1000 rows/chunk, 100ms backoff)
 
 #### WorkbookService (`src/app/core/workbook.service.ts`)
+
 - Shared workbook abstraction for tabs/sheets and tables
 - Helpers: `getSheets()`, `getTables()`, `getTableByName(name)`
 - Ownership model: `getOwnership()`, `isExtensionManagedTable()`, `getManagedTablesForQuery()`
 - All features use this instead of direct Office.js calls
 
 #### AuthService (`src/app/core/auth.service.ts`)
+
 - Mocked SSO with user, roles, auth state
 - **Uses StorageHelperService for persistence** (refactored in Phase 5)
 - Role-based feature visibility (queries require `analyst`/`admin`)
@@ -67,6 +74,7 @@ Angular 20 task-pane add-in for Excel using standalone components and Office.js.
 - Comprehensive TSDoc coverage
 
 #### SettingsService (`src/app/core/settings.service.ts`)
+
 - Application-wide user preferences and configuration
 - **Uses StorageBaseService** (zero-dep wrapper to avoid TelemetryService circular dependency)
 - Deep merge for partial updates (telemetry + queryExecution settings)
@@ -74,18 +82,21 @@ Angular 20 task-pane add-in for Excel using standalone components and Office.js.
 - **Phase 6:** `queryExecution` settings for performance (maxRowsPerQuery, chunkSize, enableProgressiveLoading, apiPageSize, chunkBackoffMs)
 
 #### AppContextService (`src/app/core/app-context.service.ts`)
+
 - Aggregates runtime context for telemetry and diagnostics
 - Provides host status (Excel vs browser, online status)
 - Provides auth summary (derived from AuthService)
 - Comprehensive TSDoc coverage
 
 #### TelemetryService (`src/app/core/telemetry.service.ts`)
+
 - Centralized logging to console + optional in-workbook table
 - Configuration via `SettingsService` → `TelemetrySettings`
 - Enriches events with session ID, host status, auth summary
 - Error normalization for Excel operations
 
 #### FormulaScannerService (`src/app/core/formula-scanner.service.ts`) - Phase 9
+
 - Scans workbook formulas for table/column dependencies (5-min cache)
 - Parses Table[Column], [@Column], [[Column]] structured references
 - `checkQueryImpact()` assesses formula dependencies before query execution
@@ -93,11 +104,13 @@ Angular 20 task-pane add-in for Excel using standalone components and Office.js.
 - CSV report export for formula dependencies
 
 #### QueryStateService (`src/app/shared/query-state.service.ts`)
+
 - Tracks query configurations, parameters (global + per-query), last runs
 - **Uses StorageHelperService for persistence** (refactored in Phase 4)
 - Used by Queries view for state management
 
 #### QueryApiMockService (`src/app/shared/query-api-mock.service.ts`)
+
 - Mock API definitions for queries (sales, customers, inventory, audit)
 - Returns sample data rows for each query
 - **Integrated IndexedDB caching** (Phase 4): checks cache before generating mocks
@@ -105,6 +118,7 @@ Angular 20 task-pane add-in for Excel using standalone components and Office.js.
 - Drives flat catalog in current Queries view
 
 #### StorageBaseService (`src/app/shared/storage-base.service.ts`)
+
 - Zero-dependency localStorage wrapper (no injected services)
 - Breaks circular dependency: TelemetryService → SettingsService → StorageHelperService → TelemetryService
 - Used by SettingsService which cannot depend on TelemetryService
@@ -112,6 +126,7 @@ Angular 20 task-pane add-in for Excel using standalone components and Office.js.
 - SSR-safe with `typeof window` checks
 
 #### StorageHelperService (`src/app/shared/storage-helper.service.ts`)
+
 - Multi-backend storage abstraction (localStorage + IndexedDB)
 - Delegates localStorage ops to StorageBaseService
 - Type-safe operations with telemetry error logging
@@ -121,6 +136,7 @@ Angular 20 task-pane add-in for Excel using standalone components and Office.js.
 - All services (except SettingsService) use this instead of direct storage access
 
 #### IndexedDBService (`src/app/shared/indexeddb.service.ts`)
+
 - Large dataset storage for query result caching
 - TTL-based cache invalidation (default: 1 hour)
 - Schema: `{ id, queryId, rows, timestamp, expiresAt }`
@@ -128,6 +144,7 @@ Angular 20 task-pane add-in for Excel using standalone components and Office.js.
 - Integrated with QueryApiMockService for transparent caching
 
 #### BackupRestoreService (`src/app/shared/backup-restore.service.ts`)
+
 - Export/import app state to JSON file
 - Version compatibility checks (semantic versioning)
 - Backup schema: `{ version, timestamp, authState, settings, queryConfigs, queryState }`
@@ -135,30 +152,35 @@ Angular 20 task-pane add-in for Excel using standalone components and Office.js.
 - App reloads after import to apply restored state
 
 #### QueryValidationService (`src/app/shared/query-validation.service.ts`)
+
 - Validates QueryConfiguration against ApiDefinition catalog
 - Required parameter checks, type validation
 - Returns `{ valid: boolean, errors: string[] }`
 - Used by QueryConfigurationService on save operations
 
 #### JwtHelperService (`src/app/core/jwt-helper.service.ts`)
+
 - Mock JWT token generation for development
 - Token encoding/decoding with Base64
 - Expiration checking and refresh logic
 - `generateMockTokenPair()`, `decodeMockToken()`, `isTokenExpired()`
 
 #### ApiCatalogService (`src/app/shared/api-catalog.service.ts`)
+
 - Manages API definitions from AppConfig
 - Role-based API filtering via `getApisByRole()`
 - API lookup by ID via `getApiById()`
 - Used by Queries component for available APIs
 
 #### QueryConfigurationService (`src/app/shared/query-configuration.service.ts`)
+
 - CRUD operations for query configurations
 - Per-workbook and per-user scoping
 - Observable `configs$` stream for reactive updates
 - `saveConfig()`, `deleteConfig()`, `getConfigs()`
 
 #### QueryQueueService (`src/app/shared/query-queue.service.ts`)
+
 - Batch query execution with progress tracking
 - Sequential or parallel execution modes
 - Observable `progress$` stream for UI updates
@@ -167,6 +189,7 @@ Angular 20 task-pane add-in for Excel using standalone components and Office.js.
 ### Office.js Integration Pattern
 
 **Always follow this pattern:**
+
 ```typescript
 async ngOnInit() {
   if (!this.excel.isExcel) return;
@@ -189,6 +212,7 @@ async ngOnInit() {
 - Keep Office/Excel globals as `any` at integration boundary
 
 ### Navigation & Shell
+
 - State-based navigation in `AppComponent` using `currentView` (no URL changes in Excel)
 - Routes in `src/app/core/app.routes.ts` for non-Excel browser usage
 - Views: SSO, home, worksheets, tables, queries, user
@@ -196,12 +220,14 @@ async ngOnInit() {
 - Host banner at bottom when Excel not detected
 
 ### Data-Driven Config
+
 - `DEFAULT_APP_CONFIG` in `src/app/shared/app-config.ts` drives nav, roles, layout
 - `APP_TEXT` in `src/app/shared/app-text.ts` centralizes all UI copy
 - Types in `src/app/types/app-config.types.ts`
 - Add new nav item: edit config + text, no template changes needed
 
 ### Query Execution (Phase 1 Updated)
+
 - **API catalog from `ApiCatalogService`** - replaces QueryApiMockService.getQueries()
 - **Types: `ApiDefinition` for catalog, `QueryInstance` for execution**
 - Global + per-query parameter management via `QueryStateService`
@@ -211,12 +237,14 @@ async ngOnInit() {
 - Telemetry to console + optional in-workbook log table
 
 **Phase 1 Type Migration:**
+
 - `QueryDefinition` is **@deprecated** - use `ApiDefinition` for catalog entries
 - `QueryInstance` defines execution config with target sheet/table
 - `QueryApiMockService.executeApi()` replaces deprecated `executeQuery()`
 - `ExcelService.upsertQueryTable` signature: `(apiId, {sheetName, tableName}, rows)`
 
 ### Workbook Ownership Model
+
 - Metadata stored in hidden `_Extension_Ownership` sheet
 - Tracks `(sheetName, tableName, queryId, isManaged, lastTouchedUtc)`
 - Extension only mutates managed tables
@@ -225,6 +253,7 @@ async ngOnInit() {
 - Dev-only purge: `ExcelService.purgeExtensionManagedContent` removes all managed content
 
 ### Manifests
+
 - **`dev-manifest.xml`** – Points to `http://localhost:4200/` for local dev/sideloading
 - **`prod-manifest.xml`** – Points to GitHub Pages deployment
 - Both validated via `npm run validate:dev-manifest`
@@ -250,24 +279,27 @@ async ngOnInit() {
 ## Common Patterns
 
 ### Adding a Routed View
+
 1. Create `foo.component.ts` as standalone with `templateUrl`/`styleUrl`
 2. Add `{ path: 'foo', component: FooComponent }` to `src/app/core/app.routes.ts`
 3. Link via `<a routerLink="/foo">Foo</a>` in `app.component.html`
 
 ### Adding a Nav Item
+
 1. Edit `DEFAULT_APP_CONFIG` in `src/app/shared/app-config.default.ts`
 2. Add `NavItemConfig` with unique `id`, `labelKey`, `viewId`, role requirements
 3. Add `labelKey` to `APP_TEXT.nav` in `src/app/shared/app-text.ts`
 4. Nav updates automatically
 
 ### Logging Telemetry
+
 ```typescript
 this.telemetry.logEvent({
-  category: 'feature',
-  name: 'query-run',
-  severity: 'info',
-  message: 'Query executed successfully',
-  context: { queryId: query.id }
+  category: "feature",
+  name: "query-run",
+  severity: "info",
+  message: "Query executed successfully",
+  context: { queryId: query.id },
 });
 ```
 
@@ -297,7 +329,7 @@ this.telemetry.logEvent({
 
 ## Completed Refactors
 
-Architecture refactor (9 phases) completed November 2025. See `changelog/CHANGELOG_20251126_000000_feat-finalize-concept.md` for details.
+Architecture refactor (9 phases) completed November 2025. See `docs/changelog/CHANGELOG_20251126_000000_feat-finalize-concept.md` for details.
 
 **Reference docs:**
 
