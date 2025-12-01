@@ -33,7 +33,8 @@
       "@excel-platform/office/common": ["libs/office/common/src/index.ts"],
       "@excel-platform/data/query": ["libs/data/query/src/index.ts"],
       "@excel-platform/data/api": ["libs/data/api/src/index.ts"],
-      "@excel-platform/data/storage": ["libs/data/storage/src/index.ts"]
+      "@excel-platform/data/storage": ["libs/data/storage/src/index.ts"],
+      "@excel-platform/data/storage/*": ["libs/data/storage/src/lib/*"]
     }
   },
   "exclude": ["node_modules", "tmp"]

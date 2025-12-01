@@ -6,7 +6,7 @@ import { ExcelService } from "@excel-platform/core/excel";
 import { AuthService } from "@excel-platform/core/auth";
 import { AppContextService } from "@excel-platform/core/telemetry";
 import { AppConfigService } from "./app-config.service";
-import { IndexedDBService } from "../shared/indexeddb.service";
+import { IndexedDBService } from "@excel-platform/data/storage";
 import { NavItemConfig } from "../shared/app-config";
 
 describe("AppComponent", () => {

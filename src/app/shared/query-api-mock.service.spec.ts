@@ -1,7 +1,7 @@
 import { TestBed } from "@angular/core/testing";
 import { QueryApiMockService, ExecuteQueryParams } from "./query-api-mock.service";
 import { ApiCatalogService } from "./api-catalog.service";
-import { IndexedDBService } from "./indexeddb.service";
+import { IndexedDBService } from "@excel-platform/data/storage";
 import { SettingsService } from "@excel-platform/core/settings";
 import { TelemetryService } from "@excel-platform/core/telemetry";
 

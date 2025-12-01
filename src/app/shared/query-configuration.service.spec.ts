@@ -2,7 +2,7 @@ import { QueryConfigurationService } from "./query-configuration.service";
 import { QueryConfiguration } from "../types";
 import { AuthService } from "@excel-platform/core/auth";
 import { ApiCatalogService } from "./api-catalog.service";
-import { StorageHelperService } from "./storage-helper.service";
+import { StorageHelperService } from "@excel-platform/data/storage";
 import { QueryValidationService, ValidationResult } from "./query-validation.service";
 
 class AuthServiceStub {

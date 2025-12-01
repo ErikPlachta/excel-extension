@@ -1,7 +1,6 @@
 import { Injectable, Inject } from '@angular/core';
 import { StorageHelperService } from './storage-helper.service';
-import { TelemetryService } from "@excel-platform/core/telemetry";
-import { WINDOW } from '../core/window.token';
+import { WINDOW } from './window.token';
 
 /**
  * Backup/Restore Service - Export/import app state for data persistence.
@@ -9,6 +8,9 @@ import { WINDOW } from '../core/window.token';
  * Provides functionality to export all application state (auth, settings,
  * query configs) to a downloadable JSON file and restore from backup.
  * Supports version compatibility checks for safe migrations.
+ *
+ * **Note:** Telemetry logging is handled by callers (e.g., SettingsComponent)
+ * to avoid circular dependencies with the telemetry library.
  *
  * **Usage:**
  * ```typescript
@@ -25,7 +27,6 @@ export class BackupRestoreService {
 
   constructor(
     private readonly storage: StorageHelperService,
-    private readonly telemetry: TelemetryService,
     @Inject(WINDOW) private readonly window: Window
   ) {}
 
@@ -41,43 +42,24 @@ export class BackupRestoreService {
    * Downloads as `excel-extension-backup-{timestamp}.json`.
    */
   async exportBackup(): Promise<void> {
-    try {
-      const backup: AppStateBackup = {
-        version: this.BACKUP_VERSION,
-        timestamp: new Date().toISOString(),
-        authState: this.storage.getItem('auth-state', null),
-        settings: this.storage.getItem('settings', null),
-        queryConfigs: this.getQueryConfigs(),
-        queryState: this.storage.getItem('query-state', null),
-      };
+    const backup: AppStateBackup = {
+      version: this.BACKUP_VERSION,
+      timestamp: new Date().toISOString(),
+      authState: this.storage.getItem('auth-state', null),
+      settings: this.storage.getItem('settings', null),
+      queryConfigs: this.getQueryConfigs(),
+      queryState: this.storage.getItem('query-state', null),
+    };
 
-      const blob = new Blob([JSON.stringify(backup, null, 2)], {
-        type: 'application/json',
-      });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `excel-extension-backup-${Date.now()}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-
-      this.telemetry.logEvent({
-        category: 'system',
-        name: 'backup-export-success',
-        severity: 'info',
-        message: 'Backup exported successfully',
-        context: { timestamp: backup.timestamp },
-      });
-    } catch (error) {
-      this.telemetry.logEvent({
-        category: 'system',
-        name: 'backup-export-error',
-        severity: 'error',
-        message: 'Failed to export backup',
-        context: { error },
-      });
-      throw new Error('Failed to export backup. See console for details.');
-    }
+    const blob = new Blob([JSON.stringify(backup, null, 2)], {
+      type: 'application/json',
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `excel-extension-backup-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   /**
@@ -95,68 +77,42 @@ export class BackupRestoreService {
    * @throws Error if version incompatible or file invalid
    */
   async importBackup(file: File): Promise<void> {
-    try {
-      const text = await file.text();
-      const backup = JSON.parse(text) as unknown;
+    const text = await file.text();
+    const backup = JSON.parse(text) as unknown;
 
-      // Validate backup structure
-      const validationError = this.validateBackupStructure(backup);
-      if (validationError) {
-        throw new Error(validationError);
-      }
-
-      const validatedBackup = backup as AppStateBackup;
-
-      // Validate version compatibility
-      if (!this.isCompatibleVersion(validatedBackup.version)) {
-        throw new Error(
-          `Incompatible backup version: ${validatedBackup.version}. ` +
-            `Current app version: ${this.BACKUP_VERSION}. ` +
-            `Cannot import backup from different major version.`
-        );
-      }
-
-      // Restore state to localStorage
-      if (validatedBackup.authState) {
-        this.storage.setItem('auth-state', validatedBackup.authState);
-      }
-      if (validatedBackup.settings) {
-        this.storage.setItem('settings', validatedBackup.settings);
-      }
-      if (validatedBackup.queryConfigs) {
-        this.restoreQueryConfigs(validatedBackup.queryConfigs);
-      }
-      if (validatedBackup.queryState) {
-        this.storage.setItem('query-state', validatedBackup.queryState);
-      }
-
-      this.telemetry.logEvent({
-        category: 'system',
-        name: 'backup-import-success',
-        severity: 'info',
-        message: 'Backup restored successfully',
-        context: {
-          backupVersion: validatedBackup.version,
-          backupTimestamp: validatedBackup.timestamp,
-        },
-      });
-
-      // Reload app to apply restored state
-      this.window.location.reload();
-    } catch (error) {
-      this.telemetry.logEvent({
-        category: 'system',
-        name: 'backup-import-error',
-        severity: 'error',
-        message: 'Failed to import backup',
-        context: { error },
-      });
-
-      if (error instanceof Error) {
-        throw error; // Re-throw with original message
-      }
-      throw new Error('Failed to import backup. Invalid file format or version.');
+    // Validate backup structure
+    const validationError = this.validateBackupStructure(backup);
+    if (validationError) {
+      throw new Error(validationError);
     }
+
+    const validatedBackup = backup as AppStateBackup;
+
+    // Validate version compatibility
+    if (!this.isCompatibleVersion(validatedBackup.version)) {
+      throw new Error(
+        `Incompatible backup version: ${validatedBackup.version}. ` +
+          `Current app version: ${this.BACKUP_VERSION}. ` +
+          `Cannot import backup from different major version.`
+      );
+    }
+
+    // Restore state to localStorage
+    if (validatedBackup.authState) {
+      this.storage.setItem('auth-state', validatedBackup.authState);
+    }
+    if (validatedBackup.settings) {
+      this.storage.setItem('settings', validatedBackup.settings);
+    }
+    if (validatedBackup.queryConfigs) {
+      this.restoreQueryConfigs(validatedBackup.queryConfigs);
+    }
+    if (validatedBackup.queryState) {
+      this.storage.setItem('query-state', validatedBackup.queryState);
+    }
+
+    // Reload app to apply restored state
+    this.window.location.reload();
   }
 
   /**
@@ -214,11 +170,11 @@ export class BackupRestoreService {
    *
    * @returns Array of query config objects
    */
-  private getQueryConfigs(): any[] {
+  private getQueryConfigs(): unknown[] {
     // Query configs are stored with keys like:
     // "excel-ext:query-configs:user-id:workbook-id"
     // We need to collect all matching keys
-    const configs: any[] = [];
+    const configs: unknown[] = [];
     const prefix = 'excel-ext:query-configs:';
 
     for (let i = 0; i < localStorage.length; i++) {
@@ -241,10 +197,11 @@ export class BackupRestoreService {
    *
    * @param configs - Array of config objects with key and value
    */
-  private restoreQueryConfigs(configs: any[]): void {
+  private restoreQueryConfigs(configs: unknown[]): void {
     for (const config of configs) {
-      if (config.key && config.value) {
-        this.storage.setItem(config.key, config.value);
+      const c = config as { key?: string; value?: unknown };
+      if (c.key && c.value) {
+        this.storage.setItem(c.key, c.value);
       }
     }
   }
@@ -264,14 +221,14 @@ export interface AppStateBackup {
   timestamp: string;
 
   /** Auth state (user, roles) */
-  authState: any;
+  authState: unknown;
 
   /** Settings (preferences, telemetry config) */
-  settings: any;
+  settings: unknown;
 
   /** Query configurations (saved reports) */
-  queryConfigs: any[];
+  queryConfigs: unknown[];
 
   /** Query state (global parameters, last runs) */
-  queryState: any;
+  queryState: unknown;
 }

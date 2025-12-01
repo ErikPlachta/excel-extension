@@ -3,7 +3,7 @@ import { BehaviorSubject } from "rxjs";
 import { QueryConfiguration } from "../types";
 import { AuthService } from "@excel-platform/core/auth";
 import { ApiCatalogService } from './api-catalog.service';
-import { StorageHelperService } from './storage-helper.service';
+import { StorageHelperService } from "@excel-platform/data/storage";
 import { QueryValidationService } from './query-validation.service';
 
 /**

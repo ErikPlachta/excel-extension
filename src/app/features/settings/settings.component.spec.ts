@@ -3,7 +3,7 @@ import { SettingsComponent } from "./settings.component";
 import { SettingsService } from "@excel-platform/core/settings";
 import { ExcelService } from "@excel-platform/core/excel";
 import { TelemetryService } from "@excel-platform/core/telemetry";
-import { BackupRestoreService } from "../../shared/backup-restore.service";
+import { BackupRestoreService } from "@excel-platform/data/storage";
 
 describe("SettingsComponent", () => {
   let component: SettingsComponent;

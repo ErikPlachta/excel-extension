@@ -3,7 +3,7 @@ import { BehaviorSubject } from "rxjs";
 import { ExecuteQueryParams } from "./query-api-mock.service";
 import { ApiDefinition, QueryRun } from "./query-model";
 import type { QueryParameterValues } from "../types";
-import { StorageHelperService } from "./storage-helper.service";
+import { StorageHelperService } from "@excel-platform/data/storage";
 import { ApiCatalogService } from "./api-catalog.service";
 
 /**
