@@ -1,0 +1,39 @@
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "rootDir": ".",
+    "sourceMap": true,
+    "declaration": false,
+    "moduleResolution": "bundler",
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "importHelpers": true,
+    "target": "ES2022",
+    "module": "ES2022",
+    "lib": ["ES2022", "dom"],
+    "skipLibCheck": true,
+    "skipDefaultLibCheck": true,
+    "strict": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "baseUrl": ".",
+    "paths": {
+      "@excel-platform/shared/types": ["libs/shared/types/src/index.ts"],
+      "@excel-platform/shared/ui": ["libs/shared/ui/src/index.ts"],
+      "@excel-platform/shared/util": ["libs/shared/util/src/index.ts"],
+      "@excel-platform/core/auth": ["libs/core/auth/src/index.ts"],
+      "@excel-platform/core/telemetry": ["libs/core/telemetry/src/index.ts"],
+      "@excel-platform/core/settings": ["libs/core/settings/src/index.ts"],
+      "@excel-platform/office/excel": ["libs/office/excel/src/index.ts"],
+      "@excel-platform/office/common": ["libs/office/common/src/index.ts"],
+      "@excel-platform/data/query": ["libs/data/query/src/index.ts"],
+      "@excel-platform/data/api": ["libs/data/api/src/index.ts"],
+      "@excel-platform/data/storage": ["libs/data/storage/src/index.ts"]
+    }
+  },
+  "exclude": ["node_modules", "tmp"]
+}

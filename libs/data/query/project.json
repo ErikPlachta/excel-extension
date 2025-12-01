@@ -1,0 +1,7 @@
+{
+  "name": "data-query",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/data/query/src",
+  "projectType": "library",
+  "tags": ["scope:data", "type:feature"]
+}
