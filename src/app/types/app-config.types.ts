@@ -3,17 +3,16 @@
  * used to allow a modular and data-driven design.
  */
 
-import { UiLayoutHints } from "./ui/primitives.types";
+import {
+  UiLayoutHints,
+  ApiDefinition,
+  RoleId,
+  UiButtonVariant,
+  UiButtonSize
+} from '@excel-platform/shared/types';
 
-/**
- * Known User Role identifiers in the system.
- *
- * These role IDs are used throughout the application to manage
- * access control and permissions for different features and views.
- * Each role ID corresponds to a specific set of capabilities within the app.
- * The roles are designed to be flexible and extensible, allowing for future growth.
- */
-export type RoleId = "analyst" | "admin";
+// Re-export RoleId for backward compatibility
+export type { RoleId };
 
 /**
  * View identifiers used by the SPA shell.
@@ -52,9 +51,9 @@ export interface NavItemConfig {
   /** Optional extra CSS class names for the nav element. */
   classNames?: string;
   /** Optional button variant hint for this nav item. */
-  buttonVariant?: import("./ui/primitives.types").UiButtonVariant;
+  buttonVariant?: UiButtonVariant;
   /** Optional button size hint for this nav item. */
-  buttonSize?: import("./ui/primitives.types").UiButtonSize;
+  buttonSize?: UiButtonSize;
   /** What action this nav item performs when clicked. */
   actionType: NavActionType;
   /** Whether authentication is required for this nav item. */
@@ -73,6 +72,43 @@ export interface RoleDefinition {
   labelKey: string;
   /** i18n/text key for the role description. */
   descriptionKey: string;
+}
+
+/**
+ * Text catalog structure for UI strings (Phase 2).
+ */
+export interface TextCatalog {
+  /** Navigation-related text */
+  nav: Record<string, string>;
+  /** Authentication-related text */
+  auth: Record<string, string>;
+  /** Query-related text */
+  query: Record<string, string>;
+  /** Worksheet-related text */
+  worksheet: Record<string, string>;
+  /** Table-related text */
+  table: Record<string, string>;
+  /** User/settings-related text */
+  user: Record<string, string>;
+  /** Role definitions */
+  role?: Record<string, { label: string; description: string }>;
+  /** Host status text (Excel detection, online/offline) */
+  hostStatus?: {
+    excelNotDetectedLabel?: string;
+    excelNotDetectedMessage?: string;
+    excelConnectedLabel?: string;
+    onlineLabel?: string;
+    offlineLabel?: string;
+    offlineMessage?: string;
+    [key: string]: string | undefined;
+  };
+  /** User banner text */
+  userBanner?: {
+    noRolesAssigned?: string;
+    [key: string]: string | undefined;
+  };
+  /** General UI text (can be nested) */
+  ui: Record<string, any>;
 }
 
 /**
@@ -106,12 +142,16 @@ export interface AppConfig {
    */
   ui?: {
     /** Variant for navigation buttons. */
-    navButtonVariant?: import("./ui/primitives.types").UiButtonVariant;
+    navButtonVariant?: UiButtonVariant;
     /** Size for navigation buttons. */
-    navButtonSize?: import("./ui/primitives.types").UiButtonSize;
+    navButtonSize?: UiButtonSize;
     /** Type for host status banner. */
     hostStatusBannerType?: string;
     /** Optional per-view layout hints consumed by section/card primitives. */
     viewLayout?: Partial<Record<ViewId, UiLayoutHints>>;
   };
+  /** API Catalog - Available data source APIs (Phase 2) */
+  apiCatalog?: ApiDefinition[];
+  /** Text Catalog - All UI strings (Phase 2) */
+  text?: TextCatalog;
 }

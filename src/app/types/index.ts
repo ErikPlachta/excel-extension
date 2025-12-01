@@ -1,10 +1,5 @@
-export * from "./auth.types";
-export * from "./query.types";
-export * from "./query-configuration.types";
-export * from "./query-params.types";
+// Re-export all shared types from the library
+export * from '@excel-platform/shared/types';
+
+// App-specific types that stay in the app
 export * from "./app-config.types";
-export * from "./ui/primitives.types";
-export * from "./workbook.types";
-export * from "./excel.types";
-export * from "./settings.types";
-export * from "./telemetry.types";

@@ -10,6 +10,8 @@ describe("WorkbookService ownership helpers", () => {
     excelSpy = jasmine.createSpyObj<ExcelService>("ExcelService", [
       "getWorkbookOwnership",
       "getWorkbookTables",
+      "writeOwnershipRecord",
+      "deleteOwnershipRecord",
     ]);
 
     // Simulate running inside Excel so getOrCreateManagedTableTarget
@@ -185,6 +187,158 @@ describe("WorkbookService ownership helpers", () => {
         sheetName: "Sheet1",
         tableName: "tbl_Q1Sales_q1-sales",
       });
+    });
+  });
+
+  describe("recordOwnership", () => {
+    it("delegates to ExcelService.writeOwnershipRecord with ownership info", async () => {
+      excelSpy.writeOwnershipRecord.and.resolveTo();
+
+      await workbook.recordOwnership({
+        sheetName: "Sheet1",
+        tableName: "tbl_Sales",
+        queryId: "q1-sales",
+      });
+
+      expect(excelSpy.writeOwnershipRecord).toHaveBeenCalledWith({
+        sheetName: "Sheet1",
+        tableName: "tbl_Sales",
+        queryId: "q1-sales",
+      });
+    });
+
+    it("is a no-op when not in Excel", async () => {
+      (excelSpy as any).isExcel = false;
+
+      await workbook.recordOwnership({
+        sheetName: "Sheet1",
+        tableName: "tbl_Sales",
+        queryId: "q1-sales",
+      });
+
+      expect(excelSpy.writeOwnershipRecord).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("updateOwnership", () => {
+    it("delegates to ExcelService.writeOwnershipRecord to update timestamp", async () => {
+      excelSpy.writeOwnershipRecord.and.resolveTo();
+
+      await workbook.updateOwnership("q1-sales", "Sheet1", "tbl_Sales");
+
+      expect(excelSpy.writeOwnershipRecord).toHaveBeenCalledWith({
+        queryId: "q1-sales",
+        sheetName: "Sheet1",
+        tableName: "tbl_Sales",
+      });
+    });
+
+    it("is a no-op when not in Excel", async () => {
+      (excelSpy as any).isExcel = false;
+
+      await workbook.updateOwnership("q1-sales", "Sheet1", "tbl_Sales");
+
+      expect(excelSpy.writeOwnershipRecord).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("deleteOwnership", () => {
+    it("delegates to ExcelService.deleteOwnershipRecord", async () => {
+      excelSpy.deleteOwnershipRecord.and.resolveTo();
+
+      await workbook.deleteOwnership("q1-sales", "Sheet1", "tbl_Sales");
+
+      expect(excelSpy.deleteOwnershipRecord).toHaveBeenCalledWith({
+        queryId: "q1-sales",
+        sheetName: "Sheet1",
+        tableName: "tbl_Sales",
+      });
+    });
+
+    it("is a no-op when not in Excel", async () => {
+      (excelSpy as any).isExcel = false;
+
+      await workbook.deleteOwnership("q1-sales", "Sheet1", "tbl_Sales");
+
+      expect(excelSpy.deleteOwnershipRecord).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("resolveTableTarget", () => {
+    it("returns existing managed table when one exists for apiId", async () => {
+      const ownershipRows: WorkbookOwnershipInfo[] = [
+        {
+          sheetName: "Sheet1",
+          tableName: "tbl_Sales",
+          queryId: "sales-api",
+          isManaged: true,
+          lastTouchedUtc: "2025-11-26T12:00:00Z",
+        },
+      ];
+      const tables: WorkbookTableInfo[] = [
+        { name: "tbl_Sales", worksheet: "Sheet1", rows: 10 },
+      ];
+
+      excelSpy.getWorkbookOwnership.and.resolveTo(ownershipRows);
+      excelSpy.getWorkbookTables.and.resolveTo(tables);
+
+      const result = await workbook.resolveTableTarget("sales-api", {
+        sheetName: "NewSheet",
+        tableName: "tbl_NewTable",
+      });
+
+      expect(result).toEqual({
+        sheetName: "Sheet1",
+        tableName: "tbl_Sales",
+        isExisting: true,
+      });
+    });
+
+    it("returns requested target when no conflicts", async () => {
+      excelSpy.getWorkbookOwnership.and.resolveTo([]);
+      excelSpy.getWorkbookTables.and.resolveTo([]);
+
+      const result = await workbook.resolveTableTarget("new-api", {
+        sheetName: "MySheet",
+        tableName: "tbl_MyTable",
+      });
+
+      expect(result).toEqual({
+        sheetName: "MySheet",
+        tableName: "tbl_MyTable",
+        isExisting: false,
+      });
+    });
+
+    it("returns suffixed table name when user table conflicts", async () => {
+      const tables: WorkbookTableInfo[] = [
+        { name: "tbl_Sales", worksheet: "UserSheet", rows: 5 },
+      ];
+
+      excelSpy.getWorkbookOwnership.and.resolveTo([]);
+      excelSpy.getWorkbookTables.and.resolveTo(tables);
+
+      const result = await workbook.resolveTableTarget("sales-api", {
+        sheetName: "Sheet1",
+        tableName: "tbl_Sales",
+      });
+
+      expect(result).toEqual({
+        sheetName: "Sheet1",
+        tableName: "tbl_Sales_sales-api",
+        isExisting: false,
+      });
+    });
+
+    it("returns null when not in Excel", async () => {
+      (excelSpy as any).isExcel = false;
+
+      const result = await workbook.resolveTableTarget("api", {
+        sheetName: "Sheet1",
+        tableName: "tbl_Test",
+      });
+
+      expect(result).toBeNull();
     });
   });
 });

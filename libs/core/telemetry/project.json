@@ -1,0 +1,7 @@
+{
+  "name": "core-telemetry",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/core/telemetry/src",
+  "projectType": "library",
+  "tags": ["scope:core", "type:feature"]
+}

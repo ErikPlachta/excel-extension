@@ -4,19 +4,41 @@ import { AuthService } from "../../core";
 
 class AuthServiceStub {
   isAuthenticated = false;
-  user: { displayName: string; email: string } | null = null;
+  user: { displayName: string; email: string; roles?: string[] } | null = null;
+  roles: string[] = [];
   state = { accessToken: null as string | null };
 
   async signIn(): Promise<void> {
     this.isAuthenticated = true;
     this.user = { displayName: "Mock User", email: "mock.user@example.com" };
+    this.roles = ["analyst"];
     this.state.accessToken = "mock-access-token-abc123";
+  }
+
+  async signInWithJwt(
+    email: string,
+    _password: string,
+    roles: string[] = ["analyst"]
+  ): Promise<void> {
+    this.isAuthenticated = true;
+    this.user = { displayName: email.split("@")[0], email, roles };
+    this.roles = roles;
+    this.state.accessToken = "mock-jwt-token-xyz789";
   }
 
   signOut(): void {
     this.isAuthenticated = false;
     this.user = null;
+    this.roles = [];
     this.state.accessToken = null;
+  }
+
+  getAccessToken(): string | null {
+    return this.state.accessToken;
+  }
+
+  isAccessTokenExpiringSoon(): boolean {
+    return false;
   }
 }
 
@@ -60,5 +82,52 @@ describe("SsoHomeComponent", () => {
     expect(component.userName).toBeNull();
     expect(component.userEmail).toBeNull();
     expect(component.tokenSnippet).toBeNull();
+  });
+
+  describe("JWT Authentication", () => {
+    it("signs in with JWT using email and role", async () => {
+      component.email = "test@example.com";
+      component.password = "password123";
+      component.selectedRole = "admin";
+
+      await component.signInWithJwt();
+      fixture.detectChanges();
+
+      expect(component.isSignedIn).toBeTrue();
+      expect(component.userEmail).toBe("test@example.com");
+    });
+
+    it("shows error when email is missing", async () => {
+      component.email = "";
+      component.password = "password123";
+
+      await component.signInWithJwt();
+
+      expect(component.signInError).toBe("Email is required");
+      expect(component.isSignedIn).toBeFalse();
+    });
+
+    it("clears form after successful JWT sign-in", async () => {
+      component.email = "test@example.com";
+      component.password = "password123";
+
+      await component.signInWithJwt();
+
+      expect(component.email).toBe("");
+      expect(component.password).toBe("");
+    });
+
+    it("returns false for isTokenExpiringSoon when not expiring", () => {
+      expect(component.isTokenExpiringSoon).toBeFalse();
+    });
+
+    it("returns null for tokenExpiryDisplay when no token", () => {
+      expect(component.tokenExpiryDisplay).toBeNull();
+    });
+
+    it("returns null for tokenExpiryDisplay with non-JWT token", async () => {
+      await component.signIn(); // Uses mock token that's not real JWT
+      expect(component.tokenExpiryDisplay).toBeNull();
+    });
   });
 });

@@ -1,8 +1,6 @@
 import { Injectable } from "@angular/core";
-import { AppConfig } from "../types";
+import { AppConfig, ViewId, UiLayoutHints } from "../types";
 import { DEFAULT_APP_CONFIG } from "../shared/app-config";
-import { ViewId } from "../types";
-import { UiLayoutHints } from "../types/ui/primitives.types";
 
 /**
  * Central place for AppConfig-driven helpers so core shell/components

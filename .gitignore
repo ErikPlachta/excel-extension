@@ -1,5 +1,6 @@
 # See https://docs.github.com/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
 
+
 # Compiled output
 /dist
 /tmp
@@ -40,3 +41,11 @@ testem.log
 # System files
 .DS_Store
 Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+
+# Nx
+.nx/cache
+.nx/workspace-data
+tmp/

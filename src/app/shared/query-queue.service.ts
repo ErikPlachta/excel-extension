@@ -1,7 +1,7 @@
 import { Injectable } from "@angular/core";
 import { BehaviorSubject, Observable } from "rxjs";
-import { TelemetryService } from "../core/telemetry.service";
-import { QueryConfigurationItem } from "../features/queries/queries.component";
+import { TelemetryService } from "@excel-platform/core/telemetry";
+import { QueryConfigurationItem } from '@excel-platform/shared/types';
 
 /**
  * Simple in-memory execution queue for `QueryConfigurationItem` entries.
@@ -138,7 +138,7 @@ export class QueryQueueService {
         if (backoffMs && backoffMs > 0) {
           await new Promise((resolve) => setTimeout(resolve, backoffMs));
         }
-      } catch {
+      } catch (error) {
         failedItemIds.push(item.id);
         completed += 1;
         this.progressSubject.next({
@@ -147,6 +147,21 @@ export class QueryQueueService {
           completed,
           currentItemId: null,
         });
+
+        // Log the error with context for debugging
+        this.telemetry.logEvent(
+          this.telemetry.createWorkflowEvent({
+            category: "query",
+            name: "query.queue.item.error",
+            severity: "error",
+            context: {
+              configId,
+              itemId: item.id,
+              apiId: item.apiId,
+              error: error instanceof Error ? error.message : String(error),
+            },
+          })
+        );
       }
     }
 

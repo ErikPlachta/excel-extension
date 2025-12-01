@@ -32,6 +32,7 @@ interface QueryDefinition {
 ```
 
 **Examples:**
+
 - `sales-summary` – Sales data
 - `top-customers` – Customer rankings
 - `inventory-status` – Stock levels
@@ -51,7 +52,7 @@ Returns `any[]` (mock data or HTTP response mapped to rows).
 ### Types
 
 ```typescript
-type QueryParameterKey = 'StartDate' | 'EndDate' | 'Group' | 'SubGroup';
+type QueryParameterKey = "StartDate" | "EndDate" | "Group" | "SubGroup";
 
 interface QueryParameterValues {
   StartDate?: string;
@@ -71,10 +72,10 @@ const global = queryState.getGlobalParams();
 
 // Set
 queryState.setGlobalParams({
-  StartDate: '2025-01-01',
-  EndDate: '2025-01-31',
-  Group: 'Sales',
-  SubGroup: 'West'
+  StartDate: "2025-01-01",
+  EndDate: "2025-01-31",
+  Group: "Sales",
+  SubGroup: "West",
 });
 ```
 
@@ -85,11 +86,11 @@ Override global params for individual queries.
 ```typescript
 // Set
 queryState.setQueryParams(queryId, {
-  StartDate: '2025-02-01' // Override global StartDate
+  StartDate: "2025-02-01", // Override global StartDate
 });
 
 // Get effective (global + overrides)
-const params = queryState.getEffectiveParams(queryId, 'unique');
+const params = queryState.getEffectiveParams(queryId, "unique");
 ```
 
 ### Modes
@@ -130,13 +131,13 @@ Selected query instance:
 
 ```typescript
 interface QueryConfigurationItem {
-  id: string;              // Unique instance ID
-  apiId: string;           // Links to QueryDefinition
-  name: string;            // Display name
+  id: string; // Unique instance ID
+  apiId: string; // Links to QueryDefinition
+  name: string; // Display name
   parameters: QueryParameterValues;
   targetSheet: string;
   targetTable: string;
-  writeMode: 'overwrite' | 'append';
+  writeMode: "overwrite" | "append";
   includeInBatch: boolean;
 }
 ```
@@ -147,22 +148,22 @@ interface QueryConfigurationItem {
 // Save
 const config: QueryConfiguration = {
   id: crypto.randomUUID(),
-  name: 'Monthly Sales Report',
+  name: "Monthly Sales Report",
   selectedQueries: [
     {
       id: crypto.randomUUID(),
-      apiId: 'sales-summary',
-      name: 'Sales Summary',
-      parameters: { Group: 'Sales' },
-      targetSheet: 'SalesData',
-      targetTable: 'tbl_Sales',
-      writeMode: 'overwrite',
-      includeInBatch: true
-    }
+      apiId: "sales-summary",
+      name: "Sales Summary",
+      parameters: { Group: "Sales" },
+      targetSheet: "SalesData",
+      targetTable: "tbl_Sales",
+      writeMode: "overwrite",
+      includeInBatch: true,
+    },
   ],
-  globalParameters: { StartDate: '2025-01-01', EndDate: '2025-01-31' },
+  globalParameters: { StartDate: "2025-01-01", EndDate: "2025-01-31" },
   createdAt: Date.now(),
-  modifiedAt: Date.now()
+  modifiedAt: Date.now(),
 };
 
 configService.saveConfiguration(config);
@@ -223,7 +224,11 @@ async runBatch(mode: 'global' | 'unique') {
 1. User clicks "Run" (single or batch)
 2. QueryHomeComponent.runQuery() or runBatch()
 3. Get effective parameters (global + overrides, mode-dependent)
-4. QueryApiMockService.executeQuery(id, params) → rows
+4. QueryApiMockService.executeQuery(id, params)
+   a. Check IndexedDB cache (getCachedQueryResult)
+   b. If cached and not expired, return cached rows
+   c. Otherwise, generate mock data
+   d. Cache result to IndexedDB with TTL → rows
 5. ExcelService.upsertQueryTable(query, rows, params)
    a. WorkbookService checks ownership
    b. Create/update table in Excel
@@ -232,6 +237,43 @@ async runBatch(mode: 'global' | 'unique') {
 7. QueryStateService.setLastRun(queryId, { location, timestamp, rowCount })
 8. UI updates (last run time, success/failure badge)
 ```
+
+## Query Result Caching (Phase 4)
+
+### IndexedDB Integration
+
+QueryApiMockService checks IndexedDB cache before generating mock data:
+
+```typescript
+async executeApi(apiId: string, params: ExecuteQueryParams): Promise<any[]> {
+  // Validate API exists in catalog
+  const api = this.apiCatalog.getApiById(apiId);
+  if (!api) {
+    throw new Error(`API not found: ${apiId}`);
+  }
+
+  // Try cache first
+  const cacheKey = this.generateCacheKey(apiId, params);
+  const cachedResult = await this.indexedDB.getCachedQueryResult(cacheKey);
+  if (cachedResult) {
+    return cachedResult; // Return cached data
+  }
+
+  // Cache miss - execute and cache
+  const rows = await this.executeApiUncached(apiId, params);
+  await this.indexedDB.cacheQueryResult(cacheKey, rows, 3600000); // 1 hour TTL
+
+  return rows;
+}
+```
+
+### Cache Management
+
+- **TTL:** Default 1 hour, configurable per cache operation
+- **Cleanup:** App init calls `clearExpiredCache()` to remove stale entries
+- **Manual Clear:** Settings component provides cache management UI
+- **Storage Tier:** Large datasets (10k+ rows) automatically use IndexedDB via StorageHelperService
+- **Cache Key:** Deterministic based on apiId + sorted parameters for consistent lookups
 
 ## Excel Integration
 
@@ -242,9 +284,9 @@ const result = await excelService.upsertQueryTable(query, rows, params);
 
 if (result.ok) {
   const location: QueryRunLocation = result.value;
-  console.log('Written to:', location.sheetName, location.tableName);
+  console.log("Written to:", location.sheetName, location.tableName);
 } else {
-  console.error('Failed:', result.error.message);
+  console.error("Failed:", result.error.message);
 }
 ```
 
@@ -286,6 +328,7 @@ if (lastRun?.location) {
 ### Context
 
 Events include:
+
 - `queryId`
 - `mode` ('global' / 'unique')
 - `rowCount`
@@ -297,6 +340,7 @@ Events include:
 ### Workbook Logging
 
 When enabled in Settings, events written to `_Extension_Log` table:
+
 - Timestamp
 - Level (info/error)
 - Operation (query.run, etc.)
@@ -317,7 +361,7 @@ interface QueryUiConfig {
 }
 
 interface QueryUiActionConfig {
-  type: 'run-query' | 'go-to-table' | 'show-details';
+  type: "run-query" | "go-to-table" | "show-details";
   labelKey: string;
   iconName?: UiIconName;
   variant?: UiButtonVariant;
@@ -328,16 +372,16 @@ interface QueryUiActionConfig {
 
 ```typescript
 const query: QueryDefinition = {
-  id: 'sales-summary',
+  id: "sales-summary",
   // ...
   uiConfig: {
-    badgeLabelKey: 'query.badge.adminOnly',
+    badgeLabelKey: "query.badge.adminOnly",
     actions: [
-      { type: 'run-query', labelKey: 'query.action.run', variant: 'primary' },
-      { type: 'go-to-table', labelKey: 'query.action.goToTable', variant: 'default' },
-      { type: 'show-details', labelKey: 'query.action.details', variant: 'default' }
-    ]
-  }
+      { type: "run-query", labelKey: "query.action.run", variant: "primary" },
+      { type: "go-to-table", labelKey: "query.action.goToTable", variant: "default" },
+      { type: "show-details", labelKey: "query.action.details", variant: "default" },
+    ],
+  },
 };
 ```
 

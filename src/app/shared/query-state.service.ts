@@ -1,8 +1,10 @@
 import { Injectable } from "@angular/core";
 import { BehaviorSubject } from "rxjs";
-import { ExecuteQueryParams, QueryApiMockService } from "./query-api-mock.service";
-import { ApiDefinition, QueryDefinition, QueryRun } from "./query-model";
+import { ExecuteQueryParams } from "./query-api-mock.service";
+import { ApiDefinition, QueryRun } from "./query-model";
 import type { QueryParameterValues } from "../types";
+import { StorageHelperService } from "./storage-helper.service";
+import { ApiCatalogService } from "./api-catalog.service";
 
 /**
  * Shape of the in-memory state managed by {@link QueryStateService}.
@@ -12,13 +14,8 @@ import type { QueryParameterValues } from "../types";
  * latest value via {@link QueryStateService.snapshot}.
  */
 export interface QueryStateSnapshot {
-  /**
-   * Master catalog of API-style definitions that can be invoked as
-   * queries. This is the same shape as {@link ApiDefinition}; we keep
-   * the older {@link QueryDefinition} name here until the rest of the
-   * app is migrated to API-centric terminology.
-   */
-  queries: QueryDefinition[];
+  /** API definitions from catalog, used for query execution. */
+  apis: ApiDefinition[];
   lastParams: Record<string, ExecuteQueryParams>;
   lastRuns: Record<string, QueryRun | undefined>;
   /** Global parameter defaults applied to all queries that opt in. */
@@ -38,13 +35,16 @@ export class QueryStateService {
   private static readonly STORAGE_KEY_QUERY_PARAMS = "excel-ext:queries:queryParams";
   private static readonly STORAGE_KEY_RUN_FLAGS = "excel-ext:queries:runFlags";
 
-  constructor(private readonly api: QueryApiMockService) {
-    const queries = this.api.getQueries();
+  constructor(
+    private readonly apiCatalog: ApiCatalogService,
+    private readonly storage: StorageHelperService
+  ) {
+    const apis = this.apiCatalog.getApis();
 
-    const { globalParams, queryParams, queryRunFlags } = QueryStateService.hydrateFromStorage();
+    const { globalParams, queryParams, queryRunFlags } = this.hydrateFromStorage();
 
     this.stateSubject = new BehaviorSubject<QueryStateSnapshot>({
-      queries,
+      apis,
       lastParams: {},
       lastRuns: {},
       globalParams,
@@ -58,68 +58,38 @@ export class QueryStateService {
     return this.stateSubject.value;
   }
 
-  /** Return the current list of known {@link QueryDefinition} objects. */
-  getQueries(): QueryDefinition[] {
-    return this.snapshot.queries;
+  /** Return the current list of known API definitions. */
+  getApis(): ApiDefinition[] {
+    return this.snapshot.apis;
   }
 
-  private static hydrateFromStorage(): {
+  private hydrateFromStorage(): {
     globalParams: QueryParameterValues;
     queryParams: Record<string, QueryParameterValues>;
     queryRunFlags: Record<string, boolean>;
   } {
-    if (typeof window === "undefined" || !window.localStorage) {
-      return { globalParams: {}, queryParams: {}, queryRunFlags: {} };
-    }
-
-    const safeParse = <T>(raw: string | null): T | undefined => {
-      if (!raw) return undefined;
-      try {
-        return JSON.parse(raw) as T;
-      } catch {
-        return undefined;
-      }
-    };
-
-    const globalParams =
-      safeParse<QueryParameterValues>(
-        window.localStorage.getItem(QueryStateService.STORAGE_KEY_GLOBAL)
-      ) ?? {};
-    const queryParams =
-      safeParse<Record<string, QueryParameterValues>>(
-        window.localStorage.getItem(QueryStateService.STORAGE_KEY_QUERY_PARAMS)
-      ) ?? {};
-    const queryRunFlags =
-      safeParse<Record<string, boolean>>(
-        window.localStorage.getItem(QueryStateService.STORAGE_KEY_RUN_FLAGS)
-      ) ?? {};
+    const globalParams = this.storage.getItem<QueryParameterValues>(
+      QueryStateService.STORAGE_KEY_GLOBAL,
+      {}
+    );
+    const queryParams = this.storage.getItem<Record<string, QueryParameterValues>>(
+      QueryStateService.STORAGE_KEY_QUERY_PARAMS,
+      {}
+    );
+    const queryRunFlags = this.storage.getItem<Record<string, boolean>>(
+      QueryStateService.STORAGE_KEY_RUN_FLAGS,
+      {}
+    );
 
     return { globalParams, queryParams, queryRunFlags };
   }
 
   private persistSlice(): void {
-    if (typeof window === "undefined" || !window.localStorage) {
-      return;
-    }
-
     const { globalParams, queryParams, queryRunFlags } = this.snapshot;
 
-    try {
-      window.localStorage.setItem(
-        QueryStateService.STORAGE_KEY_GLOBAL,
-        JSON.stringify(globalParams)
-      );
-      window.localStorage.setItem(
-        QueryStateService.STORAGE_KEY_QUERY_PARAMS,
-        JSON.stringify(queryParams)
-      );
-      window.localStorage.setItem(
-        QueryStateService.STORAGE_KEY_RUN_FLAGS,
-        JSON.stringify(queryRunFlags)
-      );
-    } catch {
-      // Swallow storage errors; state still works in-memory.
-    }
+    this.storage.setItem(QueryStateService.STORAGE_KEY_GLOBAL, globalParams);
+    this.storage.setItem(QueryStateService.STORAGE_KEY_QUERY_PARAMS, queryParams);
+    this.storage.setItem(QueryStateService.STORAGE_KEY_RUN_FLAGS, queryRunFlags);
   }
 
   /**
@@ -224,19 +194,19 @@ export class QueryStateService {
   }
 
   /**
-   * Compute the effective ExecuteQueryParams for a query in a given mode
+   * Compute the effective ExecuteQueryParams for an API in a given mode
    * by combining global defaults and per-query overrides.
    *
    * This does not persist any state; callers are responsible for
    * deciding when to store last-used params.
    */
-  getEffectiveParams(query: QueryDefinition, mode: "global" | "unique"): ExecuteQueryParams {
-    const globalValues = this.getGlobalParams();
-    const overrideValues = this.getQueryParams(query.id);
+  getEffectiveParams(api: ApiDefinition, mode: "global" | "unique"): ExecuteQueryParams {
+    const globalValues = this.getGlobalParams() as Record<string, string | undefined>;
+    const overrideValues = this.getQueryParams(api.id) as Record<string, string | undefined> | undefined;
 
     const result: ExecuteQueryParams = {};
 
-    const keys = query.parameterKeys ?? [];
+    const keys = (api.parameters ?? []).map(p => p.key);
     for (const key of keys) {
       if (mode === "unique") {
         const overrideValue = overrideValues?.[key];

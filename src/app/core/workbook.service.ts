@@ -1,7 +1,6 @@
 import { Injectable } from "@angular/core";
 import { ExcelService } from "./excel.service";
-import { QueryDefinition } from "../shared/query-model";
-import { WorkbookOwnershipInfo, WorkbookTableInfo } from "../types";
+import { QueryDefinition, WorkbookOwnershipInfo, WorkbookTableInfo } from "../types";
 
 /**
  * Provides a typed, feature-friendly abstraction over workbook state.
@@ -121,6 +120,10 @@ export class WorkbookService {
    * Excel APIs. The intent is to centralize ownership decisions
    * so features do not need to reason about conflicting user
    * tables themselves.
+   *
+   * @deprecated Phase 1 Migration: With QueryInstance model, callers specify
+   * targetSheetName/targetTableName directly. This method remains for backward
+   * compatibility but is no longer used in production code paths.
    */
   async getOrCreateManagedTableTarget(
     query: QueryDefinition
@@ -155,5 +158,110 @@ export class WorkbookService {
       sheetName: query.defaultSheetName,
       tableName: defaultTableName,
     };
+  }
+
+  /**
+   * Resolves the target sheet/table for a query execution.
+   *
+   * This method encapsulates ownership lookup and conflict resolution:
+   * 1. Returns existing managed table if one exists for this apiId
+   * 2. Avoids conflicts with user-created tables by suffixing
+   * 3. Returns the requested target if no conflicts
+   *
+   * @param apiId - The API identifier for ownership lookup
+   * @param target - Requested target sheet and table names
+   * @returns Resolved target with isExisting flag, or null outside Excel
+   */
+  async resolveTableTarget(
+    apiId: string,
+    target: { sheetName: string; tableName: string }
+  ): Promise<{ sheetName: string; tableName: string; isExisting: boolean } | null> {
+    if (!this.isExcel) return null;
+
+    const [tables, ownership] = await Promise.all([this.getTables(), this.getOwnership()]);
+
+    // Check for existing managed table for this API
+    const existingManaged = tables.find((t) =>
+      ownership.some(
+        (o) =>
+          o.isManaged &&
+          o.queryId === apiId &&
+          o.tableName === t.name &&
+          o.sheetName === t.worksheet
+      )
+    );
+
+    if (existingManaged) {
+      return {
+        sheetName: existingManaged.worksheet,
+        tableName: existingManaged.name,
+        isExisting: true,
+      };
+    }
+
+    // Check for user table conflict
+    const conflictingUserTable = tables.find((t) => t.name === target.tableName);
+    const safeTableName = conflictingUserTable
+      ? `${target.tableName}_${apiId}`
+      : target.tableName;
+
+    return {
+      sheetName: target.sheetName,
+      tableName: safeTableName,
+      isExisting: false,
+    };
+  }
+
+  /**
+   * Records ownership for a table, creating or updating the ownership
+   * metadata in `_Extension_Ownership`.
+   *
+   * This marks the table as extension-managed and associates it with
+   * the given query ID. Subsequent calls update the `lastTouchedUtc`
+   * timestamp.
+   *
+   * @param info - Ownership information including sheet name, table name,
+   * and query ID.
+   */
+  async recordOwnership(info: {
+    sheetName: string;
+    tableName: string;
+    queryId: string;
+  }): Promise<void> {
+    if (!this.isExcel) return;
+    await this.excel.writeOwnershipRecord(info);
+  }
+
+  /**
+   * Updates the `lastTouchedUtc` timestamp for an existing ownership
+   * record without changing other fields.
+   *
+   * This is useful when a table is modified but ownership details
+   * remain the same.
+   *
+   * @param queryId - The query ID that owns the table.
+   * @param sheetName - The worksheet containing the table.
+   * @param tableName - The table name.
+   */
+  async updateOwnership(queryId: string, sheetName: string, tableName: string): Promise<void> {
+    if (!this.isExcel) return;
+    await this.excel.writeOwnershipRecord({ queryId, sheetName, tableName });
+  }
+
+  /**
+   * Removes the ownership record for a table, unmarking it as
+   * extension-managed.
+   *
+   * This does not delete the table itself; it only removes the
+   * ownership metadata. Use this when the extension no longer manages
+   * a table or when cleaning up after table deletion.
+   *
+   * @param queryId - The query ID that owns the table.
+   * @param sheetName - The worksheet containing the table.
+   * @param tableName - The table name.
+   */
+  async deleteOwnership(queryId: string, sheetName: string, tableName: string): Promise<void> {
+    if (!this.isExcel) return;
+    await this.excel.deleteOwnershipRecord({ queryId, sheetName, tableName });
   }
 }
