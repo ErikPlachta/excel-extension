@@ -1,1 +1,6 @@
-// @excel-platform/data/query - Placeholder
+// @excel-platform/data/query
+// Query management services
+
+export * from './lib/query-state.service';
+export * from './lib/query-configuration.service';
+export * from './lib/query-queue.service';

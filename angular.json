@@ -3,31 +3,31 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "excel-extension": {
+    "excel-addin": {
       "projectType": "application",
       "schematics": {},
-      "root": "",
-      "sourceRoot": "src",
+      "root": "apps/excel-addin",
+      "sourceRoot": "apps/excel-addin/src",
       "prefix": "app",
       "architect": {
         "build": {
           "builder": "@angular-devkit/build-angular:application",
           "options": {
-            "outputPath": "dist/excel-extension",
-            "index": "src/index.html",
-            "browser": "src/main.ts",
+            "outputPath": "dist/apps/excel-addin",
+            "index": "apps/excel-addin/src/index.html",
+            "browser": "apps/excel-addin/src/main.ts",
             "polyfills": [
               "zone.js"
             ],
-            "tsConfig": "tsconfig.app.json",
+            "tsConfig": "apps/excel-addin/tsconfig.app.json",
             "assets": [
               {
                 "glob": "**/*",
-                "input": "public"
+                "input": "apps/excel-addin/public"
               }
             ],
             "styles": [
-              "src/styles.css"
+              "apps/excel-addin/src/styles.css"
             ],
             "scripts": []
           },
@@ -59,10 +59,10 @@
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
             "production": {
-              "buildTarget": "excel-extension:build:production"
+              "buildTarget": "excel-addin:build:production"
             },
             "development": {
-              "buildTarget": "excel-extension:build:development"
+              "buildTarget": "excel-addin:build:development"
             }
           },
           "defaultConfiguration": "development"
@@ -77,15 +77,15 @@
               "zone.js",
               "zone.js/testing"
             ],
-            "tsConfig": "tsconfig.spec.json",
+            "tsConfig": "apps/excel-addin/tsconfig.spec.json",
             "assets": [
               {
                 "glob": "**/*",
-                "input": "public"
+                "input": "apps/excel-addin/public"
               }
             ],
             "styles": [
-              "src/styles.css"
+              "apps/excel-addin/src/styles.css"
             ],
             "scripts": []
           }

@@ -1,0 +1,156 @@
+import { TestBed } from "@angular/core/testing";
+import { WorksheetsComponent } from "./worksheets.component";
+import { ExcelService, WorkbookService } from "@excel-platform/core/excel";
+import { TelemetryService } from "@excel-platform/core/telemetry";
+
+describe("WorksheetsComponent", () => {
+  let component: WorksheetsComponent;
+  let mockExcel: jasmine.SpyObj<ExcelService>;
+  let mockWorkbook: jasmine.SpyObj<WorkbookService>;
+  let mockTelemetry: jasmine.SpyObj<TelemetryService>;
+
+  beforeEach(() => {
+    mockExcel = jasmine.createSpyObj("ExcelService", [], { isExcel: false });
+
+    mockWorkbook = jasmine.createSpyObj("WorkbookService", ["getSheets"], {
+      isExcel: false,
+    });
+    mockWorkbook.getSheets.and.returnValue(Promise.resolve([]));
+
+    mockTelemetry = jasmine.createSpyObj("TelemetryService", ["logEvent"]);
+
+    TestBed.configureTestingModule({
+      imports: [WorksheetsComponent],
+      providers: [
+        { provide: ExcelService, useValue: mockExcel },
+        { provide: WorkbookService, useValue: mockWorkbook },
+        { provide: TelemetryService, useValue: mockTelemetry },
+      ],
+    });
+
+    component = TestBed.createComponent(WorksheetsComponent).componentInstance;
+  });
+
+  describe("initialization", () => {
+    it("should create", () => {
+      expect(component).toBeTruthy();
+    });
+
+    it("should initialize with empty sheets array", () => {
+      expect(component.sheets).toEqual([]);
+    });
+
+    it("should initialize with empty sheetsAsRows array", () => {
+      expect(component.sheetsAsRows).toEqual([]);
+    });
+
+    it("should initialize with null loadError", () => {
+      expect(component.loadError).toBeNull();
+    });
+
+    it("should initialize with isLoading true", () => {
+      expect(component.isLoading).toBeTrue();
+    });
+  });
+
+  describe("isExcel getter", () => {
+    it("should return false when not in Excel", () => {
+      expect(component.isExcel).toBeFalse();
+    });
+
+    it("should return true when in Excel", () => {
+      Object.defineProperty(mockWorkbook, "isExcel", { value: true });
+      expect(component.isExcel).toBeTrue();
+    });
+  });
+
+  describe("ngOnInit", () => {
+    it("should load sheets from workbook service", async () => {
+      Object.defineProperty(mockWorkbook, "isExcel", { value: true });
+      mockWorkbook.getSheets.and.returnValue(Promise.resolve(["Sheet1", "Sheet2", "Sheet3"]));
+
+      await component.ngOnInit();
+
+      expect(component.sheets).toEqual(["Sheet1", "Sheet2", "Sheet3"]);
+    });
+
+    it("should convert sheets to row format", async () => {
+      Object.defineProperty(mockWorkbook, "isExcel", { value: true });
+      mockWorkbook.getSheets.and.returnValue(Promise.resolve(["Sheet1", "Sheet2"]));
+
+      await component.ngOnInit();
+
+      expect(component.sheetsAsRows).toEqual([{ name: "Sheet1" }, { name: "Sheet2" }]);
+    });
+
+    it("should set loadError on failure", async () => {
+      Object.defineProperty(mockWorkbook, "isExcel", { value: true });
+      mockWorkbook.getSheets.and.rejectWith(new Error("API error"));
+
+      await component.ngOnInit();
+
+      expect(component.loadError).toBe("Failed to load worksheets");
+    });
+
+    it("should log telemetry on error", async () => {
+      Object.defineProperty(mockWorkbook, "isExcel", { value: true });
+      mockWorkbook.getSheets.and.rejectWith(new Error("API error"));
+
+      await component.ngOnInit();
+
+      expect(mockTelemetry.logEvent).toHaveBeenCalledWith(
+        jasmine.objectContaining({
+          category: "excel",
+          name: "worksheets.load.error",
+          severity: "error",
+        })
+      );
+    });
+
+    it("should not set loadError on success", async () => {
+      Object.defineProperty(mockWorkbook, "isExcel", { value: true });
+      mockWorkbook.getSheets.and.returnValue(Promise.resolve(["Sheet1"]));
+
+      await component.ngOnInit();
+
+      expect(component.loadError).toBeNull();
+    });
+
+    it("should handle empty sheets list", async () => {
+      Object.defineProperty(mockWorkbook, "isExcel", { value: true });
+      mockWorkbook.getSheets.and.returnValue(Promise.resolve([]));
+
+      await component.ngOnInit();
+
+      expect(component.sheets).toEqual([]);
+      expect(component.sheetsAsRows).toEqual([]);
+    });
+
+    it("should set isLoading false after successful load", async () => {
+      Object.defineProperty(mockWorkbook, "isExcel", { value: true });
+      mockWorkbook.getSheets.and.returnValue(Promise.resolve(["Sheet1"]));
+
+      await component.ngOnInit();
+
+      expect(component.isLoading).toBeFalse();
+    });
+
+    it("should set isLoading false after error", async () => {
+      Object.defineProperty(mockWorkbook, "isExcel", { value: true });
+      mockWorkbook.getSheets.and.rejectWith(new Error("API error"));
+
+      await component.ngOnInit();
+
+      expect(component.isLoading).toBeFalse();
+    });
+
+    it("should set isLoading false immediately when not in Excel", async () => {
+      Object.defineProperty(mockWorkbook, "isExcel", { value: false });
+
+      await component.ngOnInit();
+
+      expect(component.isLoading).toBeFalse();
+      expect(mockWorkbook.getSheets).not.toHaveBeenCalled();
+    });
+  });
+});
