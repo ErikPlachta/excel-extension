@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { AppConfig } from '../types/app-config.types';
+import { AppConfig } from '@excel-platform/shared/types';
 
 /**
  * Validation result with success flag and error messages.

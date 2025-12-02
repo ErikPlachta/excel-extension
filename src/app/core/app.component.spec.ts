@@ -5,9 +5,8 @@ import { AppComponent } from "./app.component";
 import { ExcelService } from "@excel-platform/core/excel";
 import { AuthService } from "@excel-platform/core/auth";
 import { AppContextService } from "@excel-platform/core/telemetry";
-import { AppConfigService } from "./app-config.service";
+import { AppConfigService, NavItemConfig } from "@excel-platform/data/api";
 import { IndexedDBService } from "@excel-platform/data/storage";
-import { NavItemConfig } from "../shared/app-config";
 
 describe("AppComponent", () => {
   let component: AppComponent;

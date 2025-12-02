@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { ApiDefinition, ApiParameter, QueryConfiguration, QueryConfigurationItem } from '@excel-platform/shared/types';
 import { ApiCatalogService } from './api-catalog.service';
+import { ValidationResult } from './config-validator.service';
 
 /**
  * Query Validation Service - Validate query configurations and parameters.
@@ -223,12 +224,6 @@ export class QueryValidationService {
   }
 }
 
-/**
- * Validation result with success flag and detailed errors.
- */
-export interface ValidationResult {
-  /** true if validation passed, false otherwise */
-  valid: boolean;
-  /** Array of error messages (empty if valid) */
-  errors: string[];
-}
+// ValidationResult is imported from config-validator.service.ts
+// Re-export for backward compatibility
+export type { ValidationResult } from './config-validator.service';

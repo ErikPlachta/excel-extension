@@ -3,8 +3,8 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { AppConfigService } from './app-config.service';
 import { ConfigValidatorService } from './config-validator.service';
-import { AuthService } from "@excel-platform/core/auth";
-import { AppConfig } from '../types/app-config.types';
+import { AuthService } from '@excel-platform/core/auth';
+import { AppConfig } from '@excel-platform/shared/types';
 
 describe('AppConfigService', () => {
   let service: AppConfigService;

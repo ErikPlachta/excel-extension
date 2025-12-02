@@ -1,17 +1,13 @@
 import { TestBed } from "@angular/core/testing";
 import { QueriesComponent } from "./queries.component";
-import { QueryConfigurationItem } from '@excel-platform/shared/types';
+import { QueryConfigurationItem, QueryConfiguration } from '@excel-platform/shared/types';
 import { ExcelService, FormulaScannerService } from "@excel-platform/core/excel";
 import { AuthService } from "@excel-platform/core/auth";
 import { TelemetryService } from "@excel-platform/core/telemetry";
 import { SettingsService } from "@excel-platform/core/settings";
-import { QueryApiMockService } from "../../shared/query-api-mock.service";
-import { QueryStateService } from "../../shared/query-state.service";
-import { QueryConfigurationService } from "../../shared/query-configuration.service";
-import { QueryQueueService } from "../../shared/query-queue.service";
-import { ApiCatalogService } from "../../shared/api-catalog.service";
+import { QueryApiMockService, ApiCatalogService } from "@excel-platform/data/api";
+import { QueryStateService, QueryConfigurationService, QueryQueueService } from "@excel-platform/data/query";
 import { BehaviorSubject, Subject } from "rxjs";
-import { QueryConfiguration } from "../../types";
 
 describe("QueriesComponent", () => {
   let component: QueriesComponent;

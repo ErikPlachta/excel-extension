@@ -3,7 +3,7 @@ import { FormsModule } from "@angular/forms";
 import { Component, OnInit } from "@angular/core";
 import { ExcelService, AuthService, AppContextService, AppConfigService, AppHostStatus, AppAuthSummary } from ".";
 import { IndexedDBService } from "@excel-platform/data/storage";
-import { NavItemConfig, ViewId, TextCatalog } from "../shared/app-config";
+import { NavItemConfig, ViewId, TextCatalog } from "@excel-platform/shared/types";
 import { SsoHomeComponent } from "../features/sso/sso-home.component";
 import { WorksheetsComponent } from "../features/worksheets/worksheets.component";
 import { TablesComponent } from "../features/tables/tables.component";

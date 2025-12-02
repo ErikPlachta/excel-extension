@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { ConfigValidatorService } from './config-validator.service';
-import { AppConfig } from '../types/app-config.types';
+import { AppConfig } from '@excel-platform/shared/types';
 
 describe('ConfigValidatorService', () => {
   let service: ConfigValidatorService;
