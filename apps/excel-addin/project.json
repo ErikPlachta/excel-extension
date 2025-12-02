@@ -64,18 +64,10 @@
       "executor": "@angular-devkit/build-angular:extract-i18n"
     },
     "test": {
-      "executor": "@angular-devkit/build-angular:karma",
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
       "options": {
-        "polyfills": ["zone.js", "zone.js/testing"],
-        "tsConfig": "apps/excel-addin/tsconfig.spec.json",
-        "assets": [
-          {
-            "glob": "**/*",
-            "input": "apps/excel-addin/public"
-          }
-        ],
-        "styles": ["apps/excel-addin/src/styles.css"],
-        "scripts": []
+        "jestConfig": "apps/excel-addin/jest.config.ts"
       }
     },
     "lint": {
