@@ -1,25 +1,51 @@
-name: CI - Run Lint, Build, and Tests
+name: CI
 
 on:
   pull_request:
-    branches: [ "**" ]
+    branches: [main, develop]
+  push:
+    branches: [develop]
 
-permissions:
-  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build-and-test:
+  main:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
-          node-version: 20
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Derive SHAs for Nx affected
+        uses: nrwl/nx-set-shas@v4
+
       - name: Install dependencies
         run: npm ci
-      - name: Lint
-        run: npm run lint --if-present
-      - name: Build
-        run: npm run build --if-present
-      - name: Test
-        run: npm run test -- --watch=false --browsers=ChromeHeadless
+
+      - name: Cache Nx
+        uses: actions/cache@v4
+        with:
+          path: .nx/cache
+          key: ${{ runner.os }}-nx-${{ hashFiles('**/package-lock.json') }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-nx-${{ hashFiles('**/package-lock.json') }}-
+            ${{ runner.os }}-nx-
+
+      - name: Lint affected
+        run: npx nx affected --target=lint --parallel=3
+
+      - name: Test affected
+        run: npx nx affected --target=test --parallel=3 --ci
+
+      - name: Build affected
+        run: npx nx affected --target=build --parallel=3
