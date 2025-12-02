@@ -53,22 +53,13 @@ No additional configuration is required; the workflow uses the built-in `GITHUB_
 
 ## Testing
 
-Run unit tests with Karma/Jasmine in interactive/watch mode:
+Run unit tests with Jest:
 
 ```bash
-npm test
-```
-
-For CI/headless runs (single pass, no watch) use:
-
-```bash
-npm run test:ci
-```
-
-To capture full Jasmine failure output for later inspection or AI-assisted debugging, you can pipe the CI run to a log file:
-
-```bash
-npm run test:ci > test-results.log 2>&1
+npm test              # Run app tests
+npm run test:ci       # Run all tests (CI mode)
+npm run test:watch    # Watch mode
+npm run test:coverage # With coverage
 ```
 
 Linters and formatters:
@@ -80,7 +71,7 @@ npm run lint:office:fix
 npm run prettier
 ```
 
-Note: Office/Excel globals are undefined in Karma. Code paths are guarded behind `ExcelService.isExcel` (and the Office checks in `main.ts`) so tests can run outside Excel.
+Note: Office/Excel globals are undefined in Jest. Code paths are guarded behind `ExcelService.isExcel` so tests can run outside Excel.
 
 ## Excel integration and sideloading
 
@@ -115,7 +106,7 @@ For GitHub Pages, use `prod-manifest.xml`, which points to the deployed site. Th
 
 ## Performance and large datasets
 
-The extension handles large datasets (10k+ rows) efficiently through chunked Excel writes and configurable resource limits. See `.claude/PERFORMANCE.md` for comprehensive details.
+The extension handles large datasets (10k+ rows) efficiently through chunked Excel writes and configurable resource limits. See `docs/architecture/PERFORMANCE.md` for comprehensive details.
 
 - **Chunked writes:** Large datasets are written to Excel in configurable batches (default 1000 rows) to stay within Office.js ~5MB payload limit
 - **Row limits:** Configurable max rows per query (default 10,000) prevents Excel crashes from massive datasets
@@ -139,6 +130,13 @@ Telemetry for this extension is centralized in `TelemetryService` under `src/app
 - **Error normalization:** Excel/Office.js operations return a typed `ExcelOperationResult`/`ExcelErrorInfo` instead of throwing raw errors, making it easier for components to show clear error messages while telemetry records structured details.
 
 For a deeper description of event shapes, sinks, and where telemetry is emitted, see the "Application telemetry" section in `CONTEXT-SESSION.md`.
+
+## Documentation
+
+- [Documentation Index](docs/README.md)
+- [Getting Started](docs/guides/GETTING-STARTED.md)
+- [Architecture](docs/architecture/)
+- [API Docs](docs/api/) - Run `npm run docs:serve`
 
 ## Additional Resources
 
