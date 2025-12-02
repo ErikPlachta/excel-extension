@@ -24,6 +24,8 @@
     "affected:lint": "nx affected --target=lint",
     "affected:test": "nx affected --target=test",
     "affected:build": "nx affected --target=build",
+    "ci": "nx affected --target=lint --parallel=3 && nx affected --target=test --parallel=3 --ci && nx affected --target=build --parallel=3",
+    "ci:all": "nx run-many --target=lint --all --parallel=3 && nx run-many --target=test --all --ci --parallel=3 && nx run-many --target=build --all --parallel=3",
     "test:coverage": "nx run-many --target=test --all --coverage",
     "test:watch": "nx test excel-addin --watch"
   },
