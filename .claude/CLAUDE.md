@@ -305,7 +305,7 @@ this.telemetry.logEvent({
 
 ## Performance & Large Datasets
 
-**See `.claude/PERFORMANCE.md` for comprehensive guide** (Phase 6)
+**See `docs/architecture/PERFORMANCE.md` for comprehensive guide**
 
 - Excel resource limits: ~5MB payload per Office.js call, ~1M cell recommendation
 - Chunked writes: Default 1000 rows/chunk, configurable via Settings UI
@@ -323,7 +323,7 @@ this.telemetry.logEvent({
 
 - **NPM scripts:** Use `npm run watch`, not `npm watch`
 - **Base href:** GH Pages needs `--base-href /excel-extension/` (workflow handles this)
-- **Tests:** Office globals undefined in Karma; keep `isExcel` guards
+- **Tests:** Office globals undefined in Jest; keep `isExcel` guards
 - **Blank taskpane:** Dev server not running; start `npm start` or `npm run start:dev`
 - **Append mode removed:** Only overwrite semantics supported; append explicitly removed after proving brittle
 
@@ -333,5 +333,6 @@ Architecture refactor (9 phases) completed November 2025. See `docs/changelog/CH
 
 **Reference docs:**
 
-- `.claude/STORAGE-ARCHITECTURE.md` - Storage APIs, IndexedDB schema, backup/restore
-- `.claude/PERFORMANCE.md` - Excel limits, chunking, large dataset handling
+- `docs/architecture/STORAGE-ARCHITECTURE.md` - Storage APIs, IndexedDB schema, backup/restore
+- `docs/architecture/PERFORMANCE.md` - Excel limits, chunking, large dataset handling
+- `docs/changelog/` - Historical change logs
