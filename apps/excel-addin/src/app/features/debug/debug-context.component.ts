@@ -3,7 +3,7 @@ import { Component } from "@angular/core";
 import { AuthService } from "@excel-platform/core/auth";
 import { WorkbookService } from "@excel-platform/core/excel";
 import { QueryStateService } from "@excel-platform/data/query";
-import { AppContextService } from "../../core";
+import { AppContextService } from "@excel-platform/core/telemetry";
 
 @Component({
   selector: "app-debug-context",

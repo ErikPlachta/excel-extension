@@ -1,7 +1,7 @@
 import { CommonModule } from "@angular/common";
 import { Component } from "@angular/core";
 import { FormsModule } from "@angular/forms";
-import { AuthService } from "../../core";
+import { AuthService } from "@excel-platform/core/auth";
 import { truncateToken } from '@excel-platform/shared/util';
 import { SectionComponent, CardComponent } from '@excel-platform/shared/ui';
 

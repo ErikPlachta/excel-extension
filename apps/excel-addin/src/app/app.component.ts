@@ -1,16 +1,19 @@
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { Component, OnInit } from "@angular/core";
-import { ExcelService, AuthService, AppContextService, AppConfigService, AppHostStatus, AppAuthSummary } from ".";
+import { ExcelService } from "@excel-platform/core/excel";
+import { AuthService } from "@excel-platform/core/auth";
+import { AppContextService, AppHostStatus, AppAuthSummary } from "@excel-platform/core/telemetry";
+import { AppConfigService } from "@excel-platform/data/api";
 import { IndexedDBService } from "@excel-platform/data/storage";
 import { NavItemConfig, ViewId, TextCatalog } from "@excel-platform/shared/types";
-import { SsoHomeComponent } from "../features/sso/sso-home.component";
-import { WorksheetsComponent } from "../features/worksheets/worksheets.component";
-import { TablesComponent } from "../features/tables/tables.component";
-import { UserComponent } from "../features/user/user.component";
-import { QueriesComponent } from "../features/queries/queries.component";
-import { DebugContextComponent } from "../features/debug/debug-context.component";
-import { SettingsComponent } from "../features/settings/settings.component";
+import { SsoHomeComponent } from "./features/sso/sso-home.component";
+import { WorksheetsComponent } from "./features/worksheets/worksheets.component";
+import { TablesComponent } from "./features/tables/tables.component";
+import { UserComponent } from "./features/user/user.component";
+import { QueriesComponent } from "./features/queries/queries.component";
+import { DebugContextComponent } from "./features/debug/debug-context.component";
+import { SettingsComponent } from "./features/settings/settings.component";
 import { ButtonComponent } from '@excel-platform/shared/ui';
 
 @Component({

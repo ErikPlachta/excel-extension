@@ -1,6 +1,6 @@
 import { CommonModule } from "@angular/common";
 import { Component } from "@angular/core";
-import { AuthService } from "../../core";
+import { AuthService } from "@excel-platform/core/auth";
 import { SectionComponent } from '@excel-platform/shared/ui';
 
 @Component({

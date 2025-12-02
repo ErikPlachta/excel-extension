@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from "@angular/core/testing";
 import { SsoHomeComponent } from "./sso-home.component";
-import { AuthService } from "../../core";
+import { AuthService } from "@excel-platform/core/auth";
 
 class AuthServiceStub {
   isAuthenticated = false;
