@@ -1,9 +1,8 @@
 import { QueryConfigurationService } from "./query-configuration.service";
-import { QueryConfiguration } from "../types";
+import { QueryConfiguration } from '@excel-platform/shared/types';
 import { AuthService } from "@excel-platform/core/auth";
-import { ApiCatalogService } from "./api-catalog.service";
+import { ApiCatalogService, QueryValidationService, ValidationResult } from '@excel-platform/data/api';
 import { StorageHelperService } from "@excel-platform/data/storage";
-import { QueryValidationService, ValidationResult } from "./query-validation.service";
 
 class AuthServiceStub {
   state = { user: { id: "user-1" } } as unknown as AuthService["state"];

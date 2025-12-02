@@ -12,4 +12,5 @@ export * from './lib/excel.types';
 export * from './lib/settings.types';
 export * from './lib/telemetry.types';
 export * from './lib/formula.types';
+export * from './lib/app-config.types';
 export * from './lib/ui/primitives.types';

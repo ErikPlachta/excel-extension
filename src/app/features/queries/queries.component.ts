@@ -4,14 +4,10 @@ import { Component, OnDestroy } from "@angular/core";
 import { Subject } from "rxjs";
 import { takeUntil } from "rxjs/operators";
 import { ExcelService, AuthService, TelemetryService, SettingsService, FormulaScannerService, WorkbookService } from "../../core";
-import { ExecuteQueryParams, QueryApiMockService } from "../../shared/query-api-mock.service";
-import { QueryStateService } from "../../shared/query-state.service";
-import { ApiDefinition, QueryConfiguration, QueryConfigurationItem, QueryParameterValues, QueryWriteMode, QueryImpactAssessment } from '@excel-platform/shared/types';
-import { RoleId } from "../../types";
+import { ExecuteQueryParams, QueryApiMockService, ApiCatalogService } from "@excel-platform/data/api";
+import { QueryStateService, QueryConfigurationService, QueryQueueService } from "@excel-platform/data/query";
+import { ApiDefinition, QueryConfiguration, QueryConfigurationItem, QueryParameterValues, QueryWriteMode, QueryImpactAssessment, RoleId } from '@excel-platform/shared/types';
 import { SectionComponent, TableComponent, DropdownComponent, UiDropdownItem, ButtonComponent, ProgressIndicatorComponent } from '@excel-platform/shared/ui';
-import { QueryConfigurationService } from "../../shared/query-configuration.service";
-import { QueryQueueService } from "../../shared/query-queue.service";
-import { ApiCatalogService } from "../../shared/api-catalog.service";
 
 @Component({
   selector: "app-queries",

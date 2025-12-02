@@ -1,8 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable, map } from 'rxjs';
-import { ApiDefinition, ApiParameter } from '@excel-platform/shared/types';
-import { RoleId } from '../types/app-config.types';
-import { AppConfigService } from '../core/app-config.service';
+import { ApiDefinition, ApiParameter, RoleId } from '@excel-platform/shared/types';
+import { AppConfigService } from './app-config.service';
 
 /**
  * API Catalog Service - Manages available API definitions.

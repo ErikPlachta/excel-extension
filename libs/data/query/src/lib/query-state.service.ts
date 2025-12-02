@@ -1,10 +1,9 @@
 import { Injectable } from "@angular/core";
 import { BehaviorSubject } from "rxjs";
-import { ExecuteQueryParams } from "./query-api-mock.service";
-import { ApiDefinition, QueryRun } from "./query-model";
-import type { QueryParameterValues } from "../types";
+import { ExecuteQueryParams } from '@excel-platform/data/api';
+import type { ApiDefinition, QueryRun, QueryParameterValues } from '@excel-platform/shared/types';
 import { StorageHelperService } from "@excel-platform/data/storage";
-import { ApiCatalogService } from "./api-catalog.service";
+import { ApiCatalogService } from '@excel-platform/data/api';
 
 /**
  * Shape of the in-memory state managed by {@link QueryStateService}.

@@ -1,10 +1,9 @@
 import { Injectable } from "@angular/core";
 import { BehaviorSubject } from "rxjs";
-import { QueryConfiguration } from "../types";
+import { QueryConfiguration } from '@excel-platform/shared/types';
 import { AuthService } from "@excel-platform/core/auth";
-import { ApiCatalogService } from './api-catalog.service';
+import { ApiCatalogService, QueryValidationService } from '@excel-platform/data/api';
 import { StorageHelperService } from "@excel-platform/data/storage";
-import { QueryValidationService } from './query-validation.service';
 
 /**
  * Simple local-storage backed store for named query configurations.

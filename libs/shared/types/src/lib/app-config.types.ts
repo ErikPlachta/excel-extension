@@ -3,13 +3,8 @@
  * used to allow a modular and data-driven design.
  */
 
-import {
-  UiLayoutHints,
-  ApiDefinition,
-  RoleId,
-  UiButtonVariant,
-  UiButtonSize
-} from '@excel-platform/shared/types';
+import { UiLayoutHints, UiButtonVariant, UiButtonSize } from './ui/primitives.types';
+import { ApiDefinition, RoleId } from './api.types';
 
 // Re-export RoleId for backward compatibility
 export type { RoleId };

@@ -1,9 +1,7 @@
 import { QueryStateService } from "./query-state.service";
-import { ExecuteQueryParams } from "./query-api-mock.service";
-import { ApiDefinition } from "./query-model";
-import type { QueryParameterValues } from "../types";
+import { ExecuteQueryParams, ApiCatalogService } from '@excel-platform/data/api';
+import type { ApiDefinition, QueryParameterValues } from '@excel-platform/shared/types';
 import { StorageHelperService } from "@excel-platform/data/storage";
-import { ApiCatalogService } from "./api-catalog.service";
 
 class ApiCatalogServiceStub {
   private readonly apis: ApiDefinition[] = [

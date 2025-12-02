@@ -1,10 +1,10 @@
 import { Injectable, inject, Injector } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { BehaviorSubject, Observable, firstValueFrom } from 'rxjs';
-import { AppConfig } from '../types/app-config.types';
-import { DEFAULT_APP_CONFIG } from '../shared/app-config.default';
+import { AppConfig } from '@excel-platform/shared/types';
+import { DEFAULT_APP_CONFIG } from './app-config.default';
 import { ConfigValidatorService } from './config-validator.service';
-import { AuthService } from "@excel-platform/core/auth";
+import { AuthService } from '@excel-platform/core/auth';
 
 /**
  * AppConfig Service - Manages application configuration with observable pattern.
