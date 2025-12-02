@@ -9,9 +9,9 @@
     ]
   },
   "include": [
-    "src/test.ts",
-    "src/**/*.spec.ts",
-    "src/**/*.d.ts",
+    "apps/excel-addin/src/test.ts",
+    "apps/excel-addin/src/**/*.spec.ts",
+    "apps/excel-addin/src/**/*.d.ts",
     "libs/**/*.spec.ts"
   ]
 }

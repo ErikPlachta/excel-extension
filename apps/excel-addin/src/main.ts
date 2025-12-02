@@ -1,5 +1,6 @@
 import { bootstrapApplication } from "@angular/platform-browser";
-import { AppComponent, appConfig } from "./app/core";
+import { AppComponent } from "./app/app.component";
+import { appConfig } from "./app/app.config";
 
 // Office is injected by the Excel/Office runtime; we intentionally
 // keep this as any and guard access via runtime checks.
