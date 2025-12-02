@@ -27,7 +27,11 @@
     "ci": "nx affected --target=lint --parallel=3 && nx affected --target=test --parallel=3 --ci && nx affected --target=build --parallel=3",
     "ci:all": "nx run-many --target=lint --all --parallel=3 && nx run-many --target=test --all --ci --parallel=3 && nx run-many --target=build --all --parallel=3",
     "test:coverage": "nx run-many --target=test --all --coverage",
-    "test:watch": "nx test excel-addin --watch"
+    "test:watch": "nx test excel-addin --watch",
+    "docs": "npx compodoc -p tsconfig.compodoc.json -c .compodocrc.json",
+    "docs:serve": "npx compodoc -p tsconfig.compodoc.json -c .compodocrc.json -s",
+    "docs:watch": "npx compodoc -p tsconfig.compodoc.json -c .compodocrc.json -s -w",
+    "docs:coverage": "npx compodoc -p tsconfig.compodoc.json -c .compodocrc.json --coverageTest 70"
   },
   "private": true,
   "dependencies": {
@@ -51,6 +55,7 @@
     "@angular-eslint/template-parser": "^20.3.12",
     "@angular/cli": "^20.3.10",
     "@angular/compiler-cli": "^20.3.12",
+    "@compodoc/compodoc": "^1.1.32",
     "@nx/angular": "^22.1.3",
     "@nx/eslint": "^22.1.3",
     "@nx/jest": "^22.1.3",
