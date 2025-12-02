@@ -1,6 +1,6 @@
 import { Injectable, OnDestroy } from "@angular/core";
 import { BehaviorSubject, Subscription, interval } from "rxjs";
-import { getSsoAuthResult, SsoUserProfile } from "../../../../../src/helpers/sso-helper";
+import { getSsoAuthResult, SsoUserProfile } from "@excel-platform/shared/util";
 import type { AuthState, TokenPair } from "@excel-platform/shared/types";
 import { JWT_CONFIG } from "@excel-platform/shared/types";
 import { StorageHelperService } from "@excel-platform/data/storage";
