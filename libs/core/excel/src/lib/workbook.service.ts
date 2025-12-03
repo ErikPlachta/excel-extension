@@ -1,7 +1,6 @@
 import { Injectable } from "@angular/core";
 import { ExcelService } from "./excel.service";
 import {
-  QueryDefinition,
   WorkbookOwnershipInfo,
   WorkbookTableInfo,
 } from "@excel-platform/shared/types";
@@ -112,56 +111,6 @@ export class WorkbookService {
   async getManagedTableForQuery(queryId: string): Promise<WorkbookTableInfo | undefined> {
     const [tables, ownership] = await Promise.all([this.getTables(), this.getOwnership()]);
     return tables.find((t) => this.isManagedForQuery(ownership, t, queryId));
-  }
-
-  /**
-   * Resolves the table that should be used for a query run,
-   * preferring an existing extension-managed table when present
-   * and otherwise falling back to the default table name.
-   *
-   * This does not perform any mutations; callers are still
-   * responsible for actually creating/updating the table via
-   * Excel APIs. The intent is to centralize ownership decisions
-   * so features do not need to reason about conflicting user
-   * tables themselves.
-   *
-   * @deprecated Phase 1 Migration: With QueryInstance model, callers specify
-   * targetSheetName/targetTableName directly. This method remains for backward
-   * compatibility but is no longer used in production code paths.
-   */
-  async getOrCreateManagedTableTarget(
-    query: QueryDefinition
-  ): Promise<{ sheetName: string; tableName: string; existing?: WorkbookTableInfo } | null> {
-    if (!this.isExcel) return null;
-
-    const [tables, ownership] = await Promise.all([this.getTables(), this.getOwnership()]);
-
-    const existingManaged = tables.find((t) => this.isManagedForQuery(ownership, t, query.id));
-    if (existingManaged) {
-      return {
-        sheetName: existingManaged.worksheet,
-        tableName: existingManaged.name,
-        existing: existingManaged,
-      };
-    }
-
-    const defaultTableName = query.defaultTableName;
-    const conflictingUserTable = tables.find((t) => t.name === defaultTableName);
-
-    if (conflictingUserTable) {
-      // Respect user content by choosing a new, extension-specific
-      // name based on the query id.
-      const safeName = `${defaultTableName}_${query.id}`;
-      return {
-        sheetName: query.defaultSheetName,
-        tableName: safeName,
-      };
-    }
-
-    return {
-      sheetName: query.defaultSheetName,
-      tableName: defaultTableName,
-    };
   }
 
   /**
