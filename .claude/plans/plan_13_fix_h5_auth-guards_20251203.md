@@ -73,7 +73,7 @@ Current authentication is **purely client-side mock** with critical security gap
  * This service maintains an in-memory "valid tokens" registry
  * that simulates what a server session store would do.
  */
-@Injectable({ providedIn: 'root' })
+@Injectable({ providedIn: "root" })
 export class TokenValidationService {
   /** Map of userId → Set of valid token IDs */
   private readonly validTokens = new Map<string, Set<string>>();
@@ -102,13 +102,14 @@ export class TokenValidationService {
 
 interface TokenValidationResult {
   valid: boolean;
-  reason?: 'expired' | 'revoked' | 'invalid_signature' | 'not_found';
+  reason?: "expired" | "revoked" | "invalid_signature" | "not_found";
   userId?: string;
   roles?: string[];
 }
 ```
 
 **Tests**: `libs/core/auth/src/lib/token-validation.service.spec.ts`
+
 - Token issuance adds to registry
 - New sign-in purges old tokens
 - Revoked tokens fail validation
@@ -122,6 +123,7 @@ interface TokenValidationResult {
 **Modify**: `libs/core/auth/src/lib/auth.service.ts`
 
 Changes:
+
 1. Inject `TokenValidationService`
 2. `signInWithJwt()`:
    - Call `tokenValidation.revokeAllForUser(userId)` before issuing new token
@@ -131,6 +133,7 @@ Changes:
 4. Add `validateCurrentToken()` method for guards/interceptor
 
 **Tests**: Update `libs/core/auth/src/lib/auth.service.spec.ts`
+
 - New sign-in revokes previous tokens
 - Sign-out revokes current token
 - Token validation integrates with TokenValidationService
@@ -152,7 +155,7 @@ export const authGuard: CanActivateFn = (route, state) => {
 
   if (!auth.isAuthenticated || !auth.validateCurrentToken().valid) {
     auth.signOut(); // Clear invalid state
-    router.navigate(['/sso']);
+    router.navigate(["/sso"]);
     return false;
   }
   return true;
@@ -169,10 +172,10 @@ export const authGuard: CanActivateFn = (route, state) => {
 export const roleGuard: CanActivateFn = (route, state) => {
   const auth = inject(AuthService);
   const router = inject(Router);
-  const requiredRoles = route.data['roles'] as string[];
+  const requiredRoles = route.data["roles"] as string[];
 
   if (!auth.hasAnyRole(requiredRoles)) {
-    router.navigate(['/sso']);
+    router.navigate(["/sso"]);
     return false;
   }
   return true;
@@ -183,29 +186,31 @@ export const roleGuard: CanActivateFn = (route, state) => {
 
 ```typescript
 export const routes: Routes = [
-  { path: 'sso', component: SsoHomeComponent },
+  { path: "sso", component: SsoHomeComponent },
   {
-    path: 'worksheets',
+    path: "worksheets",
     component: WorksheetsComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard],
   },
   {
-    path: 'queries',
+    path: "queries",
     component: QueriesComponent,
     canActivate: [authGuard, roleGuard],
-    data: { roles: ['analyst', 'admin'] }
+    data: { roles: ["analyst", "admin"] },
   },
   // ...
 ];
 ```
 
 **Tests**: `libs/core/auth/src/lib/guards/auth.guard.spec.ts`
+
 - Allows authenticated users
 - Blocks unauthenticated users
 - Blocks users with revoked tokens
 - Redirects to SSO
 
 **Tests**: `libs/core/auth/src/lib/guards/role.guard.spec.ts`
+
 - Allows users with required role
 - Blocks users without required role
 - Works with multiple allowed roles
@@ -229,7 +234,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const token = auth.getAccessToken();
   if (token) {
     req = req.clone({
-      setHeaders: { Authorization: `Bearer ${token}` }
+      setHeaders: { Authorization: `Bearer ${token}` },
     });
   }
 
@@ -237,7 +242,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     catchError((error: HttpErrorResponse) => {
       if (error.status === 401) {
         auth.signOut();
-        router.navigate(['/sso']);
+        router.navigate(["/sso"]);
       }
       return throwError(() => error);
     })
@@ -249,14 +254,12 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 
 ```typescript
 export const appConfig: ApplicationConfig = {
-  providers: [
-    provideRouter(routes),
-    provideHttpClient(withInterceptors([authInterceptor])),
-  ]
+  providers: [provideRouter(routes), provideHttpClient(withInterceptors([authInterceptor]))],
 };
 ```
 
 **Tests**: `libs/core/auth/src/lib/auth.interceptor.spec.ts`
+
 - Adds header when authenticated
 - No header when not authenticated
 - Handles 401 response
@@ -269,6 +272,7 @@ export const appConfig: ApplicationConfig = {
 **Modify**: `libs/data/api/src/lib/query-api-mock.service.ts`
 
 Changes:
+
 1. Inject `TokenValidationService`
 2. Add `validateRequest()` method
 3. All `executeApi()` calls validate token first
@@ -298,6 +302,7 @@ async executeApi(apiId: string, params: Record<string, unknown>): Promise<Execut
 ```
 
 **Tests**: Update `libs/data/api/src/lib/query-api-mock.service.spec.ts`
+
 - Valid token allows API calls
 - Revoked token returns 401
 - Expired token returns 401
@@ -309,22 +314,23 @@ async executeApi(apiId: string, params: Record<string, unknown>): Promise<Execut
 
 **Modify storage keys to include userId**:
 
-| Service | Current Key | New Key Pattern |
-|---------|-------------|-----------------|
-| AuthService | `excel-extension-auth-state` | `excel-ext:auth:${visitorId}` (device-level) |
-| SettingsService | `excel-extension.settings` | `excel-ext:settings:${userId}` |
-| QueryStateService | `query-state` | `excel-ext:query-state:${userId}` |
-| IndexedDBService | `${queryId}` | `${userId}:${queryId}` |
-| QueryConfigService | Already user-keyed | No change needed |
+| Service            | Current Key                  | New Key Pattern                              |
+| ------------------ | ---------------------------- | -------------------------------------------- |
+| AuthService        | `excel-extension-auth-state` | `excel-ext:auth:${visitorId}` (device-level) |
+| SettingsService    | `excel-extension.settings`   | `excel-ext:settings:${userId}`               |
+| QueryStateService  | `query-state`                | `excel-ext:query-state:${userId}`            |
+| IndexedDBService   | `${queryId}`                 | `${userId}:${queryId}`                       |
+| QueryConfigService | Already user-keyed           | No change needed                             |
 
 **Create**: `libs/shared/util/src/lib/visitor-id.ts`
+
 ```typescript
 /**
  * Generate/retrieve persistent visitor ID for this device.
  * Used to isolate auth state per device (not per user).
  */
 export function getVisitorId(): string {
-  const key = 'excel-ext:visitor-id';
+  const key = "excel-ext:visitor-id";
   let id = localStorage.getItem(key);
   if (!id) {
     id = crypto.randomUUID();
@@ -335,6 +341,7 @@ export function getVisitorId(): string {
 ```
 
 **Tests**: For each modified service
+
 - Storage isolation between users
 - Data not accessible after sign-out
 - New user doesn't see old user's data
@@ -343,31 +350,31 @@ export function getVisitorId(): string {
 
 ## Files to Create
 
-| File | Purpose |
-|------|---------|
-| `libs/core/auth/src/lib/token-validation.service.ts` | Simulated server token store |
-| `libs/core/auth/src/lib/token-validation.service.spec.ts` | Tests |
-| `libs/core/auth/src/lib/guards/auth.guard.ts` | Authentication guard |
-| `libs/core/auth/src/lib/guards/auth.guard.spec.ts` | Tests |
-| `libs/core/auth/src/lib/guards/role.guard.ts` | Role-based guard |
-| `libs/core/auth/src/lib/guards/role.guard.spec.ts` | Tests |
-| `libs/core/auth/src/lib/auth.interceptor.ts` | HTTP interceptor |
-| `libs/core/auth/src/lib/auth.interceptor.spec.ts` | Tests |
-| `libs/shared/util/src/lib/visitor-id.ts` | Device ID helper |
+| File                                                      | Purpose                      |
+| --------------------------------------------------------- | ---------------------------- |
+| `libs/core/auth/src/lib/token-validation.service.ts`      | Simulated server token store |
+| `libs/core/auth/src/lib/token-validation.service.spec.ts` | Tests                        |
+| `libs/core/auth/src/lib/guards/auth.guard.ts`             | Authentication guard         |
+| `libs/core/auth/src/lib/guards/auth.guard.spec.ts`        | Tests                        |
+| `libs/core/auth/src/lib/guards/role.guard.ts`             | Role-based guard             |
+| `libs/core/auth/src/lib/guards/role.guard.spec.ts`        | Tests                        |
+| `libs/core/auth/src/lib/auth.interceptor.ts`              | HTTP interceptor             |
+| `libs/core/auth/src/lib/auth.interceptor.spec.ts`         | Tests                        |
+| `libs/shared/util/src/lib/visitor-id.ts`                  | Device ID helper             |
 
 ## Files to Modify
 
-| File | Changes |
-|------|---------|
-| `libs/core/auth/src/lib/auth.service.ts` | Integrate TokenValidationService |
-| `libs/core/auth/src/lib/auth.service.spec.ts` | Update tests |
-| `libs/core/auth/src/index.ts` | Export new services/guards |
-| `libs/data/api/src/lib/query-api-mock.service.ts` | Add token validation |
-| `libs/data/api/src/lib/query-api-mock.service.spec.ts` | Update tests |
-| `libs/data/storage/src/lib/indexeddb.service.ts` | User-keyed cache |
-| `libs/core/settings/src/lib/settings.service.ts` | User-keyed settings |
-| `apps/excel-addin/src/app/app.routes.ts` | Apply guards |
-| `apps/excel-addin/src/app/app.config.ts` | Register interceptor |
+| File                                                   | Changes                          |
+| ------------------------------------------------------ | -------------------------------- |
+| `libs/core/auth/src/lib/auth.service.ts`               | Integrate TokenValidationService |
+| `libs/core/auth/src/lib/auth.service.spec.ts`          | Update tests                     |
+| `libs/core/auth/src/index.ts`                          | Export new services/guards       |
+| `libs/data/api/src/lib/query-api-mock.service.ts`      | Add token validation             |
+| `libs/data/api/src/lib/query-api-mock.service.spec.ts` | Update tests                     |
+| `libs/data/storage/src/lib/indexeddb.service.ts`       | User-keyed cache                 |
+| `libs/core/settings/src/lib/settings.service.ts`       | User-keyed settings              |
+| `apps/excel-addin/src/app/app.routes.ts`               | Apply guards                     |
+| `apps/excel-addin/src/app/app.config.ts`               | Register interceptor             |
 
 ---
 
@@ -389,14 +396,14 @@ export function getVisitorId(): string {
 
 ## Security Guarantees After Implementation
 
-| Threat | Before | After |
-|--------|--------|-------|
-| Stale token reuse | ❌ Works forever | ✅ Rejected (not in registry) |
-| Cross-user data | ❌ Shared cache keys | ✅ User-keyed storage |
-| Role spoofing | ❌ Client can set any role | ⚠️ Still possible (needs real backend) |
-| Direct URL access | ❌ UI hiding only | ✅ Route guards enforce |
-| API without auth | ❌ No headers sent | ✅ Bearer token required |
-| Session hijacking | ❌ Tokens never expire | ✅ Validated + revocable |
+| Threat            | Before                     | After                                  |
+| ----------------- | -------------------------- | -------------------------------------- |
+| Stale token reuse | ❌ Works forever           | ✅ Rejected (not in registry)          |
+| Cross-user data   | ❌ Shared cache keys       | ✅ User-keyed storage                  |
+| Role spoofing     | ❌ Client can set any role | ⚠️ Still possible (needs real backend) |
+| Direct URL access | ❌ UI hiding only          | ✅ Route guards enforce                |
+| API without auth  | ❌ No headers sent         | ✅ Bearer token required               |
+| Session hijacking | ❌ Tokens never expire     | ✅ Validated + revocable               |
 
 **Note**: Role spoofing requires real backend to fully prevent. This implementation simulates server behavior but roles still originate from client `signInWithJwt()` call.
 
