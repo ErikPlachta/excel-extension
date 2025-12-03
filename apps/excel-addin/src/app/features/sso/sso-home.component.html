@@ -55,11 +55,20 @@
         </div>
       </form>
 
-      <div class="alt-sign-in">
-        <span>or</span>
-        <button type="button" (click)="signIn()" class="btn-secondary">
-          Mock SSO Sign-In
-        </button>
+      <!-- Quick sign-in buttons (dev mode only) -->
+      <div *ngIf="isDevModeActive && quickSignInUsers.length > 0" class="quick-sign-in">
+        <span class="divider-text">or quick sign-in</span>
+        <div class="quick-sign-in-buttons">
+          <button
+            *ngFor="let user of quickSignInUsers"
+            type="button"
+            (click)="signInAs(user)"
+            [disabled]="isLoading"
+            class="btn-secondary"
+          >
+            {{ user.label }}
+          </button>
+        </div>
       </div>
     </app-card>
   </div>

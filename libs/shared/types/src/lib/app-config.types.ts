@@ -28,8 +28,12 @@ export type ViewId =
 
 /**
  * Supported navigation action types for shell nav items.
+ *
+ * Note: Sign-in actions (sign-in-analyst, sign-in-admin) have been removed.
+ * Demo sign-in buttons are now rendered by SsoHomeComponent using DemoAuthUser
+ * config from app-config.demo.ts, not as nav items.
  */
-export type NavActionType = "select-view" | "sign-in-analyst" | "sign-in-admin" | "sign-out";
+export type NavActionType = 'select-view' | 'sign-out';
 
 /**
  * Configuration for a single navigation item in the shell.

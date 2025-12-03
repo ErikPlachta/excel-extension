@@ -63,18 +63,18 @@ describe("SsoHomeComponent", () => {
     expect(component.userName).toBeNull();
   });
 
-  it("signs in with mock data", async () => {
-    await component.signIn();
+  it("signs in with signInAs and AuthUserConfig", async () => {
+    const user = { id: 'test', label: 'Test', email: 'test@example.com', role: 'analyst' as const };
+    await component.signInAs(user);
     fixture.detectChanges();
 
     expect(component.isSignedIn).toBeTrue();
-    expect(component.userName).toBe("Mock User");
-    expect(component.userEmail).toBe("mock.user@example.com");
-    expect(component.tokenSnippet).toBe("mock-acces…");
+    expect(component.userEmail).toBe("test@example.com");
   });
 
   it("signs out and clears user state", async () => {
-    await component.signIn();
+    const user = { id: 'test', label: 'Test', email: 'test@example.com', role: 'analyst' as const };
+    await component.signInAs(user);
     component.signOut();
     fixture.detectChanges();
 
@@ -126,7 +126,9 @@ describe("SsoHomeComponent", () => {
     });
 
     it("returns null for tokenExpiryDisplay with non-JWT token", async () => {
-      await component.signIn(); // Uses mock token that's not real JWT
+      // Use signInAs instead of deprecated signIn
+      const user = { id: 'test', label: 'Test', email: 'test@example.com', role: 'analyst' as const };
+      await component.signInAs(user);
       expect(component.tokenExpiryDisplay).toBeNull();
     });
   });
