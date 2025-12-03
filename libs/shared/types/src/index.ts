@@ -4,6 +4,7 @@
 export * from './lib/auth.types';
 export * from './lib/jwt.types';
 export * from './lib/api.types';
+export * from './lib/auth-api.types';
 export * from './lib/query.types';
 export * from './lib/query-configuration.types';
 export * from './lib/query-params.types';

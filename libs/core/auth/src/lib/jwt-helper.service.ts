@@ -44,6 +44,12 @@ import { JWT_CONFIG } from "@excel-platform/shared/types";
  */
 @Injectable({ providedIn: "root" })
 export class JwtHelperService {
+  /** Default issuer for mock tokens */
+  private static readonly MOCK_ISSUER = 'excel-extension-mock';
+
+  /** Default audience for mock tokens */
+  private static readonly MOCK_AUDIENCE = 'databricks-api';
+
   /**
    * Generate a mock JWT token pair for a user.
    *
@@ -57,6 +63,8 @@ export class JwtHelperService {
   generateMockTokenPair(email: string, roles: string[]): TokenPair {
     const now = Date.now();
     const userId = this.generateUserId(email);
+    const accessJti = this.generateJti();
+    const refreshJti = this.generateJti();
 
     const accessPayload: TokenPayload = {
       sub: userId,
@@ -64,6 +72,9 @@ export class JwtHelperService {
       roles,
       iat: Math.floor(now / 1000),
       exp: Math.floor((now + JWT_CONFIG.ACCESS_TOKEN_LIFETIME_MS) / 1000),
+      jti: accessJti,
+      aud: JwtHelperService.MOCK_AUDIENCE,
+      iss: JwtHelperService.MOCK_ISSUER,
     };
 
     const refreshPayload: TokenPayload = {
@@ -72,6 +83,9 @@ export class JwtHelperService {
       roles,
       iat: Math.floor(now / 1000),
       exp: Math.floor((now + JWT_CONFIG.REFRESH_TOKEN_LIFETIME_MS) / 1000),
+      jti: refreshJti,
+      aud: JwtHelperService.MOCK_AUDIENCE,
+      iss: JwtHelperService.MOCK_ISSUER,
     };
 
     const accessToken = this.encodeToken(accessPayload);
@@ -113,13 +127,16 @@ export class JwtHelperService {
       return null;
     }
 
-    // Generate new access token
+    // Generate new access token with new jti
     const newAccessPayload: TokenPayload = {
       sub: payload.sub,
       email: payload.email,
       roles: payload.roles,
       iat: Math.floor(now / 1000),
       exp: Math.floor((now + JWT_CONFIG.ACCESS_TOKEN_LIFETIME_MS) / 1000),
+      jti: this.generateJti(),
+      aud: payload.aud || JwtHelperService.MOCK_AUDIENCE,
+      iss: payload.iss || JwtHelperService.MOCK_ISSUER,
     };
 
     const newAccessToken = this.encodeToken(newAccessPayload);
@@ -298,5 +315,17 @@ export class JwtHelperService {
       padded += "=".repeat(4 - pad);
     }
     return atob(padded);
+  }
+
+  /**
+   * Generate a unique JWT ID (jti) for token revocation.
+   * Uses crypto.randomUUID for uniqueness.
+   */
+  private generateJti(): string {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+      return crypto.randomUUID();
+    }
+    // Fallback for environments without crypto.randomUUID
+    return `jti-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
   }
 }
