@@ -109,13 +109,13 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
   roles: [
     {
       id: "analyst",
-      labelKey: "role.analyst.label",
-      descriptionKey: "role.analyst.description",
+      label: "Analyst",
+      description: "Analyst role with query access",
     },
     {
       id: "admin",
-      labelKey: "role.admin.label",
-      descriptionKey: "role.admin.description",
+      label: "Admin",
+      description: "Administrator role with full access",
     },
   ],
   ui: {
@@ -259,16 +259,6 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
     worksheet: {},
     table: {},
     user: {},
-    role: {
-      analyst: {
-        label: "Analyst",
-        description: "Analyst role with query access",
-      },
-      admin: {
-        label: "Admin",
-        description: "Administrator role with full access",
-      },
-    },
     hostStatus: {
       excelNotDetectedLabel: "Excel not detected.",
       excelNotDetectedMessage: "Open this add-in inside Excel to enable worksheet and query features.",

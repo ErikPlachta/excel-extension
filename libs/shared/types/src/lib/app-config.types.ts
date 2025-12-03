@@ -63,10 +63,10 @@ export interface NavItemConfig {
 export interface RoleDefinition {
   /** Role identifier used in logic. */
   id: RoleId;
-  /** i18n/text key describing the role. */
-  labelKey: string;
-  /** i18n/text key for the role description. */
-  descriptionKey: string;
+  /** Human-readable label for the role. */
+  label: string;
+  /** Description of the role's purpose and permissions. */
+  description: string;
 }
 
 /**
