@@ -88,7 +88,7 @@ export type QueryUiActionType = "run-query" | "go-to-table" | "show-details";
 /**
  * Configuration for a single query-level UI action.
  *
- * This is typically attached to a `QueryDefinition` via `uiConfig.actions`
+ * This is typically attached to a `QueryInstance` via `uiConfig.actions`
  * so that the feature UI can render buttons and dispatch actions based on
  * data instead of hard-coded templates.
  */

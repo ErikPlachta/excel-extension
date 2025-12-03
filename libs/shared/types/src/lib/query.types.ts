@@ -1,4 +1,22 @@
 /**
+ * @packageDocumentation Query Types - Execution-level types for query operations.
+ *
+ * ## Type Hierarchy
+ *
+ * This module provides types for query execution. For the type hierarchy:
+ *
+ * - **ApiDefinition** (api.types.ts): Catalog entries describing available APIs
+ * - **QueryInstance** (this file): Configured query instances with target location
+ * - **QueryDefinition** (this file): DEPRECATED - use ApiDefinition + QueryInstance
+ *
+ * ## Migration Guide
+ *
+ * If you're using QueryDefinition, migrate to the new model:
+ * - Catalog data (id, name, parameters) → ApiDefinition
+ * - Execution config (targetSheet, writeMode) → QueryInstance
+ */
+
+/**
  * Concrete parameter values supplied when invoking a query against a
  * particular API definition.
  */
@@ -17,8 +35,8 @@ export interface ExecuteQueryResultRow {
  * Simple parameter definition for a query invocation, including type and default value.
  *
  * In this refactor, a "query" should be thought of as a call against a
- * specific API definition with concrete parameter values. The API itself is
- * described by {@link QueryDefinition}.
+ * specific API definition with concrete parameter values. The API catalog
+ * is described by {@link ApiDefinition} from api.types.ts.
  */
 export interface QueryParameter {
   /** Unique identifier for this parameter within a query. */
@@ -45,13 +63,37 @@ export type QueryWriteMode = "overwrite" | "append";
 /**
  * Definition of an API-style data operation that can be invoked as a "query".
  *
- * The mock layer and UI treat this as the master catalog entry. A single
- * {@link QueryDefinition} (API) may be invoked many times with different
- * parameters and targets when users build configurations.
+ * @deprecated **MIGRATION REQUIRED**
  *
- * @deprecated Use {@link ApiDefinition} from api.types.ts for catalog entries.
- * QueryDefinition conflates catalog metadata with execution targets (defaultSheetName, etc).
- * Migration: Use ApiDefinition for catalog, QueryInstance for execution instances.
+ * Use these types instead:
+ * - **Catalog entries**: Use {@link ApiDefinition} from api.types.ts
+ * - **Query instances**: Use {@link QueryInstance} from this file
+ *
+ * QueryDefinition conflates catalog metadata (id, name, parameters) with
+ * execution config (defaultSheetName, writeMode). The new model separates these:
+ * - ApiDefinition: What APIs are available (catalog)
+ * - QueryInstance: Configured query with target location and parameters
+ *
+ * @example Migration
+ * ```typescript
+ * // OLD:
+ * const query: QueryDefinition = {
+ *   id: 'sales',
+ *   name: 'Sales',
+ *   defaultSheetName: 'Sales',
+ *   defaultTableName: 'tbl_sales',
+ *   parameters: []
+ * };
+ *
+ * // NEW:
+ * const api: ApiDefinition = { id: 'sales', name: 'Sales', parameters: [] };
+ * const instance: QueryInstance = {
+ *   apiId: 'sales',
+ *   targetSheetName: 'Sales',
+ *   targetTableName: 'tbl_sales',
+ *   ...
+ * };
+ * ```
  */
 export interface QueryDefinition {
   /** Stable id used by API/state. */
