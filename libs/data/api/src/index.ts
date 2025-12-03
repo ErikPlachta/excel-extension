@@ -7,5 +7,6 @@ export * from './lib/api-catalog.service';
 export * from './lib/query-api-mock.service';
 export * from './lib/query-validation.service';
 export * from './lib/app-config.default';
+export * from './lib/app-config.demo';
 export * from './lib/app-config';
 export * from './lib/query-model';

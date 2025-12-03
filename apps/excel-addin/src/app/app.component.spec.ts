@@ -129,26 +129,6 @@ describe("AppComponent", () => {
       expect(component.currentView).toBe("tables");
     });
 
-    it("should call signInAnalyst for sign-in-analyst action", () => {
-      const item: NavItemConfig = {
-        id: "test",
-        labelKey: "nav.test",
-        actionType: "sign-in-analyst",
-      };
-      component.handleNavClick(item);
-      expect(mockAuth.signInAsAnalyst).toHaveBeenCalled();
-    });
-
-    it("should call signInAdmin for sign-in-admin action", () => {
-      const item: NavItemConfig = {
-        id: "test",
-        labelKey: "nav.test",
-        actionType: "sign-in-admin",
-      };
-      component.handleNavClick(item);
-      expect(mockAuth.signInAsAdmin).toHaveBeenCalled();
-    });
-
     it("should call signOut for sign-out action", () => {
       const item: NavItemConfig = {
         id: "test",
@@ -167,16 +147,6 @@ describe("AppComponent", () => {
         id: "signout",
         labelKey: "nav.signout",
         actionType: "sign-out",
-      };
-      expect(component.isNavVisible(item)).toBeFalse();
-    });
-
-    it("should hide sign-in when authenticated", () => {
-      Object.defineProperty(mockAuth, "isAuthenticated", { value: true });
-      const item: NavItemConfig = {
-        id: "signin",
-        labelKey: "nav.signin",
-        actionType: "sign-in-analyst",
       };
       expect(component.isNavVisible(item)).toBeFalse();
     });
@@ -235,18 +205,6 @@ describe("AppComponent", () => {
   });
 
   describe("auth methods", () => {
-    it("should sign in as analyst and navigate to sso", async () => {
-      await component.signInAnalyst();
-      expect(mockAuth.signInAsAnalyst).toHaveBeenCalled();
-      expect(component.currentView).toBe("sso");
-    });
-
-    it("should sign in as admin and navigate to sso", async () => {
-      await component.signInAdmin();
-      expect(mockAuth.signInAsAdmin).toHaveBeenCalled();
-      expect(component.currentView).toBe("sso");
-    });
-
     it("should sign out and navigate to sso", () => {
       component.currentView = "queries";
       component.signOut();

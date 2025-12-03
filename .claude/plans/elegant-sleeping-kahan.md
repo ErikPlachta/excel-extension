@@ -15,6 +15,7 @@ Codebase is **production-ready** with strong architecture. Found **12 actionable
 ## Execution Strategy
 
 **Workflow per issue:**
+
 1. Create full plan file: `.claude/plans/plan_12_fix_<id>_<desc>_20251202.md`
    - Metadata (date, branch, objective)
    - Pre-conditions
@@ -30,20 +31,20 @@ Codebase is **production-ready** with strong architecture. Found **12 actionable
 
 ### Branch/Plan Matrix
 
-| ID | Branch | Plan File |
-|----|--------|-----------|
-| H1 | `fix/h1-text-catalog-keys` | `plan_12_fix_h1_text-catalog-keys_20251202.md` |
-| H2 | `fix/h2-prod-manifest` | `plan_12_fix_h2_prod-manifest_20251202.md` |
-| H3 | `fix/h3-deprecated-auth` | `plan_12_fix_h3_deprecated-auth_20251202.md` |
-| M1 | `fix/m1-query-definition-migration` | `plan_12_fix_m1_query-def-migration_20251202.md` |
-| M2 | `fix/m2-type-consolidation` | `plan_12_fix_m2_type-consolidation_20251202.md` |
-| M3 | `fix/m3-workbook-tsdoc` | `plan_12_fix_m3_workbook-tsdoc_20251202.md` |
-| M4 | `fix/m4-middletier-docs` | `plan_12_fix_m4_middletier-docs_20251202.md` |
-| M5 | `fix/m5-type-safety` | `plan_12_fix_m5_type-safety_20251202.md` |
-| L1 | `fix/l1-unused-viewid` | `plan_12_fix_l1_unused-viewid_20251202.md` |
-| L2 | `fix/l2-home-spec` | `plan_12_fix_l2_home-spec_20251202.md` |
-| L3 | `fix/l3-primitives-todo` | `plan_12_fix_l3_primitives-todo_20251202.md` |
-| L4 | `fix/l4-query-params-todo` | `plan_12_fix_l4_query-params-todo_20251202.md` |
+| ID  | Branch                              | Plan File                                        |
+| --- | ----------------------------------- | ------------------------------------------------ |
+| H1  | `fix/h1-text-catalog-keys`          | `plan_12_fix_h1_text-catalog-keys_20251202.md`   |
+| H2  | `fix/h2-prod-manifest`              | `plan_12_fix_h2_prod-manifest_20251202.md`       |
+| H3  | `fix/h3-deprecated-auth`            | `plan_12_fix_h3_deprecated-auth_20251202.md`     |
+| M1  | `fix/m1-query-definition-migration` | `plan_12_fix_m1_query-def-migration_20251202.md` |
+| M2  | `fix/m2-type-consolidation`         | `plan_12_fix_m2_type-consolidation_20251202.md`  |
+| M3  | `fix/m3-workbook-tsdoc`             | `plan_12_fix_m3_workbook-tsdoc_20251202.md`      |
+| M4  | `fix/m4-middletier-docs`            | `plan_12_fix_m4_middletier-docs_20251202.md`     |
+| M5  | `fix/m5-type-safety`                | `plan_12_fix_m5_type-safety_20251202.md`         |
+| L1  | `fix/l1-unused-viewid`              | `plan_12_fix_l1_unused-viewid_20251202.md`       |
+| L2  | `fix/l2-home-spec`                  | `plan_12_fix_l2_home-spec_20251202.md`           |
+| L3  | `fix/l3-primitives-todo`            | `plan_12_fix_l3_primitives-todo_20251202.md`     |
+| L4  | `fix/l4-query-params-todo`          | `plan_12_fix_l4_query-params-todo_20251202.md`   |
 
 ### Execution Order (with dependencies)
 
@@ -75,30 +76,30 @@ Group 3 (Type work):
 
 ### HIGH Priority (3 items)
 
-| # | Issue | Location | Impact |
-|---|-------|----------|--------|
-| H1 | **Role description text key mismatch** | `app-config.default.ts:110-120` | Config uses `descriptionKey: "role.analyst.description"` but text catalog uses nested objects, causing lookup failures |
-| H2 | **Missing prod-manifest.xml** | Root directory | No production manifest for GitHub Pages deployment |
-| H3 | **Deprecated auth methods in use** | `app.component.ts:146,151` | Using `signInAsAnalyst()`/`signInAsAdmin()` instead of `signInWithJwt()` |
+| #   | Issue                                  | Location                        | Impact                                                                                                                 |
+| --- | -------------------------------------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| H1  | **Role description text key mismatch** | `app-config.default.ts:110-120` | Config uses `descriptionKey: "role.analyst.description"` but text catalog uses nested objects, causing lookup failures |
+| H2  | **Missing prod-manifest.xml**          | Root directory                  | No production manifest for GitHub Pages deployment                                                                     |
+| H3  | **Deprecated auth methods in use**     | `app.component.ts:146,151`      | Using `signInAsAnalyst()`/`signInAsAdmin()` instead of `signInWithJwt()`                                               |
 
 ### MEDIUM Priority (5 items)
 
-| # | Issue | Location | Impact |
-|---|-------|----------|--------|
-| M1 | **Deprecated QueryDefinition still used** | `workbook.service.ts:4,133` | Should use `ApiDefinition` per migration docs |
-| M2 | **Duplicate type hierarchies** | `api.types.ts` vs `query.types.ts` | QueryDefinition/ApiDefinition overlap causes confusion |
-| M3 | **Missing TSDoc for WorkbookService** | `workbook.service.ts` | All public methods need documentation |
-| M4 | **Mock middle-tier stubs** | `middle-tier.ts:6,18` | `fetchTokenFromMiddleTier()` and `getUserProfileFromGraph()` need real impl for prod |
-| M5 | **Type safety: any cast** | `app.component.ts:137` | `(this.text as any)[section]` loses type safety |
+| #   | Issue                                     | Location                           | Impact                                                                               |
+| --- | ----------------------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------ |
+| M1  | **Deprecated QueryDefinition still used** | `workbook.service.ts:4,133`        | Should use `ApiDefinition` per migration docs                                        |
+| M2  | **Duplicate type hierarchies**            | `api.types.ts` vs `query.types.ts` | QueryDefinition/ApiDefinition overlap causes confusion                               |
+| M3  | **Missing TSDoc for WorkbookService**     | `workbook.service.ts`              | All public methods need documentation                                                |
+| M4  | **Mock middle-tier stubs**                | `middle-tier.ts:6,18`              | `fetchTokenFromMiddleTier()` and `getUserProfileFromGraph()` need real impl for prod |
+| M5  | **Type safety: any cast**                 | `app.component.ts:137`             | `(this.text as any)[section]` loses type safety                                      |
 
 ### LOW Priority (4 items)
 
-| # | Issue | Location | Impact |
-|---|-------|----------|--------|
-| L1 | **Unused ViewId "queriesOld"** | `app-config.types.ts:25` | Dead code in type definition |
-| L2 | **Missing home.component.spec.ts** | `features/home/` | Only component without tests |
-| L3 | **Incomplete type docs** | `primitives.types.ts:84` | TODO for additional types |
-| L4 | **Query params hardcoded** | `query-params.types.ts:6` | TODO for metadata-driven system |
+| #   | Issue                              | Location                  | Impact                          |
+| --- | ---------------------------------- | ------------------------- | ------------------------------- |
+| L1  | **Unused ViewId "queriesOld"**     | `app-config.types.ts:25`  | Dead code in type definition    |
+| L2  | **Missing home.component.spec.ts** | `features/home/`          | Only component without tests    |
+| L3  | **Incomplete type docs**           | `primitives.types.ts:84`  | TODO for additional types       |
+| L4  | **Query params hardcoded**         | `query-params.types.ts:6` | TODO for metadata-driven system |
 
 ---
 
@@ -107,6 +108,7 @@ Group 3 (Type work):
 ### Phase 1: High Priority Fixes
 
 **H1 - Fix text catalog structure**
+
 ```
 File: libs/data/api/src/lib/app-text.ts
 Action: Flatten role text keys to match config expectations
@@ -115,6 +117,7 @@ Action: Flatten role text keys to match config expectations
 ```
 
 **H2 - Create prod-manifest.xml**
+
 ```
 File: /prod-manifest.xml (new)
 Action: Copy dev-manifest.xml, update URLs to:
@@ -123,6 +126,7 @@ Action: Copy dev-manifest.xml, update URLs to:
 ```
 
 **H3 - Replace deprecated auth methods**
+
 ```
 File: apps/excel-addin/src/app/app.component.ts
 Action: Replace signInAsAnalyst()/signInAsAdmin() with signInWithJwt()
@@ -133,6 +137,7 @@ Action: Replace signInAsAnalyst()/signInAsAdmin() with signInWithJwt()
 ### Phase 2: Medium Priority Fixes
 
 **M1/M2 - Consolidate type hierarchies**
+
 ```
 Files:
   - libs/core/excel/src/lib/workbook.service.ts
@@ -143,6 +148,7 @@ Action:
 ```
 
 **M3 - Add WorkbookService TSDoc**
+
 ```
 File: libs/core/excel/src/lib/workbook.service.ts
 Action: Add TSDoc for all public methods:
@@ -151,6 +157,7 @@ Action: Add TSDoc for all public methods:
 ```
 
 **M4 - Document middle-tier stubs**
+
 ```
 File: libs/shared/util/src/lib/middle-tier.ts
 Action: Add clear documentation that these are demo stubs
@@ -159,6 +166,7 @@ Action: Add clear documentation that these are demo stubs
 ```
 
 **M5 - Fix type safety**
+
 ```
 File: apps/excel-addin/src/app/app.component.ts
 Action: Define proper interface for text catalog sections
@@ -177,17 +185,20 @@ Action: Define proper interface for text catalog sections
 ## Files to Modify
 
 ### High Priority
+
 - `libs/data/api/src/lib/app-text.ts` (H1)
 - `libs/data/api/src/lib/app-config.default.ts` (H1 - if changing config approach)
 - `/prod-manifest.xml` (H2 - new file)
 - `apps/excel-addin/src/app/app.component.ts` (H3, M5)
 
 ### Medium Priority
+
 - `libs/core/excel/src/lib/workbook.service.ts` (M1, M3)
 - `libs/shared/types/src/lib/query.types.ts` (M2)
 - `libs/shared/util/src/lib/middle-tier.ts` (M4)
 
 ### Low Priority
+
 - `libs/shared/types/src/lib/app-config.types.ts` (L1)
 - `apps/excel-addin/src/app/features/home/home.component.spec.ts` (L2 - new)
 
@@ -207,12 +218,12 @@ Action: Define proper interface for text catalog sections
 
 ## Metrics
 
-| Category | Status |
-|----------|--------|
-| Critical Issues | 0 |
-| High Priority | 3 |
-| Medium Priority | 5 |
-| Low Priority | 4 |
-| Services with Tests | 20/20 (100%) |
-| Components with Tests | 6/7 (86%) |
-| Deprecated Code Usage | 2 locations |
+| Category              | Status       |
+| --------------------- | ------------ |
+| Critical Issues       | 0            |
+| High Priority         | 3            |
+| Medium Priority       | 5            |
+| Low Priority          | 4            |
+| Services with Tests   | 20/20 (100%) |
+| Components with Tests | 6/7 (86%)    |
+| Deprecated Code Usage | 2 locations  |

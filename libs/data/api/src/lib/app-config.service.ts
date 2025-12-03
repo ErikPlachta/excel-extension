@@ -1,18 +1,25 @@
-import { Injectable, inject, Injector } from '@angular/core';
+import { Injectable, inject, Injector, isDevMode } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { BehaviorSubject, Observable, firstValueFrom } from 'rxjs';
 import { AppConfig } from '@excel-platform/shared/types';
 import { DEFAULT_APP_CONFIG } from './app-config.default';
+import { DEMO_CONFIG } from './app-config.demo';
 import { ConfigValidatorService } from './config-validator.service';
 import { AuthService } from '@excel-platform/core/auth';
 
 /**
  * AppConfig Service - Manages application configuration with observable pattern.
  *
- * Provides reactive access to app config. In Phase 2, this enables:
+ * Provides reactive access to app config with:
  * - Hot-reloading of config without restart
  * - Remote config loading with fallback to defaults
  * - Centralized config validation
+ * - **Demo mode**: Automatically merges DEMO_CONFIG in development mode
+ *
+ * **Architecture:**
+ * - DEFAULT_APP_CONFIG: Structural defaults only (empty roles/APIs)
+ * - DEMO_CONFIG: Demo/test data merged in dev mode
+ * - Remote config: Production deployments load config from server
  *
  * **Phase 7 Enhancement:**
  * - JWT bearer token authentication for remote config loading
@@ -21,6 +28,9 @@ import { AuthService } from '@excel-platform/core/auth';
  * - Uses lazy injection to avoid circular dependency with AuthService
  *
  * Services subscribe to config$ to react to config changes.
+ *
+ * @see app-config.default.ts for structural defaults
+ * @see app-config.demo.ts for demo/test configuration
  */
 @Injectable({ providedIn: 'root' })
 export class AppConfigService {
@@ -30,8 +40,11 @@ export class AppConfigService {
 
   /**
    * Internal config state with BehaviorSubject for replay semantics.
+   * Initialized with merged demo config in dev mode.
    */
-  private readonly configSubject = new BehaviorSubject<AppConfig>(DEFAULT_APP_CONFIG);
+  private readonly configSubject = new BehaviorSubject<AppConfig>(
+    this.buildInitialConfig()
+  );
 
   /**
    * Observable stream of config changes.
@@ -230,5 +243,23 @@ export class AppConfigService {
     }
 
     return {};
+  }
+
+  /**
+   * Build initial config by merging demo config in dev mode.
+   *
+   * In development mode (ng serve), merges DEMO_CONFIG on top of defaults
+   * to provide test APIs, demo roles, and mock user configuration.
+   *
+   * In production mode, returns defaults only - production config should
+   * be loaded via loadRemoteConfig().
+   *
+   * @returns Initial AppConfig
+   */
+  private buildInitialConfig(): AppConfig {
+    if (isDevMode()) {
+      return this.deepMergeConfigs(DEFAULT_APP_CONFIG, DEMO_CONFIG);
+    }
+    return DEFAULT_APP_CONFIG;
   }
 }
