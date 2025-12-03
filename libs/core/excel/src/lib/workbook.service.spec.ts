@@ -1,7 +1,7 @@
 import { TestBed } from "@angular/core/testing";
 import { WorkbookService } from "./workbook.service";
 import { ExcelService } from "./excel.service";
-import { WorkbookOwnershipInfo, WorkbookTableInfo, QueryDefinition } from "@excel-platform/shared/types";
+import { WorkbookOwnershipInfo, WorkbookTableInfo } from "@excel-platform/shared/types";
 
 describe("WorkbookService ownership helpers", () => {
   let workbook: WorkbookService;
@@ -15,7 +15,7 @@ describe("WorkbookService ownership helpers", () => {
       "deleteOwnershipRecord",
     ]);
 
-    // Simulate running inside Excel so getOrCreateManagedTableTarget
+    // Simulate running inside Excel so resolveTableTarget
     // exercises its non-null path in this suite.
     (excelSpy as any).isExcel = true;
 
@@ -133,63 +133,6 @@ describe("WorkbookService ownership helpers", () => {
     });
   });
 
-  describe("getOrCreateManagedTableTarget", () => {
-    const baseQuery: QueryDefinition = {
-      id: "q1-sales",
-      name: "Q1 Sales",
-      description: "Test query",
-      defaultSheetName: "Sheet1",
-      defaultTableName: "tbl_Q1Sales",
-      parameters: [],
-    } as QueryDefinition;
-
-    it("returns existing managed table as target when available", async () => {
-      const ownershipRows: WorkbookOwnershipInfo[] = [
-        {
-          sheetName: "Sheet1",
-          tableName: "tbl_Q1Sales",
-          queryId: "q1-sales",
-          isManaged: true,
-          lastTouchedUtc: "2025-11-17T12:00:00Z",
-        },
-      ];
-
-      const tables: WorkbookTableInfo[] = [{ name: "tbl_Q1Sales", worksheet: "Sheet1", rows: 10 }];
-
-      excelSpy.getWorkbookOwnership.and.resolveTo(ownershipRows);
-      excelSpy.getWorkbookTables.and.resolveTo(tables);
-
-      const target = await workbook.getOrCreateManagedTableTarget(baseQuery);
-
-      expect(target).toEqual({
-        sheetName: "Sheet1",
-        tableName: "tbl_Q1Sales",
-        existing: { name: "tbl_Q1Sales", worksheet: "Sheet1", rows: 10 },
-      });
-    });
-
-    it("returns a safe new table name when default conflicts with unmanaged user table", async () => {
-      const ownershipRows: WorkbookOwnershipInfo[] = [];
-
-      const tables: WorkbookTableInfo[] = [
-        {
-          name: "tbl_Q1Sales",
-          worksheet: "Sheet1",
-          rows: 3,
-        },
-      ];
-
-      excelSpy.getWorkbookOwnership.and.resolveTo(ownershipRows);
-      excelSpy.getWorkbookTables.and.resolveTo(tables);
-
-      const target = await workbook.getOrCreateManagedTableTarget(baseQuery);
-
-      expect(target).toEqual({
-        sheetName: "Sheet1",
-        tableName: "tbl_Q1Sales_q1-sales",
-      });
-    });
-  });
 
   describe("recordOwnership", () => {
     it("delegates to ExcelService.writeOwnershipRecord with ownership info", async () => {
@@ -439,35 +382,28 @@ describe("WorkbookService", () => {
       ])
     );
 
-    const target = await service.getOrCreateManagedTableTarget({
-      id: "q-1",
-      name: "Query 1",
-      description: "",
-      defaultSheetName: "Sheet1",
-      defaultTableName: "Table1",
-      parameters: [],
-    } as any);
+    const target = await service.resolveTableTarget("q-1", {
+      sheetName: "Sheet1",
+      tableName: "Table1",
+    });
 
     expect(target).toEqual({
       sheetName: "Sheet1",
       tableName: "Table1",
-      existing: { name: "Table1", worksheet: "Sheet1", rows: 10 },
+      isExisting: true,
     });
   });
 
   it("should avoid clobbering user tables with default names when resolving targets", async () => {
-    const target = await service.getOrCreateManagedTableTarget({
-      id: "q-2",
-      name: "Query 2",
-      description: "",
-      defaultSheetName: "Sheet1",
-      defaultTableName: "Table1",
-      parameters: [],
-    } as any);
+    const target = await service.resolveTableTarget("q-2", {
+      sheetName: "Sheet1",
+      tableName: "Table1",
+    });
 
     expect(target).toEqual({
       sheetName: "Sheet1",
       tableName: "Table1_q-2",
+      isExisting: false,
     });
   });
 });
