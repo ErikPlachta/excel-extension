@@ -277,14 +277,14 @@ Create: `docs/architecture/TYPE-SAFETY.md`
 
 ## Success Criteria
 
-- [ ] Only 2 query-related type files: `api.types.ts` + `query.types.ts`
-- [ ] No hardcoded `QueryParameterKey`
-- [ ] Zod schemas for all trust boundaries
-- [ ] No non-boundary `any` in production code
-- [ ] `npm run build` passes
-- [ ] `npm run test:ci` passes
+- [x] Only 2 query-related type files: `api.types.ts` + `query.types.ts`
+- [x] No hardcoded `QueryParameterKey`
+- [x] Zod schemas for all trust boundaries
+- [x] No non-boundary `any` in production code
+- [x] `npm run build` passes
+- [x] `npm run test:ci` passes (137 tests)
 - [ ] `npm run lint` passes
-- [ ] Documentation updated
+- [x] Documentation updated (CLAUDE.md)
 
 ---
 
