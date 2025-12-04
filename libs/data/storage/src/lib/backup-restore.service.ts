@@ -1,6 +1,7 @@
 import { Injectable, Inject } from '@angular/core';
 import { StorageHelperService } from './storage-helper.service';
 import { WINDOW } from './window.token';
+import { AppStateBackupSchema } from '@excel-platform/shared/types';
 
 /**
  * Backup/Restore Service - Export/import app state for data persistence.
@@ -42,13 +43,14 @@ export class BackupRestoreService {
    * Downloads as `excel-extension-backup-{timestamp}.json`.
    */
   async exportBackup(): Promise<void> {
-    const backup: AppStateBackup = {
+    // Use loose typing for export - validation happens on import
+    const backup = {
       version: this.BACKUP_VERSION,
       timestamp: new Date().toISOString(),
-      authState: this.storage.getItem('auth-state', null),
-      settings: this.storage.getItem('settings', null),
+      authState: this.storage.getItem('auth-state', undefined),
+      settings: this.storage.getItem('settings', undefined),
       queryConfigs: this.getQueryConfigs(),
-      queryState: this.storage.getItem('query-state', null),
+      queryState: this.storage.getItem('query-state', undefined),
     };
 
     const blob = new Blob([JSON.stringify(backup, null, 2)], {
@@ -78,15 +80,21 @@ export class BackupRestoreService {
    */
   async importBackup(file: File): Promise<void> {
     const text = await file.text();
-    const backup = JSON.parse(text) as unknown;
-
-    // Validate backup structure
-    const validationError = this.validateBackupStructure(backup);
-    if (validationError) {
-      throw new Error(validationError);
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      throw new Error('Invalid backup: malformed JSON');
     }
 
-    const validatedBackup = backup as AppStateBackup;
+    // Validate backup structure with Zod schema
+    const result = AppStateBackupSchema.safeParse(parsed);
+    if (!result.success) {
+      const issues = result.error.issues.map(i => i.message).join(', ');
+      throw new Error(`Invalid backup: ${issues}`);
+    }
+
+    const validatedBackup = result.data;
 
     // Validate version compatibility
     if (!this.isCompatibleVersion(validatedBackup.version)) {
@@ -113,38 +121,6 @@ export class BackupRestoreService {
 
     // Reload app to apply restored state
     this.window.location.reload();
-  }
-
-  /**
-   * Validate backup object structure before import.
-   *
-   * Checks that required fields exist and have correct types to prevent
-   * runtime errors from malformed or corrupted backup files.
-   *
-   * @param backup - Parsed backup object to validate
-   * @returns Error message if invalid, null if valid
-   */
-  private validateBackupStructure(backup: unknown): string | null {
-    if (!backup || typeof backup !== 'object') {
-      return 'Invalid backup: not an object';
-    }
-
-    const obj = backup as Record<string, unknown>;
-
-    // Required fields
-    if (typeof obj['version'] !== 'string' || !obj['version']) {
-      return 'Invalid backup: missing or invalid version';
-    }
-    if (typeof obj['timestamp'] !== 'string' || !obj['timestamp']) {
-      return 'Invalid backup: missing or invalid timestamp';
-    }
-
-    // Optional array field validation
-    if (obj['queryConfigs'] !== undefined && !Array.isArray(obj['queryConfigs'])) {
-      return 'Invalid backup: queryConfigs must be an array';
-    }
-
-    return null;
   }
 
   /**
@@ -205,30 +181,4 @@ export class BackupRestoreService {
       }
     }
   }
-}
-
-/**
- * App state backup schema.
- *
- * Version 1.0.0 schema includes all localStorage data needed to
- * restore app state after reinstall or across devices.
- */
-export interface AppStateBackup {
-  /** Backup schema version (semantic versioning) */
-  version: string;
-
-  /** Timestamp when backup was created (ISO 8601) */
-  timestamp: string;
-
-  /** Auth state (user, roles) */
-  authState: unknown;
-
-  /** Settings (preferences, telemetry config) */
-  settings: unknown;
-
-  /** Query configurations (saved reports) */
-  queryConfigs: unknown[];
-
-  /** Query state (global parameters, last runs) */
-  queryState: unknown;
 }

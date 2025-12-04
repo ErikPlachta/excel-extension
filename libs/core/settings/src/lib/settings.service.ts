@@ -1,5 +1,5 @@
 import { Injectable } from "@angular/core";
-import { AppSettings, AppSettingsUpdate } from "@excel-platform/shared/types";
+import { AppSettings, AppSettingsUpdate, AppSettingsSchema } from "@excel-platform/shared/types";
 import { StorageBaseService } from "@excel-platform/data/storage";
 
 const STORAGE_KEY = "excel-extension.settings";
@@ -109,7 +109,8 @@ export class SettingsService {
   }
 
   private load(): AppSettings {
-    const parsed = this.storage.getItem<AppSettings>(STORAGE_KEY, DEFAULT_SETTINGS);
+    // Use Zod schema validation for runtime type safety at storage boundary
+    const parsed = this.storage.getItem<AppSettings>(STORAGE_KEY, DEFAULT_SETTINGS, AppSettingsSchema);
     return {
       ...DEFAULT_SETTINGS,
       ...parsed,

@@ -6,6 +6,7 @@ import type {
   ExecutionResponse,
   ExecutionRequest,
 } from '@excel-platform/shared/types';
+import { ExecutionResponseSchema } from '@excel-platform/shared/types';
 
 /**
  * Operations API Service - Real backend HTTP implementation.
@@ -55,18 +56,32 @@ export class OperationsApiService implements IOperationsApiService {
   /**
    * Execute an operation with given payload.
    *
+   * Validates the API response using Zod schema at the trust boundary
+   * to ensure type safety before the data enters the application.
+   *
    * @param operationName - Name of the operation (e.g., 'sales-summary')
    * @param payload - Operation parameters
    * @returns Wrapped response with rows, metrics, and metadata
+   * @throws Error if response validation fails
    */
   async execute<T = Record<string, unknown>>(
     operationName: string,
     payload: Record<string, unknown>
   ): Promise<ExecutionResponse<T>> {
     const request: ExecutionRequest = { payload };
-    return firstValueFrom(
-      this.http.post<ExecutionResponse<T>>(`/operations/${operationName}`, request)
+    const rawResponse = await firstValueFrom(
+      this.http.post<unknown>(`/operations/${operationName}`, request)
     );
+
+    // Validate response at trust boundary with Zod schema
+    const result = ExecutionResponseSchema.safeParse(rawResponse);
+    if (!result.success) {
+      const issues = result.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join(', ');
+      throw new Error(`Invalid API response for '${operationName}': ${issues}`);
+    }
+
+    // Cast validated response to typed version
+    return result.data as ExecutionResponse<T>;
   }
 
   /**
