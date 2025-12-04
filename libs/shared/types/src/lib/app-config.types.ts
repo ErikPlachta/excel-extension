@@ -106,7 +106,47 @@ export interface TextCatalog {
     [key: string]: string | undefined;
   };
   /** General UI text (can be nested) */
-  ui: Record<string, any>;
+  ui: Record<string, string | Record<string, string>>;
+}
+
+/**
+ * Valid section keys in TextCatalog for type-safe dynamic access.
+ *
+ * These are the top-level keys that contain `Record<string, string>` values.
+ * Used by `getTextSection()` to provide type-safe lookups without `any` casts.
+ */
+export type TextCatalogSection = 'nav' | 'auth' | 'query' | 'worksheet' | 'table' | 'user';
+
+/**
+ * Type-safe accessor for TextCatalog string sections.
+ *
+ * Returns the section's string record if the key is valid, undefined otherwise.
+ * This eliminates the need for `any` casts when dynamically accessing catalog sections.
+ *
+ * @param catalog - The TextCatalog to access
+ * @param section - The section key to retrieve
+ * @returns The section's Record<string, string> or undefined if not found/invalid
+ *
+ * @example
+ * ```typescript
+ * const navStrings = getTextSection(text, 'nav');
+ * if (navStrings) {
+ *   const label = navStrings['ssoHome'] ?? 'fallback';
+ * }
+ * ```
+ */
+export function getTextSection(
+  catalog: TextCatalog,
+  section: string
+): Record<string, string> | undefined {
+  const validSections: TextCatalogSection[] = [
+    'nav', 'auth', 'query', 'worksheet', 'table', 'user'
+  ];
+
+  if (validSections.includes(section as TextCatalogSection)) {
+    return catalog[section as TextCatalogSection];
+  }
+  return undefined;
 }
 
 /**

@@ -6,7 +6,7 @@ import { AuthService } from "@excel-platform/core/auth";
 import { AppContextService, AppHostStatus, AppAuthSummary } from "@excel-platform/core/telemetry";
 import { AppConfigService } from "@excel-platform/data/api";
 import { IndexedDBService } from "@excel-platform/data/storage";
-import { NavItemConfig, ViewId, TextCatalog } from "@excel-platform/shared/types";
+import { NavItemConfig, ViewId, TextCatalog, getTextSection } from "@excel-platform/shared/types";
 import { SsoHomeComponent } from "./features/sso/sso-home.component";
 import { WorksheetsComponent } from "./features/worksheets/worksheets.component";
 import { TablesComponent } from "./features/tables/tables.component";
@@ -142,9 +142,9 @@ export class AppComponent implements OnInit {
     // labelKey format: "section.key" (e.g., "nav.ssoHome")
     const [section, key] = labelKey.split('.');
     if (section && key) {
-      const sectionData = (this.text as any)[section];
-      if (sectionData && typeof sectionData === 'object') {
-        return sectionData[key] || labelKey;
+      const sectionData = getTextSection(this.text, section);
+      if (sectionData) {
+        return sectionData[key] ?? labelKey;
       }
     }
     return labelKey;
