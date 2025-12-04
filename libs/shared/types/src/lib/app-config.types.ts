@@ -22,7 +22,6 @@ export type ViewId =
   | "tables"
   | "user"
   | "queries"
-  | "queriesOld"
   | "debug"
   | "settings";
 

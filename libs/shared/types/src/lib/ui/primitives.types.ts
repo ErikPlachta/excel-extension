@@ -81,7 +81,7 @@ export interface UiLayoutHints {
  * These are interpreted by the query UI layer (e.g., `QueryHomeComponent`)
  * to trigger behaviors such as running a query or navigating to its table.
  *
- * @TODO add more types here as we start to refine the design.
+ * Add new action types here as query UI features expand.
  */
 export type QueryUiActionType = "run-query" | "go-to-table" | "show-details";
 

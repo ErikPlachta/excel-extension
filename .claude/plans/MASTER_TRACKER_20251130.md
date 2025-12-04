@@ -1,6 +1,6 @@
 # Master Plan Tracker
 
-**Last Updated**: 2025-12-04
+**Last Updated**: 2025-12-04 (cleanup commit ccc3681)
 **Purpose**: High-level tracking of all active plans and gap analysis status
 
 ---
@@ -26,25 +26,20 @@
 | **M1** | QueryDefinition removal | ✅ FIXED | — |
 | **M2** | Type hierarchy | ✅ FIXED | QueryDefinition deprecated |
 | **M3** | WorkbookService TSDoc | ✅ FIXED | — |
-| **M4** | Middle-tier docs | ⚠️ PARTIAL | Basic comments present |
+| **M4** | Middle-tier docs | ✅ FIXED | @mock/@experimental JSDoc added |
 | **M5** | Type safety any cast | ⚠️ INTENTIONAL | Dynamic key access pattern |
-| **L1** | Unused queriesOld | ❌ PRESENT | Minor cleanup |
-| **L2** | Missing home spec | ❌ PRESENT | No spec file |
-| **L3** | Type docs TODO | ❌ PRESENT | primitives.types.ts:84 |
-| **L4** | Query params TODO | ❓ UNCLEAR | Could not locate |
+| **L1** | Unused queriesOld | ✅ FIXED | Removed from ViewId |
+| **L2** | Missing home spec | ✅ FIXED | home.component.spec.ts added |
+| **L3** | Type docs TODO | ✅ FIXED | Replaced with guidance comment |
+| **L4** | Query params TODO | ❓ N/A | Could not locate |
 
 ---
 
 ## Remaining Work
 
-| Priority | ID | Task | Effort |
-|----------|-----|------|--------|
-| Low | M4 | Add @mock/@experimental JSDoc markers | ~10 min |
-| Low | L1 | Remove unused `queriesOld` from ViewId | ~5 min |
-| Low | L2 | Add home.component.spec.ts | ~30 min |
-| Low | L3 | Complete or remove TODO in primitives.types.ts | ~5 min |
+**All identified issues resolved.** Only M5 remains as an intentional pattern (dynamic key access).
 
-**Total remaining**: Minor cleanup items, no blockers
+No blocking work remaining from gap analysis.
 
 ---
 
