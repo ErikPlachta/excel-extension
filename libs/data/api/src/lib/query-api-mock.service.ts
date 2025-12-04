@@ -3,6 +3,7 @@ import { ApiCatalogService } from './api-catalog.service';
 import { IndexedDBService } from "@excel-platform/data/storage";
 import { SettingsService } from "@excel-platform/core/settings";
 import { TelemetryService } from "@excel-platform/core/telemetry";
+import { AuthService } from "@excel-platform/core/auth";
 
 /**
  * Concrete parameter values supplied when invoking a query against a
@@ -24,14 +25,48 @@ export interface GroupingOptionsResult {
   subGroups: string[];
 }
 
+/**
+ * Error thrown when API request fails authentication validation.
+ * Contains HTTP-like status code for consistent error handling.
+ */
+export class ApiAuthError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number = 401,
+    public readonly reason?: string
+  ) {
+    super(message);
+    this.name = 'ApiAuthError';
+  }
+}
+
 @Injectable({ providedIn: "root" })
 export class QueryApiMockService {
   constructor(
     private apiCatalog: ApiCatalogService,
     private indexedDB: IndexedDBService,
     private settings: SettingsService,
-    private telemetry: TelemetryService
+    private telemetry: TelemetryService,
+    private auth: AuthService
   ) {}
+
+  /**
+   * Validate current auth token before API execution.
+   *
+   * Per BACKEND-API-SPEC Section 6: "JTI blacklist checked on every request"
+   *
+   * @throws ApiAuthError with 401 status if token invalid/revoked/missing
+   */
+  private validateRequest(): void {
+    const validation = this.auth.validateCurrentToken();
+    if (!validation.valid) {
+      throw new ApiAuthError(
+        `Unauthorized - token ${validation.reason ?? 'invalid'}`,
+        401,
+        validation.reason
+      );
+    }
+  }
 
   async getGroupingOptions(): Promise<GroupingOptionsResult> {
     return {
@@ -49,11 +84,17 @@ export class QueryApiMockService {
    * Checks IndexedDB cache before executing. Cached results are returned immediately
    * if not expired. On cache miss, executes API and caches result for future calls.
    *
+   * **Security:** Validates auth token before any data access per BACKEND-API-SPEC.
+   *
    * @param apiId - API identifier from ApiCatalogService
    * @param params - Parameter values for API execution
    * @returns Promise of result rows (from cache or fresh execution)
+   * @throws ApiAuthError with status 401 if token is invalid/revoked/missing
    */
   async executeApi(apiId: string, params: ExecuteQueryParams = {}): Promise<ExecuteQueryResultRow[]> {
+    // Validate auth token before any data access
+    this.validateRequest();
+
     // Validate API exists in catalog
     const api = this.apiCatalog.getApiById(apiId);
     if (!api) {
