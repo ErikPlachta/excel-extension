@@ -1,8 +1,13 @@
 /**
  * Known User Role identifiers in the system.
  * Moved from app-config.types to shared types for API definitions.
+ *
+ * @remarks
+ * - `analyst` - Query access, can run operations and view results
+ * - `admin` - Full access, includes analyst permissions plus configuration
+ * - `automation` - Service account access for automated operations
  */
-export type RoleId = "analyst" | "admin";
+export type RoleId = 'analyst' | 'admin' | 'automation';
 
 /**
  * API Definition - Catalog of available data source APIs.

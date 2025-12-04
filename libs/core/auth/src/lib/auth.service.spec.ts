@@ -2,7 +2,8 @@ import { TestBed } from "@angular/core/testing";
 import { AuthService } from "./auth.service";
 import { StorageHelperService } from "@excel-platform/data/storage";
 import { JwtHelperService } from "./jwt-helper.service";
-import { JWT_CONFIG } from "@excel-platform/shared/types";
+import { AuthApiMockService } from "./auth-api-mock.service";
+import { AUTH_API_TOKEN } from "./auth.tokens";
 
 describe("AuthService", () => {
   let service: AuthService;
@@ -18,8 +19,8 @@ describe("AuthService", () => {
 
     // Return appropriate values based on key
     storageSpy.getItem.and.callFake(<T>(key: string, _defaultValue: T): T => {
-      if (key === JWT_CONFIG.STORAGE_KEY) {
-        // Return null for JWT tokens (no stored tokens)
+      if (key === "excel-ext:refresh-token") {
+        // Return null for refresh token (no stored token)
         return null as T;
       }
       // Return default auth state
@@ -34,7 +35,9 @@ describe("AuthService", () => {
       providers: [
         AuthService,
         JwtHelperService,
+        AuthApiMockService,
         { provide: StorageHelperService, useValue: storageSpy },
+        { provide: AUTH_API_TOKEN, useExisting: AuthApiMockService },
       ],
     });
 
@@ -67,12 +70,11 @@ describe("AuthService", () => {
       expect(service.roles).toContain("analyst");
     });
 
-    it("should generate valid tokens on JWT sign-in", async () => {
+    it("should generate valid access token on JWT sign-in", async () => {
       await service.signInWithJwt("test@example.com", "password", ["admin"]);
 
-      expect(service.tokens).not.toBeNull();
-      expect(service.tokens?.access.token).toBeTruthy();
-      expect(service.tokens?.refresh.token).toBeTruthy();
+      expect(service.getAccessToken()).toBeTruthy();
+      expect(service.getRefreshToken()).toBeTruthy();
     });
 
     it("should set access token in state after JWT sign-in", async () => {
@@ -93,19 +95,30 @@ describe("AuthService", () => {
     it("should return null from getAccessToken() when not authenticated", () => {
       expect(service.getAccessToken()).toBeNull();
     });
+
+    it("should include jti, aud, iss claims in tokens", async () => {
+      await service.signInWithJwt("test@example.com", "password", ["analyst"]);
+
+      const token = service.getAccessToken();
+      expect(token).toBeTruthy();
+
+      const payload = jwtHelper.decodeMockToken(token!);
+      expect(payload?.jti).toBeTruthy();
+      expect(payload?.aud).toBe("databricks-api");
+      expect(payload?.iss).toBe("excel-extension-mock");
+    });
   });
 
   describe("Token Refresh", () => {
     it("should refresh access token successfully", async () => {
       await service.signInWithJwt("test@example.com", "password", ["analyst"]);
-      const originalToken = service.tokens?.access.token;
+      const originalToken = service.getAccessToken();
 
       // Force a refresh
       const result = await service.refreshAccessToken();
 
-      // Tokens might be same if generated in same second
       expect(result).toBeTrue();
-      expect(service.tokens?.access.token).toBeTruthy();
+      expect(service.getAccessToken()).toBeTruthy();
     });
 
     it("should fail refresh when not authenticated", async () => {
@@ -122,6 +135,21 @@ describe("AuthService", () => {
 
     it("should return false for isAccessTokenExpiringSoon when not authenticated", () => {
       expect(service.isAccessTokenExpiringSoon()).toBeFalse();
+    });
+  });
+
+  describe("Token Validation", () => {
+    it("should validate current token when authenticated", async () => {
+      await service.signInWithJwt("test@example.com", "password", ["analyst"]);
+
+      const result = service.validateCurrentToken();
+      expect(result.valid).toBeTrue();
+    });
+
+    it("should return invalid with reason when not authenticated", () => {
+      const result = service.validateCurrentToken();
+      expect(result.valid).toBeFalse();
+      expect(result.reason).toBe("no_token");
     });
   });
 
@@ -150,6 +178,12 @@ describe("AuthService", () => {
       expect(service.hasRole("analyst")).toBeTrue();
       expect(service.roles.length).toBe(2);
     });
+
+    it("should support automation role", async () => {
+      await service.signInWithJwt("service@example.com", "password", ["automation"]);
+
+      expect(service.hasRole("automation")).toBeTrue();
+    });
   });
 
   describe("Sign Out", () => {
@@ -161,8 +195,8 @@ describe("AuthService", () => {
 
       expect(service.isAuthenticated).toBeFalse();
       expect(service.user).toBeNull();
-      expect(service.tokens).toBeNull();
       expect(service.getAccessToken()).toBeNull();
+      expect(service.getRefreshToken()).toBeNull();
     });
 
     it("should stop refresh timer on sign out", async () => {
@@ -171,6 +205,13 @@ describe("AuthService", () => {
 
       // No error should occur - timer should be stopped
       expect(service.isAuthenticated).toBeFalse();
+    });
+
+    it("should clear persisted refresh token on sign out", async () => {
+      await service.signInWithJwt("test@example.com", "password", ["analyst"]);
+      service.signOut();
+
+      expect(storageSpy.removeItem).toHaveBeenCalledWith("excel-ext:refresh-token");
     });
   });
 
@@ -182,20 +223,6 @@ describe("AuthService", () => {
         states.push(state.isAuthenticated);
         if (states.length === 2) {
           expect(states).toEqual([false, true]);
-          done();
-        }
-      });
-
-      service.signInWithJwt("test@example.com", "password", ["analyst"]);
-    });
-
-    it("should emit token changes via tokens$", (done) => {
-      const tokenStates: (boolean | null)[] = [];
-
-      service.tokens$.subscribe((tokens) => {
-        tokenStates.push(tokens ? true : null);
-        if (tokenStates.length === 2) {
-          expect(tokenStates).toEqual([null, true]);
           done();
         }
       });
@@ -224,6 +251,35 @@ describe("AuthService", () => {
 
       expect(service.isAuthenticated).toBeTrue();
       expect(service.hasRole("admin")).toBeTrue();
+    });
+  });
+
+  describe("Memory-only access token security", () => {
+    it("should not persist access token to storage", async () => {
+      await service.signInWithJwt("test@example.com", "password", ["analyst"]);
+
+      // Check that setItem was called with state that has null accessToken
+      const setItemCalls = storageSpy.setItem.calls.allArgs();
+      const authStateCalls = setItemCalls.filter(
+        ([key]) => key === "excel-extension-auth-state"
+      );
+
+      // All auth state persists should have null accessToken
+      authStateCalls.forEach(([, state]) => {
+        expect((state as any).accessToken).toBeNull();
+      });
+    });
+
+    it("should persist refresh token separately", async () => {
+      await service.signInWithJwt("test@example.com", "password", ["analyst"]);
+
+      expect(storageSpy.setItem).toHaveBeenCalledWith(
+        "excel-ext:refresh-token",
+        jasmine.objectContaining({
+          token: jasmine.any(String),
+          expiresAt: jasmine.any(Number),
+        })
+      );
     });
   });
 });

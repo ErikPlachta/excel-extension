@@ -1,9 +1,10 @@
 import { TestBed } from "@angular/core/testing";
-import { QueryApiMockService, ExecuteQueryParams } from "./query-api-mock.service";
+import { QueryApiMockService, ExecuteQueryParams, ApiAuthError } from "./query-api-mock.service";
 import { ApiCatalogService } from "./api-catalog.service";
 import { IndexedDBService } from "@excel-platform/data/storage";
 import { SettingsService } from "@excel-platform/core/settings";
 import { TelemetryService } from "@excel-platform/core/telemetry";
+import { AuthService } from "@excel-platform/core/auth";
 
 describe("QueryApiMockService", () => {
   let service: QueryApiMockService;
@@ -11,6 +12,7 @@ describe("QueryApiMockService", () => {
   let mockIndexedDB: jasmine.SpyObj<IndexedDBService>;
   let mockSettings: jasmine.SpyObj<SettingsService>;
   let mockTelemetry: jasmine.SpyObj<TelemetryService>;
+  let mockAuth: jasmine.SpyObj<AuthService>;
 
   beforeEach(() => {
     mockApiCatalog = jasmine.createSpyObj("ApiCatalogService", ["getApiById", "getApis"]);
@@ -32,10 +34,13 @@ describe("QueryApiMockService", () => {
       },
     });
     mockTelemetry = jasmine.createSpyObj("TelemetryService", ["logEvent"]);
+    mockAuth = jasmine.createSpyObj("AuthService", ["validateCurrentToken"]);
 
     // Setup default mock returns
     mockIndexedDB.getCachedQueryResult.and.returnValue(Promise.resolve(null));
     mockIndexedDB.cacheQueryResult.and.returnValue(Promise.resolve());
+    // Default: valid token
+    mockAuth.validateCurrentToken.and.returnValue({ valid: true });
 
     TestBed.configureTestingModule({
       providers: [
@@ -44,6 +49,7 @@ describe("QueryApiMockService", () => {
         { provide: IndexedDBService, useValue: mockIndexedDB },
         { provide: SettingsService, useValue: mockSettings },
         { provide: TelemetryService, useValue: mockTelemetry },
+        { provide: AuthService, useValue: mockAuth },
       ],
     });
 
@@ -158,6 +164,94 @@ describe("QueryApiMockService", () => {
   describe("service initialization", () => {
     it("should inject dependencies", () => {
       expect(service).toBeTruthy();
+    });
+  });
+
+  describe("token validation", () => {
+    beforeEach(() => {
+      mockApiCatalog.getApiById.and.returnValue({
+        id: "test-api",
+        name: "Test API",
+        description: "Test API for validation tests",
+        parameters: [],
+      });
+    });
+
+    it("should allow API calls with valid token", async () => {
+      mockAuth.validateCurrentToken.and.returnValue({ valid: true });
+
+      const result = await service.executeApi("test-api", {});
+
+      expect(result).toBeDefined();
+      expect(mockAuth.validateCurrentToken).toHaveBeenCalled();
+    });
+
+    it("should throw ApiAuthError when token is invalid", async () => {
+      mockAuth.validateCurrentToken.and.returnValue({ valid: false, reason: "expired" });
+
+      try {
+        await service.executeApi("test-api", {});
+        fail("Expected ApiAuthError to be thrown");
+      } catch (error) {
+        expect(error).toBeInstanceOf(ApiAuthError);
+      }
+    });
+
+    it("should include reason in ApiAuthError", async () => {
+      mockAuth.validateCurrentToken.and.returnValue({ valid: false, reason: "revoked" });
+
+      try {
+        await service.executeApi("test-api", {});
+        fail("Expected ApiAuthError to be thrown");
+      } catch (error) {
+        expect(error).toBeInstanceOf(ApiAuthError);
+        const authError = error as ApiAuthError;
+        expect(authError.status).toBe(401);
+        expect(authError.reason).toBe("revoked");
+        expect(authError.message).toContain("revoked");
+      }
+    });
+
+    it("should throw ApiAuthError when token has no reason specified", async () => {
+      mockAuth.validateCurrentToken.and.returnValue({ valid: false });
+
+      try {
+        await service.executeApi("test-api", {});
+        fail("Expected ApiAuthError to be thrown");
+      } catch (error) {
+        expect(error).toBeInstanceOf(ApiAuthError);
+        const authError = error as ApiAuthError;
+        expect(authError.status).toBe(401);
+        expect(authError.message).toContain("invalid");
+      }
+    });
+
+    it("should validate token before checking cache", async () => {
+      mockAuth.validateCurrentToken.and.returnValue({ valid: false, reason: "expired" });
+
+      try {
+        await service.executeApi("test-api", {});
+        fail("Expected ApiAuthError to be thrown");
+      } catch (error) {
+        expect(error).toBeInstanceOf(ApiAuthError);
+      }
+
+      // Cache should not be checked when token is invalid
+      expect(mockIndexedDB.getCachedQueryResult).not.toHaveBeenCalled();
+    });
+
+    it("should validate token before checking API existence", async () => {
+      mockAuth.validateCurrentToken.and.returnValue({ valid: false, reason: "revoked" });
+
+      try {
+        await service.executeApi("nonexistent-api", {});
+        fail("Expected ApiAuthError to be thrown");
+      } catch (error) {
+        expect(error).toBeInstanceOf(ApiAuthError);
+      }
+
+      // API lookup should not happen when token is invalid
+      expect(mockApiCatalog.getApiById).not.toHaveBeenCalled();
     });
   });
 });
