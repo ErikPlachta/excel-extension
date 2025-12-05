@@ -1,3 +1,8 @@
+---
+title: "H5 Auth Guards"
+sidebar_label: "2025-12-04 H5 Auth Guards"
+---
+
 # Changelog: H5 Auth Guards & Backend-Aligned Token Validation
 
 **Date**: 2025-12-04
@@ -44,7 +49,7 @@ Implemented comprehensive auth security aligned with BACKEND-API-SPEC.md. Added 
 - `operations-api.types.ts` - ExecutionResponse, ExecutionMetrics, ExecutionMeta
 
 ### Operations API (`libs/data/api/`)
-- `operations-api.service.ts` - POST /operations/{name}
+- `operations-api.service.ts` - POST /operations/\{name\}
 - `operations-api-mock.service.ts` - Wraps QueryApiMockService
 - `operations-api.tokens.ts` - OPERATIONS_API_TOKEN
 

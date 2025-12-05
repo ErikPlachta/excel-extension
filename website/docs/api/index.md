@@ -1,6 +1,11 @@
+---
+sidebar_position: 1
+title: API Reference
+---
+
 # Excel Platform API Documentation
 
-This documentation is auto-generated using [Compodoc](https://compodoc.app/).
+TypeScript API documentation for all libraries.
 
 ## Libraries
 

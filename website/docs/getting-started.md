@@ -1,3 +1,8 @@
+---
+sidebar_position: 2
+title: Getting Started
+---
+
 # Getting Started
 
 Setup guide for Excel Platform development.
@@ -79,6 +84,6 @@ npx nx affected --target=test # Test affected projects
 
 ## Next Steps
 
-- Read [Storage Architecture](../architecture/STORAGE-ARCHITECTURE.md)
-- Check [Performance Guide](../architecture/PERFORMANCE.md)
-- Browse [API Documentation](../api/README.md)
+- Read [Storage Architecture](architecture/STORAGE-ARCHITECTURE)
+- Check [Performance Guide](architecture/PERFORMANCE)
+- Browse [API Documentation](api/)
