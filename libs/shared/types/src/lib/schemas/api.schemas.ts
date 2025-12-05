@@ -51,7 +51,7 @@ export const ExecutionResponseSchema = z.object({
   status: z.enum(['success', 'error']),
   data: z
     .object({
-      rows: z.array(z.record(z.unknown())),
+      rows: z.array(z.record(z.string(), z.unknown())),
       metrics: ExecutionMetricsSchema,
     })
     .nullable(),
@@ -102,7 +102,7 @@ export const ApiDefinitionSchema = z.object({
   description: z.string().nullable(),
   allowedRoles: z.array(z.string()).nullable(),
   parameters: z.array(ApiParameterSchema),
-  responseSchema: z.record(z.unknown()).nullable(),
+  responseSchema: z.record(z.string(), z.unknown()).nullable(),
 });
 
 /**
