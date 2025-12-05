@@ -275,6 +275,34 @@ async ngOnInit() {
 - Prefer `WorkbookService`/`ExcelService` over direct Office.js
 - Use typed `ExcelOperationResult` for error handling
 - Strong typing throughout app code
+- **Zod validation** at trust boundaries (see below)
+
+### Zod Runtime Validation
+
+Use Zod schemas for runtime validation at trust boundaries. Schemas are in `libs/shared/types/src/lib/schemas/`:
+
+```typescript
+// Import schemas and inferred types
+import { AppSettingsSchema, ExecutionResponseSchema } from '@excel-platform/shared/types';
+import type { AppSettingsParsed } from '@excel-platform/shared/types';
+
+// Validate storage reads
+const settings = storageBase.getItem('key', defaults, AppSettingsSchema);
+
+// Validate API responses
+const result = ExecutionResponseSchema.safeParse(response);
+if (!result.success) throw new Error(`Invalid response: ${result.error.issues}`);
+```
+
+**Trust boundaries requiring Zod validation:**
+- API responses (backend, external APIs)
+- localStorage/IndexedDB reads
+- File imports (backup restore)
+
+**Schema categories:**
+- `api.schemas.ts` - Backend API responses, auth tokens, catalog
+- `storage.schemas.ts` - Settings, query configs, backup format
+- `external.schemas.ts` - Third-party API responses (JSONPlaceholder, RandomUser)
 
 ## Common Patterns
 
@@ -305,7 +333,7 @@ this.telemetry.logEvent({
 
 ## Performance & Large Datasets
 
-**See `.claude/PERFORMANCE.md` for comprehensive guide** (Phase 6)
+**See `docs/architecture/PERFORMANCE.md` for comprehensive guide**
 
 - Excel resource limits: ~5MB payload per Office.js call, ~1M cell recommendation
 - Chunked writes: Default 1000 rows/chunk, configurable via Settings UI
@@ -323,7 +351,7 @@ this.telemetry.logEvent({
 
 - **NPM scripts:** Use `npm run watch`, not `npm watch`
 - **Base href:** GH Pages needs `--base-href /excel-extension/` (workflow handles this)
-- **Tests:** Office globals undefined in Karma; keep `isExcel` guards
+- **Tests:** Office globals undefined in Jest; keep `isExcel` guards
 - **Blank taskpane:** Dev server not running; start `npm start` or `npm run start:dev`
 - **Append mode removed:** Only overwrite semantics supported; append explicitly removed after proving brittle
 
@@ -333,5 +361,6 @@ Architecture refactor (9 phases) completed November 2025. See `docs/changelog/CH
 
 **Reference docs:**
 
-- `.claude/STORAGE-ARCHITECTURE.md` - Storage APIs, IndexedDB schema, backup/restore
-- `.claude/PERFORMANCE.md` - Excel limits, chunking, large dataset handling
+- `docs/architecture/STORAGE-ARCHITECTURE.md` - Storage APIs, IndexedDB schema, backup/restore
+- `docs/architecture/PERFORMANCE.md` - Excel limits, chunking, large dataset handling
+- `docs/changelog/` - Historical change logs

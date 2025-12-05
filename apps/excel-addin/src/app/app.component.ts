@@ -6,7 +6,7 @@ import { AuthService } from "@excel-platform/core/auth";
 import { AppContextService, AppHostStatus, AppAuthSummary } from "@excel-platform/core/telemetry";
 import { AppConfigService } from "@excel-platform/data/api";
 import { IndexedDBService } from "@excel-platform/data/storage";
-import { NavItemConfig, ViewId, TextCatalog } from "@excel-platform/shared/types";
+import { NavItemConfig, ViewId, TextCatalog, getTextSection } from "@excel-platform/shared/types";
 import { SsoHomeComponent } from "./features/sso/sso-home.component";
 import { WorksheetsComponent } from "./features/worksheets/worksheets.component";
 import { TablesComponent } from "./features/tables/tables.component";
@@ -82,42 +82,50 @@ export class AppComponent implements OnInit {
     this.currentView = viewId;
   }
 
+  /**
+   * Handle navigation item click.
+   *
+   * Routes action based on NavItemConfig.actionType.
+   * Sign-in actions have been moved to SsoHomeComponent.
+   *
+   * @param item - Navigation item that was clicked
+   */
   handleNavClick(item: NavItemConfig): void {
     switch (item.actionType) {
-      case "select-view": {
+      case 'select-view': {
         if (item.viewId) {
           this.selectView(item.viewId);
         }
         break;
       }
-      case "sign-in-analyst": {
-        void this.signInAnalyst();
-        break;
-      }
-      case "sign-in-admin": {
-        void this.signInAdmin();
-        break;
-      }
-      case "sign-out": {
+      case 'sign-out': {
         this.signOut();
         break;
       }
     }
   }
 
+  /**
+   * Determine if a navigation item should be visible.
+   *
+   * Visibility rules:
+   * - sign-out: Only when authenticated
+   * - requiresAuth items: Only when authenticated
+   * - requiredRoles items: Only when user has any of the required roles
+   *
+   * @param item - Navigation item to check
+   * @returns True if item should be visible
+   */
   isNavVisible(item: NavItemConfig): boolean {
-    if (!this.auth.isAuthenticated) {
-      if (item.actionType === "sign-out") {
-        return false;
-      }
-    } else {
-      if (item.actionType === "sign-in-analyst" || item.actionType === "sign-in-admin") {
-        return false;
-      }
+    // Sign-out only visible when authenticated
+    if (item.actionType === 'sign-out' && !this.auth.isAuthenticated) {
+      return false;
     }
+    // Auth-required items only visible when authenticated
     if (item.requiresAuth && !this.auth.isAuthenticated) {
       return false;
     }
+    // Role-restricted items only visible when user has required role
     if (item.requiredRoles && item.requiredRoles.length > 0) {
       return this.auth.hasAnyRole(item.requiredRoles);
     }
@@ -134,32 +142,22 @@ export class AppComponent implements OnInit {
     // labelKey format: "section.key" (e.g., "nav.ssoHome")
     const [section, key] = labelKey.split('.');
     if (section && key) {
-      const sectionData = (this.text as any)[section];
-      if (sectionData && typeof sectionData === 'object') {
-        return sectionData[key] || labelKey;
+      const sectionData = getTextSection(this.text, section);
+      if (sectionData) {
+        return sectionData[key] ?? labelKey;
       }
     }
     return labelKey;
   }
 
-  async signInAnalyst(): Promise<void> {
-    await this.auth.signInAsAnalyst();
-    this.currentView = "sso";
-  }
-
-  async signInAdmin(): Promise<void> {
-    await this.auth.signInAsAdmin();
-    this.currentView = "sso";
-  }
-
-  async signIn(): Promise<void> {
-    await this.auth.signIn();
-    this.currentView = "sso";
-  }
-
+  /**
+   * Sign out and return to SSO view.
+   */
   signOut(): void {
     this.auth.signOut();
-    this.currentView = "sso";
+    this.currentView = 'sso';
   }
-  title = "excel-extension";
+
+  /** Application title */
+  title = 'excel-extension';
 }

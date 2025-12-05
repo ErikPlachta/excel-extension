@@ -32,9 +32,13 @@ export interface RefreshToken {
 /**
  * JWT token payload (decoded claims).
  * Contains user identity and authorization information.
+ *
+ * @remarks
+ * Aligned with backend API spec. The `jti`, `aud`, and `iss` claims
+ * are required for token revocation and validation.
  */
 export interface TokenPayload {
-  /** Subject - unique user identifier. */
+  /** Subject - unique user identifier (UUID). */
   sub: string;
   /** User email address. */
   email: string;
@@ -44,6 +48,12 @@ export interface TokenPayload {
   iat: number;
   /** Expiration timestamp (Unix seconds). */
   exp: number;
+  /** JWT ID - unique identifier for this token (used for revocation). */
+  jti: string;
+  /** Audience - intended recipient of the token. */
+  aud: string;
+  /** Issuer - the entity that issued the token. */
+  iss: string;
 }
 
 /**

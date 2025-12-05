@@ -3,6 +3,15 @@ import { ApiCatalogService } from './api-catalog.service';
 import { IndexedDBService } from "@excel-platform/data/storage";
 import { SettingsService } from "@excel-platform/core/settings";
 import { TelemetryService } from "@excel-platform/core/telemetry";
+import { AuthService } from "@excel-platform/core/auth";
+import {
+  JsonPlaceholderUserSchema,
+  RandomUserFullResponseSchema,
+  DummyJsonProductsResponseSchema,
+  type JsonPlaceholderUserParsed,
+  type RandomUserFullParsed,
+  type DummyJsonProductParsed,
+} from "@excel-platform/shared/types";
 
 /**
  * Concrete parameter values supplied when invoking a query against a
@@ -24,14 +33,48 @@ export interface GroupingOptionsResult {
   subGroups: string[];
 }
 
+/**
+ * Error thrown when API request fails authentication validation.
+ * Contains HTTP-like status code for consistent error handling.
+ */
+export class ApiAuthError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number = 401,
+    public readonly reason?: string
+  ) {
+    super(message);
+    this.name = 'ApiAuthError';
+  }
+}
+
 @Injectable({ providedIn: "root" })
 export class QueryApiMockService {
   constructor(
     private apiCatalog: ApiCatalogService,
     private indexedDB: IndexedDBService,
     private settings: SettingsService,
-    private telemetry: TelemetryService
+    private telemetry: TelemetryService,
+    private auth: AuthService
   ) {}
+
+  /**
+   * Validate current auth token before API execution.
+   *
+   * Per BACKEND-API-SPEC Section 6: "JTI blacklist checked on every request"
+   *
+   * @throws ApiAuthError with 401 status if token invalid/revoked/missing
+   */
+  private validateRequest(): void {
+    const validation = this.auth.validateCurrentToken();
+    if (!validation.valid) {
+      throw new ApiAuthError(
+        `Unauthorized - token ${validation.reason ?? 'invalid'}`,
+        401,
+        validation.reason
+      );
+    }
+  }
 
   async getGroupingOptions(): Promise<GroupingOptionsResult> {
     return {
@@ -49,11 +92,17 @@ export class QueryApiMockService {
    * Checks IndexedDB cache before executing. Cached results are returned immediately
    * if not expired. On cache miss, executes API and caches result for future calls.
    *
+   * **Security:** Validates auth token before any data access per BACKEND-API-SPEC.
+   *
    * @param apiId - API identifier from ApiCatalogService
    * @param params - Parameter values for API execution
    * @returns Promise of result rows (from cache or fresh execution)
+   * @throws ApiAuthError with status 401 if token is invalid/revoked/missing
    */
   async executeApi(apiId: string, params: ExecuteQueryParams = {}): Promise<ExecuteQueryResultRow[]> {
+    // Validate auth token before any data access
+    this.validateRequest();
+
     // Validate API exists in catalog
     const api = this.apiCatalog.getApiById(apiId);
     if (!api) {
@@ -281,27 +330,23 @@ export class QueryApiMockService {
       throw new Error(`JSONPlaceholder request failed: ${response.status}`);
     }
 
-    type JsonPlaceholderUser = {
-      id: number;
-      name: string;
-      username: string;
-      email: string;
-      phone: string;
-      website: string;
-      address?: {
-        city?: string;
-        street?: string;
-        suite?: string;
-        zipcode?: string;
-      };
-      company?: {
-        name?: string;
-      };
-    };
+    const rawData = await response.json();
 
-    const users = (await response.json()) as JsonPlaceholderUser[];
+    // Validate with Zod schema - external API is a trust boundary
+    if (!Array.isArray(rawData)) {
+      return this.buildJsonPlaceholderFallbackRows();
+    }
 
-    if (!Array.isArray(users)) {
+    const users: JsonPlaceholderUserParsed[] = [];
+    for (const item of rawData) {
+      const result = JsonPlaceholderUserSchema.safeParse(item);
+      if (result.success) {
+        users.push(result.data);
+      }
+      // Skip invalid items silently - partial data is acceptable
+    }
+
+    if (users.length === 0) {
       return this.buildJsonPlaceholderFallbackRows();
     }
 
@@ -310,8 +355,8 @@ export class QueryApiMockService {
       Name: u.name,
       Username: u.username,
       Email: u.email,
-      Phone: u.phone,
-      Website: u.website,
+      Phone: u.phone ?? "",
+      Website: u.website ?? "",
       City: u.address?.city ?? "",
       Company: u.company?.name ?? "",
     }));
@@ -331,34 +376,41 @@ export class QueryApiMockService {
       if (!response.ok) {
         throw new Error(`RandomUser API request failed: ${response.status}`);
       }
-      const data = await response.json();
+      const rawData = await response.json();
 
-      return data.results.map((u: any) => ({
+      // Validate with Zod schema - external API is a trust boundary
+      const result = RandomUserFullResponseSchema.safeParse(rawData);
+      if (!result.success) {
+        console.error("RandomUser API response validation failed:", result.error.issues);
+        return [];
+      }
+
+      return result.data.results.map((u: RandomUserFullParsed) => ({
         id: u.login.uuid,
         firstName: u.name.first,
         lastName: u.name.last,
-        title: u.name.title,
-        gender: u.gender,
+        title: u.name.title ?? "",
+        gender: u.gender ?? "",
         email: u.email,
-        phone: u.phone,
-        cell: u.cell,
-        streetNumber: u.location.street.number,
-        streetName: u.location.street.name,
+        phone: u.phone ?? "",
+        cell: u.cell ?? "",
+        streetNumber: u.location.street?.number ?? 0,
+        streetName: u.location.street?.name ?? "",
         city: u.location.city,
         state: u.location.state,
         country: u.location.country,
-        postcode: u.location.postcode,
-        latitude: u.location.coordinates.latitude,
-        longitude: u.location.coordinates.longitude,
-        timezoneOffset: u.location.timezone.offset,
-        timezoneDesc: u.location.timezone.description,
-        dob: u.dob.date,
+        postcode: String(u.location.postcode ?? ""),
+        latitude: u.location.coordinates?.latitude ?? "",
+        longitude: u.location.coordinates?.longitude ?? "",
+        timezoneOffset: u.location.timezone?.offset ?? "",
+        timezoneDesc: u.location.timezone?.description ?? "",
+        dob: u.dob.date ?? "",
         age: u.dob.age,
-        registered: u.registered.date,
-        registeredAge: u.registered.age,
-        nationality: u.nat,
-        picture: u.picture.large,
-        thumbnail: u.picture.thumbnail,
+        registered: u.registered?.date ?? "",
+        registeredAge: u.registered?.age ?? 0,
+        nationality: u.nat ?? "",
+        picture: u.picture?.large ?? "",
+        thumbnail: u.picture?.thumbnail ?? "",
       }));
     } catch (error) {
       console.error("Error fetching user demographics:", error);
@@ -369,7 +421,6 @@ export class QueryApiMockService {
   /**
    * Fetches data in multiple batches using different seeds.
    * Returns 10k rows with 30 columns from multiple paginated API calls.
-   *
    */
   private async fetchLargeDataset(): Promise<ExecuteQueryResultRow[]> {
     try {
@@ -380,41 +431,50 @@ export class QueryApiMockService {
 
       const allData = await Promise.all(batches.map((r) => r.json()));
 
-      return allData.flatMap((data) =>
-        data.results.map((u: any) => ({
-          uuid: u.login.uuid,
-          username: u.login.username,
-          password: u.login.password,
-          salt: u.login.salt,
-          md5: u.login.md5,
-          sha1: u.login.sha1,
-          sha256: u.login.sha256,
-          title: u.name.title,
-          first: u.name.first,
-          last: u.name.last,
-          gender: u.gender,
-          email: u.email,
-          dobDate: u.dob.date,
-          dobAge: u.dob.age,
-          regDate: u.registered.date,
-          regAge: u.registered.age,
-          phone: u.phone,
-          cell: u.cell,
-          nat: u.nat,
-          street: `${u.location.street.number} ${u.location.street.name}`,
-          city: u.location.city,
-          state: u.location.state,
-          country: u.location.country,
-          postcode: u.location.postcode,
-          lat: u.location.coordinates.latitude,
-          lng: u.location.coordinates.longitude,
-          tzOffset: u.location.timezone.offset,
-          tzDesc: u.location.timezone.description,
-          picLarge: u.picture.large,
-          picMed: u.picture.medium,
-          picThumb: u.picture.thumbnail,
-        }))
-      );
+      // Validate each batch with Zod schema - external API is a trust boundary
+      const validatedUsers: RandomUserFullParsed[] = [];
+      for (const data of allData) {
+        const result = RandomUserFullResponseSchema.safeParse(data);
+        if (result.success) {
+          validatedUsers.push(...result.data.results);
+        } else {
+          console.error("Large dataset batch validation failed:", result.error.issues);
+        }
+      }
+
+      return validatedUsers.map((u: RandomUserFullParsed) => ({
+        uuid: u.login.uuid,
+        username: u.login.username ?? "",
+        password: u.login.password ?? "",
+        salt: u.login.salt ?? "",
+        md5: u.login.md5 ?? "",
+        sha1: u.login.sha1 ?? "",
+        sha256: u.login.sha256 ?? "",
+        title: u.name.title ?? "",
+        first: u.name.first,
+        last: u.name.last,
+        gender: u.gender ?? "",
+        email: u.email,
+        dobDate: u.dob.date ?? "",
+        dobAge: u.dob.age,
+        regDate: u.registered?.date ?? "",
+        regAge: u.registered?.age ?? 0,
+        phone: u.phone ?? "",
+        cell: u.cell ?? "",
+        nat: u.nat ?? "",
+        street: `${u.location.street?.number ?? ""} ${u.location.street?.name ?? ""}`,
+        city: u.location.city,
+        state: u.location.state,
+        country: u.location.country,
+        postcode: String(u.location.postcode ?? ""),
+        lat: u.location.coordinates?.latitude ?? "",
+        lng: u.location.coordinates?.longitude ?? "",
+        tzOffset: u.location.timezone?.offset ?? "",
+        tzDesc: u.location.timezone?.description ?? "",
+        picLarge: u.picture?.large ?? "",
+        picMed: u.picture?.medium ?? "",
+        picThumb: u.picture?.thumbnail ?? "",
+      }));
     } catch (error) {
       console.error("Error fetching large dataset:", error);
       return [];
@@ -432,34 +492,43 @@ export class QueryApiMockService {
       );
 
       const responses = await Promise.all(calls);
-      const data = await Promise.all(responses.map((r) => r.json()));
+      const rawData = await Promise.all(responses.map((r) => r.json()));
 
-      return data.flatMap((d) =>
-        d.products.map((p: any) => ({
-          id: p.id,
-          title: p.title,
-          description: p.description,
-          category: p.category,
-          price: p.price,
-          discountPercentage: p.discountPercentage,
-          rating: p.rating,
-          stock: p.stock,
-          brand: p.brand,
-          sku: p.sku,
-          weight: p.weight,
-          width: p.dimensions?.width,
-          height: p.dimensions?.height,
-          depth: p.dimensions?.depth,
-          warrantyInfo: p.warrantyInformation,
-          shippingInfo: p.shippingInformation,
-          availabilityStatus: p.availabilityStatus,
-          returnPolicy: p.returnPolicy,
-          minimumOrderQty: p.minimumOrderQuantity,
-          thumbnail: p.thumbnail,
-          image1: p.images?.[0],
-          image2: p.images?.[1],
-        }))
-      );
+      // Validate each batch with Zod schema - external API is a trust boundary
+      const validatedProducts: DummyJsonProductParsed[] = [];
+      for (const data of rawData) {
+        const result = DummyJsonProductsResponseSchema.safeParse(data);
+        if (result.success) {
+          validatedProducts.push(...result.data.products);
+        } else {
+          console.error("Product catalog batch validation failed:", result.error.issues);
+        }
+      }
+
+      return validatedProducts.map((p: DummyJsonProductParsed) => ({
+        id: p.id,
+        title: p.title,
+        description: p.description ?? "",
+        category: p.category ?? "",
+        price: p.price ?? 0,
+        discountPercentage: p.discountPercentage ?? 0,
+        rating: p.rating ?? 0,
+        stock: p.stock ?? 0,
+        brand: p.brand ?? "",
+        sku: p.sku ?? "",
+        weight: p.weight ?? 0,
+        width: p.dimensions?.width ?? 0,
+        height: p.dimensions?.height ?? 0,
+        depth: p.dimensions?.depth ?? 0,
+        warrantyInfo: p.warrantyInformation ?? "",
+        shippingInfo: p.shippingInformation ?? "",
+        availabilityStatus: p.availabilityStatus ?? "",
+        returnPolicy: p.returnPolicy ?? "",
+        minimumOrderQty: p.minimumOrderQuantity ?? 0,
+        thumbnail: p.thumbnail ?? "",
+        image1: p.images?.[0] ?? "",
+        image2: p.images?.[1] ?? "",
+      }));
     } catch (error) {
       console.error("Error fetching product catalog:", error);
       return [];
@@ -472,7 +541,7 @@ export class QueryApiMockService {
    */
   private async fetchMixedDataset(): Promise<ExecuteQueryResultRow[]> {
     try {
-      const [usersResponse, postsResponses] = await Promise.all([
+      const [usersRaw, postsResponses] = await Promise.all([
         fetch("https://randomuser.me/api/?results=3000").then((r) => r.json()),
         Promise.all(
           Array.from({ length: 50 }, (_, i) =>
@@ -481,23 +550,30 @@ export class QueryApiMockService {
         ),
       ]);
 
-      const userData = usersResponse.results.map((u: any, idx: number) => ({
+      // Validate user data with Zod schema - external API is a trust boundary
+      const usersResult = RandomUserFullResponseSchema.safeParse(usersRaw);
+      const validatedUsers = usersResult.success ? usersResult.data.results : [];
+      if (!usersResult.success) {
+        console.error("Mixed dataset users validation failed:", usersResult.error.issues);
+      }
+
+      const userData = validatedUsers.map((u: RandomUserFullParsed, idx: number) => ({
         type: "USER",
         id: idx + 1,
         uuid: u.login.uuid,
         fullName: `${u.name.first} ${u.name.last}`,
         email: u.email,
-        phone: u.phone,
-        address: `${u.location.street.number} ${u.location.street.name}`,
+        phone: u.phone ?? "",
+        address: `${u.location.street?.number ?? ""} ${u.location.street?.name ?? ""}`,
         city: u.location.city,
         state: u.location.state,
-        zip: u.location.postcode,
+        zip: String(u.location.postcode ?? ""),
         country: u.location.country,
-        lat: u.location.coordinates.latitude,
-        lng: u.location.coordinates.longitude,
+        lat: u.location.coordinates?.latitude ?? "",
+        lng: u.location.coordinates?.longitude ?? "",
         age: u.dob.age,
-        gender: u.gender,
-        nationality: u.nat,
+        gender: u.gender ?? "",
+        nationality: u.nat ?? "",
         // Null columns for posts
         title: null,
         body: null,
@@ -506,10 +582,12 @@ export class QueryApiMockService {
         views: null,
       }));
 
-      const postData = postsResponses.flatMap((p) =>
-        p.posts.map((post: any) => ({
+      // DummyJSON posts - no schema validation (third-party mock API)
+      // Keeping light validation only for this mock service
+      const postData: ExecuteQueryResultRow[] = postsResponses.flatMap((p: { posts?: Array<Record<string, unknown>> }) =>
+        (p.posts ?? []).map((post: Record<string, unknown>): ExecuteQueryResultRow => ({
           type: "POST",
-          id: post.id,
+          id: typeof post['id'] === 'number' ? post['id'] : 0,
           uuid: null,
           fullName: null,
           email: null,
@@ -524,11 +602,13 @@ export class QueryApiMockService {
           age: null,
           gender: null,
           nationality: null,
-          title: post.title,
-          body: post.body,
-          tags: post.tags?.join(", "),
-          reactions: post.reactions?.likes,
-          views: post.views,
+          title: typeof post['title'] === 'string' ? post['title'] : "",
+          body: typeof post['body'] === 'string' ? post['body'] : "",
+          tags: Array.isArray(post['tags']) ? (post['tags'] as string[]).join(", ") : "",
+          reactions: typeof (post['reactions'] as Record<string, unknown>)?.['likes'] === 'number'
+            ? (post['reactions'] as Record<string, unknown>)['likes'] as number
+            : null,
+          views: typeof post['views'] === 'number' ? post['views'] : null,
         }))
       );
 
@@ -549,37 +629,44 @@ export class QueryApiMockService {
       if (!response.ok) {
         throw new Error(`RandomUser API request failed: ${response.status}`);
       }
-      const data = await response.json();
+      const rawData = await response.json();
+
+      // Validate with Zod schema - external API is a trust boundary
+      const result = RandomUserFullResponseSchema.safeParse(rawData);
+      if (!result.success) {
+        console.error("Synthetic expansion validation failed:", result.error.issues);
+        return [];
+      }
 
       // Expand each user 5x with synthetic variations
-      return data.results.flatMap((u: any, idx: number) =>
+      return result.data.results.flatMap((u: RandomUserFullParsed, idx: number) =>
         Array.from({ length: 5 }, (_, variantIdx) => ({
           recordId: idx * 5 + variantIdx + 1,
           userId: u.login.uuid,
           variant: variantIdx + 1,
           timestamp: new Date(Date.now() - Math.random() * 31536000000).toISOString(),
-          title: u.name.title,
+          title: u.name.title ?? "",
           firstName: u.name.first,
           lastName: u.name.last,
-          gender: u.gender,
+          gender: u.gender ?? "",
           email: u.email,
-          username: u.login.username,
-          phone: u.phone,
-          cell: u.cell,
-          dob: u.dob.date,
+          username: u.login.username ?? "",
+          phone: u.phone ?? "",
+          cell: u.cell ?? "",
+          dob: u.dob.date ?? "",
           age: u.dob.age,
-          registered: u.registered.date,
-          streetNum: u.location.street.number,
-          streetName: u.location.street.name,
+          registered: u.registered?.date ?? "",
+          streetNum: u.location.street?.number ?? 0,
+          streetName: u.location.street?.name ?? "",
           city: u.location.city,
           state: u.location.state,
           country: u.location.country,
-          postcode: u.location.postcode,
-          latitude: u.location.coordinates.latitude,
-          longitude: u.location.coordinates.longitude,
-          timezone: u.location.timezone.offset,
-          nationality: u.nat,
-          picture: u.picture.large,
+          postcode: String(u.location.postcode ?? ""),
+          latitude: u.location.coordinates?.latitude ?? "",
+          longitude: u.location.coordinates?.longitude ?? "",
+          timezone: u.location.timezone?.offset ?? "",
+          nationality: u.nat ?? "",
+          picture: u.picture?.large ?? "",
           // Synthetic transaction data
           transactionId: `TXN-${idx}-${variantIdx}`,
           amount: Math.random() * 10000,

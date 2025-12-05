@@ -49,3 +49,6 @@ Desktop.ini
 .nx/cache
 .nx/workspace-data
 tmp/
+
+# Compodoc
+documentation.json

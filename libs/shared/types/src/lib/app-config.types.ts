@@ -22,14 +22,17 @@ export type ViewId =
   | "tables"
   | "user"
   | "queries"
-  | "queriesOld"
   | "debug"
   | "settings";
 
 /**
  * Supported navigation action types for shell nav items.
+ *
+ * Note: Sign-in actions (sign-in-analyst, sign-in-admin) have been removed.
+ * Demo sign-in buttons are now rendered by SsoHomeComponent using DemoAuthUser
+ * config from app-config.demo.ts, not as nav items.
  */
-export type NavActionType = "select-view" | "sign-in-analyst" | "sign-in-admin" | "sign-out";
+export type NavActionType = 'select-view' | 'sign-out';
 
 /**
  * Configuration for a single navigation item in the shell.
@@ -63,10 +66,10 @@ export interface NavItemConfig {
 export interface RoleDefinition {
   /** Role identifier used in logic. */
   id: RoleId;
-  /** i18n/text key describing the role. */
-  labelKey: string;
-  /** i18n/text key for the role description. */
-  descriptionKey: string;
+  /** Human-readable label for the role. */
+  label: string;
+  /** Description of the role's purpose and permissions. */
+  description: string;
 }
 
 /**
@@ -103,7 +106,47 @@ export interface TextCatalog {
     [key: string]: string | undefined;
   };
   /** General UI text (can be nested) */
-  ui: Record<string, any>;
+  ui: Record<string, string | Record<string, string>>;
+}
+
+/**
+ * Valid section keys in TextCatalog for type-safe dynamic access.
+ *
+ * These are the top-level keys that contain `Record<string, string>` values.
+ * Used by `getTextSection()` to provide type-safe lookups without `any` casts.
+ */
+export type TextCatalogSection = 'nav' | 'auth' | 'query' | 'worksheet' | 'table' | 'user';
+
+/**
+ * Type-safe accessor for TextCatalog string sections.
+ *
+ * Returns the section's string record if the key is valid, undefined otherwise.
+ * This eliminates the need for `any` casts when dynamically accessing catalog sections.
+ *
+ * @param catalog - The TextCatalog to access
+ * @param section - The section key to retrieve
+ * @returns The section's Record<string, string> or undefined if not found/invalid
+ *
+ * @example
+ * ```typescript
+ * const navStrings = getTextSection(text, 'nav');
+ * if (navStrings) {
+ *   const label = navStrings['ssoHome'] ?? 'fallback';
+ * }
+ * ```
+ */
+export function getTextSection(
+  catalog: TextCatalog,
+  section: string
+): Record<string, string> | undefined {
+  const validSections: TextCatalogSection[] = [
+    'nav', 'auth', 'query', 'worksheet', 'table', 'user'
+  ];
+
+  if (validSections.includes(section as TextCatalogSection)) {
+    return catalog[section as TextCatalogSection];
+  }
+  return undefined;
 }
 
 /**

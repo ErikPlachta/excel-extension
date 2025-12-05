@@ -1,8 +1,13 @@
 /**
  * Known User Role identifiers in the system.
  * Moved from app-config.types to shared types for API definitions.
+ *
+ * @remarks
+ * - `analyst` - Query access, can run operations and view results
+ * - `admin` - Full access, includes analyst permissions plus configuration
+ * - `automation` - Service account access for automated operations
  */
-export type RoleId = "analyst" | "admin";
+export type RoleId = 'analyst' | 'admin' | 'automation';
 
 /**
  * API Definition - Catalog of available data source APIs.
@@ -103,4 +108,36 @@ export interface ApiCatalogUiConfig {
 
   /** Tags for search/filtering */
   tags?: string[];
+}
+
+/**
+ * Parameter values for API execution.
+ *
+ * This is a shared type used across the app for passing parameter values
+ * to API operations. Keys are parameter names from ApiParameter.key.
+ */
+export interface ExecuteApiParams {
+  [key: string]: string | number | boolean | Date | null | undefined;
+}
+
+/**
+ * Single row from API response.
+ *
+ * This is a shared type representing a row of data returned from any API
+ * operation. Column keys match ApiColumnDefinition.key.
+ */
+export interface ExecuteApiResultRow {
+  [column: string]: string | number | boolean | Date | null;
+}
+
+/**
+ * Response from GET /api/catalog endpoint.
+ *
+ * Returns available operations filtered by user's roles.
+ */
+export interface CatalogResponse {
+  /** Available API operations for the current user */
+  operations: ApiDefinition[];
+  /** User's roles */
+  roles: RoleId[];
 }

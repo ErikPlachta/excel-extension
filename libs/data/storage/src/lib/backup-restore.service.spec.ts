@@ -1,7 +1,8 @@
 import { TestBed } from '@angular/core/testing';
-import { BackupRestoreService, AppStateBackup } from './backup-restore.service';
+import { BackupRestoreService } from './backup-restore.service';
 import { StorageHelperService } from './storage-helper.service';
 import { WINDOW } from './window.token';
+import { AppStateBackupParsed } from '@excel-platform/shared/types';
 
 describe('BackupRestoreService', () => {
   let service: BackupRestoreService;
@@ -75,7 +76,7 @@ describe('BackupRestoreService', () => {
 
   describe('importBackup', () => {
     it('should restore state from valid backup file', async () => {
-      const backup: AppStateBackup = {
+      const backup: AppStateBackupParsed = {
         version: '1.0.0',
         timestamp: '2024-11-24T12:00:00Z',
         authState: { isAuthenticated: true },
@@ -97,7 +98,7 @@ describe('BackupRestoreService', () => {
     });
 
     it('should reject incompatible major version', async () => {
-      const backup: AppStateBackup = {
+      const backup: AppStateBackupParsed = {
         version: '2.0.0',
         timestamp: '2024-11-24T12:00:00Z',
         authState: {},
@@ -116,7 +117,7 @@ describe('BackupRestoreService', () => {
     });
 
     it('should accept compatible minor/patch versions', async () => {
-      const backup: AppStateBackup = {
+      const backup: AppStateBackupParsed = {
         version: '1.2.3',
         timestamp: '2024-11-24T12:00:00Z',
         authState: {},

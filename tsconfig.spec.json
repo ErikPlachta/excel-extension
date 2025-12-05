@@ -5,11 +5,10 @@
   "compilerOptions": {
     "outDir": "./out-tsc/spec",
     "types": [
-      "jasmine"
+      "jest"
     ]
   },
   "include": [
-    "apps/excel-addin/src/test.ts",
     "apps/excel-addin/src/**/*.spec.ts",
     "apps/excel-addin/src/**/*.d.ts",
     "libs/**/*.spec.ts"
