@@ -1,6 +1,7 @@
 // @excel-platform/data/api
 // API services, catalog, and configuration
 
+export * from './lib/api-config.service';
 export * from './lib/config-validator.service';
 export * from './lib/app-config.service';
 export * from './lib/api-catalog.service';

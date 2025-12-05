@@ -121,7 +121,7 @@ export const AppStateBackupSchema = z.object({
 export const CachedQueryResultSchema = z.object({
   id: z.string(),
   queryId: z.string(),
-  rows: z.array(z.record(z.unknown())),
+  rows: z.array(z.record(z.string(), z.unknown())),
   timestamp: z.number(),
   expiresAt: z.number(),
 });

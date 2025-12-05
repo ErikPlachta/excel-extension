@@ -9,6 +9,7 @@ import type {
   UserProfile,
   TokenPair,
 } from "@excel-platform/shared/types";
+import { ApiConfigService } from "@excel-platform/data/api";
 
 /**
  * Auth API Service - Real backend HTTP implementation.
@@ -41,6 +42,7 @@ import type {
 @Injectable()
 export class AuthApiService implements IAuthApiService {
   private readonly http = inject(HttpClient);
+  private readonly apiConfig = inject(ApiConfigService);
 
   /**
    * Sign in with Azure AD token.
@@ -51,7 +53,7 @@ export class AuthApiService implements IAuthApiService {
    */
   async signIn(request: SignInRequest): Promise<TokenPair> {
     return firstValueFrom(
-      this.http.post<TokenPair>('/auth/signin', request)
+      this.http.post<TokenPair>(this.apiConfig.buildUrl('/auth/signin'), request)
     );
   }
 
@@ -65,7 +67,7 @@ export class AuthApiService implements IAuthApiService {
    */
   async refresh(refreshToken: string): Promise<TokenPair> {
     return firstValueFrom(
-      this.http.post<TokenPair>('/auth/refresh', { refreshToken })
+      this.http.post<TokenPair>(this.apiConfig.buildUrl('/auth/refresh'), { refreshToken })
     );
   }
 
@@ -78,7 +80,7 @@ export class AuthApiService implements IAuthApiService {
    */
   async getProfile(): Promise<UserProfile> {
     return firstValueFrom(
-      this.http.get<UserProfile>('/auth/profile')
+      this.http.get<UserProfile>(this.apiConfig.buildUrl('/auth/profile'))
     );
   }
 
@@ -90,7 +92,7 @@ export class AuthApiService implements IAuthApiService {
    */
   async signOut(): Promise<SignOutResponse> {
     return firstValueFrom(
-      this.http.post<SignOutResponse>('/auth/signout', {})
+      this.http.post<SignOutResponse>(this.apiConfig.buildUrl('/auth/signout'), {})
     );
   }
 
@@ -103,7 +105,7 @@ export class AuthApiService implements IAuthApiService {
    */
   async revoke(refreshToken: string): Promise<RevokeResponse> {
     return firstValueFrom(
-      this.http.post<RevokeResponse>('/auth/revoke', { refreshToken })
+      this.http.post<RevokeResponse>(this.apiConfig.buildUrl('/auth/revoke'), { refreshToken })
     );
   }
 }
