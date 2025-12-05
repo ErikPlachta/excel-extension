@@ -1,8 +1,12 @@
-name: CD - Deploy to GitHub Pages
+name: CD - Deploy Docs to GitHub Pages
 
 on:
   push:
     branches: [main]
+    paths:
+      - 'website/**'
+      - 'docs/**'
+      - '.github/workflows/cd.yml'
   workflow_dispatch:
 
 permissions:
@@ -29,21 +33,13 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
+          cache-dependency-path: website/package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        run: cd website && npm ci
 
-      - name: Cache Nx
-        uses: actions/cache@v4
-        with:
-          path: .nx/cache
-          key: ${{ runner.os }}-nx-${{ hashFiles('**/package-lock.json') }}-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-nx-${{ hashFiles('**/package-lock.json') }}-
-            ${{ runner.os }}-nx-
-
-      - name: Build
-        run: npx nx build excel-addin --configuration=production --base-href=/excel-extension/
+      - name: Build Docusaurus
+        run: cd website && npm run build
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
@@ -51,7 +47,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./dist/apps/excel-addin/browser
+          path: ./website/build
 
   deploy:
     environment:
