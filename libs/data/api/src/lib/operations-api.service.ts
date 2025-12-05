@@ -7,6 +7,7 @@ import type {
   ExecutionRequest,
 } from '@excel-platform/shared/types';
 import { ExecutionResponseSchema } from '@excel-platform/shared/types';
+import { ApiConfigService } from './api-config.service';
 
 /**
  * Operations API Service - Real backend HTTP implementation.
@@ -52,6 +53,7 @@ import { ExecutionResponseSchema } from '@excel-platform/shared/types';
 @Injectable()
 export class OperationsApiService implements IOperationsApiService {
   private readonly http = inject(HttpClient);
+  private readonly apiConfig = inject(ApiConfigService);
 
   /**
    * Execute an operation with given payload.
@@ -70,7 +72,7 @@ export class OperationsApiService implements IOperationsApiService {
   ): Promise<ExecutionResponse<T>> {
     const request: ExecutionRequest = { payload };
     const rawResponse = await firstValueFrom(
-      this.http.post<unknown>(`/operations/${operationName}`, request)
+      this.http.post<unknown>(this.apiConfig.buildUrl(`/operations/${operationName}`), request)
     );
 
     // Validate response at trust boundary with Zod schema

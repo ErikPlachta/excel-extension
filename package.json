@@ -9,6 +9,8 @@
     "stop:office": "office-addin-debugging stop dev-manifest.xml",
     "dev-certs": "node scripts/install-dev-certs.mjs",
     "start:dev": "ng serve --configuration development --ssl true --ssl-cert /Users/erikplachta/.office-addin-dev-certs/localhost.crt --ssl-key /Users/erikplachta/.office-addin-dev-certs/localhost.key",
+    "start:mock": "ng serve --configuration mock",
+    "test:api": "./scripts/test-local-api.sh",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "nx test excel-addin",

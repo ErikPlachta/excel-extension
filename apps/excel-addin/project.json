@@ -38,24 +38,47 @@
               "maximumError": "8kB"
             }
           ],
-          "outputHashing": "all"
+          "outputHashing": "all",
+          "fileReplacements": [
+            {
+              "replace": "apps/excel-addin/src/environments/environment.ts",
+              "with": "apps/excel-addin/src/environments/environment.prod.ts"
+            }
+          ]
         },
         "development": {
           "optimization": false,
           "extractLicenses": false,
           "sourceMap": true
+        },
+        "mock": {
+          "optimization": false,
+          "extractLicenses": false,
+          "sourceMap": true,
+          "fileReplacements": [
+            {
+              "replace": "apps/excel-addin/src/environments/environment.ts",
+              "with": "apps/excel-addin/src/environments/environment.mock.ts"
+            }
+          ]
         }
       },
       "defaultConfiguration": "production"
     },
     "serve": {
       "executor": "@angular-devkit/build-angular:dev-server",
+      "options": {
+        "proxyConfig": "apps/excel-addin/proxy.conf.json"
+      },
       "configurations": {
         "production": {
           "buildTarget": "excel-addin:build:production"
         },
         "development": {
           "buildTarget": "excel-addin:build:development"
+        },
+        "mock": {
+          "buildTarget": "excel-addin:build:mock"
         }
       },
       "defaultConfiguration": "development"
