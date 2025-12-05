@@ -1,6 +1,6 @@
 # Master Plan Tracker
 
-**Last Updated**: 2025-12-04 (Plan 14 Type Safety complete)
+**Last Updated**: 2025-12-05 (Plan 17 Dependabot complete)
 **Purpose**: High-level tracking of all active plans and gap analysis status
 
 ---
@@ -12,7 +12,9 @@
 | `~/.claude/plans/mossy-chasing-hopcroft.md`               | H5 Auth Guards        | ✅ COMPLETE |
 | `~/.claude/plans/elegant-sleeping-kahan.md`               | Gap Analysis Master   | ✅ COMPLETE |
 | `.claude/plans/archived/plan_14_type-safety-audit_20251204.md` | Type Safety & Zod | ✅ COMPLETE |
-| `.claude/plans/plan_15_local-api-integration_20251204.md` | Local API Integration | 🔲 PENDING  |
+| `.claude/plans/archived/plan_15_local-api-integration_20251204.md` | Local API Integration | ✅ COMPLETE |
+| `.claude/plans/archived/plan_16_docusaurus_20251205.md` | Docusaurus Docs Site | ✅ COMPLETE |
+| `.claude/plans/archived/plan_17_dependabot_20251205.md` | Dependabot Updates | ✅ COMPLETE |
 
 ---
 
@@ -39,11 +41,11 @@
 
 ## Remaining Work
 
-**Gap analysis issues all resolved.** Next: Plan 15 Local API Integration.
+**All gap analysis and planned work complete.** No pending tasks.
 
-| Priority | Task                  | Plan                               |
-| -------- | --------------------- | ---------------------------------- |
-| MEDIUM   | Local API integration | `plan_15_local-api-integration.md` |
+| Priority | Task | Plan |
+| -------- | ---- | ---- |
+| —        | —    | —    |
 
 ---
 
@@ -54,6 +56,9 @@
 | 2025-12-04 | H5 Auth Guards      | `fix/h5-auth-guards`                | `CHANGELOG_20251204_h5_auth-guards.md`       |
 | 2025-12-04 | Gap Analysis (all)  | `fix/m1-query-definition-migration` | `CHANGELOG_20251204_gap-analysis-cleanup.md` |
 | 2025-12-04 | Plan 14 Type Safety | `feat/type-safety-zod-integration`  | PR #50 merged                                |
+| 2025-12-05 | Plan 15 Local API   | `feat/local-api-integration`        | PR #51 merged                                |
+| 2025-12-05 | Plan 16 Docusaurus  | `feat/docusaurus-docs`              | PR #63 merged                                |
+| 2025-12-05 | Plan 17 Dependabot  | `chore/dependabot-updates`          | PR #64 merged                                |
 
 ---
 
@@ -71,3 +76,15 @@ Original snapshot before gap analysis work:
 | Build time      | 2.67s                 |
 | Angular         | @angular/core@20.3.12 |
 | Node            | v25.2.0               |
+
+## Current Metrics (2025-12-05)
+
+Post-Plan 17 snapshot:
+
+| Metric              | Value                 |
+| ------------------- | --------------------- |
+| Angular             | @angular/core@21.1.0  |
+| Zod                 | zod@4.1.13            |
+| zone.js             | zone.js@0.16.0        |
+| jest-preset-angular | 16.0.0                |
+| Pass rate           | 100%                  |
