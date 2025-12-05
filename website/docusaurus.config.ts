@@ -73,7 +73,6 @@ const config: Config = {
           items: [
             { label: 'Getting Started', to: '/getting-started' },
             { label: 'Architecture', to: '/architecture/STORAGE-ARCHITECTURE' },
-            { label: 'API Reference', to: '/api' },
           ],
         },
         {

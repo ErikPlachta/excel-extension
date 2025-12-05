@@ -333,7 +333,7 @@ this.telemetry.logEvent({
 
 ## Performance & Large Datasets
 
-**See `docs/architecture/PERFORMANCE.md` for comprehensive guide**
+**See `website/docs/architecture/PERFORMANCE.md` for comprehensive guide**
 
 - Excel resource limits: ~5MB payload per Office.js call, ~1M cell recommendation
 - Chunked writes: Default 1000 rows/chunk, configurable via Settings UI
@@ -357,10 +357,10 @@ this.telemetry.logEvent({
 
 ## Completed Refactors
 
-Architecture refactor (9 phases) completed November 2025. See `docs/changelog/CHANGELOG_20251126_000000_feat-finalize-concept.md` for details.
+Architecture refactor (9 phases) completed November 2025. See `website/docs/changelog/CHANGELOG_20251126_000000_feat-finalize-concept.md` for details.
 
 **Reference docs:**
 
-- `docs/architecture/STORAGE-ARCHITECTURE.md` - Storage APIs, IndexedDB schema, backup/restore
-- `docs/architecture/PERFORMANCE.md` - Excel limits, chunking, large dataset handling
-- `docs/changelog/` - Historical change logs
+- `website/docs/architecture/STORAGE-ARCHITECTURE.md` - Storage APIs, IndexedDB schema, backup/restore
+- `website/docs/architecture/PERFORMANCE.md` - Excel limits, chunking, large dataset handling
+- `website/docs/changelog/` - Historical change logs
