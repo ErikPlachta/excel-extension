@@ -7,12 +7,12 @@
 
 ## Global Plans Reference
 
-| Plan File                                   | Description           | Status      |
-| ------------------------------------------- | --------------------- | ----------- |
-| `~/.claude/plans/mossy-chasing-hopcroft.md` | H5 Auth Guards        | ✅ COMPLETE |
-| `~/.claude/plans/elegant-sleeping-kahan.md` | Gap Analysis Master   | ✅ COMPLETE |
-| `.claude/plans/plan_14_type-safety-audit_20251204.md` | Type Safety & Zod | ✅ COMPLETE |
-| `.claude/plans/plan_15_local-api-integration_20251204.md` | Local API Integration | 🔲 PENDING |
+| Plan File                                                 | Description           | Status      |
+| --------------------------------------------------------- | --------------------- | ----------- |
+| `~/.claude/plans/mossy-chasing-hopcroft.md`               | H5 Auth Guards        | ✅ COMPLETE |
+| `~/.claude/plans/elegant-sleeping-kahan.md`               | Gap Analysis Master   | ✅ COMPLETE |
+| `.claude/plans/archived/plan_14_type-safety-audit_20251204.md` | Type Safety & Zod | ✅ COMPLETE |
+| `.claude/plans/plan_15_local-api-integration_20251204.md` | Local API Integration | 🔲 PENDING  |
 
 ---
 
@@ -41,19 +41,19 @@
 
 **Gap analysis issues all resolved.** Next: Plan 15 Local API Integration.
 
-| Priority | Task                  | Plan                                |
-| -------- | --------------------- | ----------------------------------- |
-| MEDIUM   | Local API integration | `plan_15_local-api-integration.md`  |
+| Priority | Task                  | Plan                               |
+| -------- | --------------------- | ---------------------------------- |
+| MEDIUM   | Local API integration | `plan_15_local-api-integration.md` |
 
 ---
 
 ## Completed Plans
 
-| Date       | Plan                  | Branch                           | Changelog                                    |
-| ---------- | --------------------- | -------------------------------- | -------------------------------------------- |
-| 2025-12-04 | H5 Auth Guards        | `fix/h5-auth-guards`             | `CHANGELOG_20251204_h5_auth-guards.md`       |
-| 2025-12-04 | Gap Analysis (all)    | `fix/m1-query-definition-migration` | `CHANGELOG_20251204_gap-analysis-cleanup.md` |
-| 2025-12-04 | Plan 14 Type Safety   | `feat/type-safety-zod-integration` | — (in progress)                              |
+| Date       | Plan                | Branch                              | Changelog                                    |
+| ---------- | ------------------- | ----------------------------------- | -------------------------------------------- |
+| 2025-12-04 | H5 Auth Guards      | `fix/h5-auth-guards`                | `CHANGELOG_20251204_h5_auth-guards.md`       |
+| 2025-12-04 | Gap Analysis (all)  | `fix/m1-query-definition-migration` | `CHANGELOG_20251204_gap-analysis-cleanup.md` |
+| 2025-12-04 | Plan 14 Type Safety | `feat/type-safety-zod-integration`  | PR #50 merged                                |
 
 ---
 
