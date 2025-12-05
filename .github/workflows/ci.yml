@@ -34,7 +34,7 @@ jobs:
         uses: nrwl/nx-set-shas@v4
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --legacy-peer-deps
 
       - name: Cache Nx
         uses: actions/cache@v4
