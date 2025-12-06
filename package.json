@@ -30,10 +30,8 @@
     "ci:all": "nx run-many --target=lint --all --parallel=3 && nx run-many --target=test --all --ci --parallel=3 && nx run-many --target=build --all --parallel=3",
     "test:coverage": "nx run-many --target=test --all --coverage",
     "test:watch": "nx test excel-addin --watch",
-    "docs": "cd website && npm run build",
-    "docs:serve": "cd website && npm start",
-    "docs:api": "npx compodoc -p tsconfig.compodoc.json -c .compodocrc.json",
-    "docs:api:serve": "npx compodoc -p tsconfig.compodoc.json -c .compodocrc.json -s"
+    "docs": "cd apps/excel-addin-docs-website && npm run build",
+    "docs:serve": "cd apps/excel-addin-docs-website && npm start"
   },
   "private": true,
   "dependencies": {

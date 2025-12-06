@@ -20,12 +20,54 @@ const config: Config = {
   trailingSlash: false,
 
   onBrokenLinks: 'warn',
-  onBrokenMarkdownLinks: 'warn',
+
+  markdown: {
+    format: 'detect', // Use 'detect' to allow .md files to be parsed as regular markdown
+  },
 
   i18n: {
     defaultLocale: 'en',
     locales: ['en'],
   },
+
+  plugins: [
+    [
+      'docusaurus-plugin-typedoc',
+      {
+        id: 'api',
+        entryPoints: [
+          '../../libs/shared/types/src/index.ts',
+          '../../libs/shared/ui/src/index.ts',
+          '../../libs/shared/util/src/index.ts',
+          '../../libs/core/auth/src/index.ts',
+          '../../libs/core/telemetry/src/index.ts',
+          '../../libs/core/settings/src/index.ts',
+          '../../libs/core/excel/src/index.ts',
+          '../../libs/office/excel/src/index.ts',
+          '../../libs/office/common/src/index.ts',
+          '../../libs/data/query/src/index.ts',
+          '../../libs/data/api/src/index.ts',
+          '../../libs/data/storage/src/index.ts',
+        ],
+        entryPointStrategy: 'expand',
+        tsconfig: '../../tsconfig.base.json',
+        out: 'docs/api',
+        excludePrivate: true,
+        excludeInternal: true,
+        skipErrorChecking: true,
+        readme: 'none', // Don't include root README
+        // Use code blocks for type signatures to avoid MDX parsing issues
+        useCodeBlocks: true,
+        expandObjects: true,
+        parametersFormat: 'table',
+        tableColumnSettings: {
+          hideDefaults: true,
+          hideInherited: true,
+          hideSources: true,
+        },
+      },
+    ],
+  ],
 
   presets: [
     [
@@ -34,7 +76,7 @@ const config: Config = {
         docs: {
           sidebarPath: './sidebars.ts',
           routeBasePath: '/', // Docs at root
-          editUrl: 'https://github.com/ErikPlachta/excel-extension/tree/main/website/',
+          editUrl: 'https://github.com/ErikPlachta/excel-extension/tree/main/apps/excel-addin-docs-website/',
         },
         blog: false, // Disable blog
         theme: {

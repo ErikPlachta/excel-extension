@@ -283,11 +283,11 @@ Use Zod schemas for runtime validation at trust boundaries. Schemas are in `libs
 
 ```typescript
 // Import schemas and inferred types
-import { AppSettingsSchema, ExecutionResponseSchema } from '@excel-platform/shared/types';
-import type { AppSettingsParsed } from '@excel-platform/shared/types';
+import { AppSettingsSchema, ExecutionResponseSchema } from "@excel-platform/shared/types";
+import type { AppSettingsParsed } from "@excel-platform/shared/types";
 
 // Validate storage reads
-const settings = storageBase.getItem('key', defaults, AppSettingsSchema);
+const settings = storageBase.getItem("key", defaults, AppSettingsSchema);
 
 // Validate API responses
 const result = ExecutionResponseSchema.safeParse(response);
@@ -295,11 +295,13 @@ if (!result.success) throw new Error(`Invalid response: ${result.error.issues}`)
 ```
 
 **Trust boundaries requiring Zod validation:**
+
 - API responses (backend, external APIs)
 - localStorage/IndexedDB reads
 - File imports (backup restore)
 
 **Schema categories:**
+
 - `api.schemas.ts` - Backend API responses, auth tokens, catalog
 - `storage.schemas.ts` - Settings, query configs, backup format
 - `external.schemas.ts` - Third-party API responses (JSONPlaceholder, RandomUser)
