@@ -6,25 +6,42 @@ title: Excel Platform
 
 # Excel Platform Documentation
 
-Angular application for Excel add-in development using Nx monorepo architecture.
+Angular 21 Excel add-in with Nx monorepo architecture.
 
-## Quick Links
+## Choose Your Path
 
-### For Developers
-- [Getting Started](getting-started) - Setup and development workflow
-- [Storage Architecture](architecture/STORAGE-ARCHITECTURE) - Browser storage design
-- [Performance Guide](architecture/PERFORMANCE) - Excel limits and optimization
+### I want to build features in the Excel add-in
 
-### Architecture
-- [Backend API Spec](architecture/BACKEND-API-SPEC) - Full API specification
-- [Backend Endpoints](architecture/BACKEND-API-ENDPOINTS) - Quick endpoint reference
+Start here if you're adding features, fixing bugs, or working on the UI.
 
-### API Reference
-- [API Docs](api/) - Generated TypeScript documentation
+- [Quick Start](getting-started/quick-start) → [App Development Tutorial](getting-started/app-development)
+- **Guides:** [Patterns](guides/app/patterns) | [Queries](guides/app/queries) | [Excel Integration](guides/app/excel-integration) | [Testing](guides/app/testing)
 
-### Changelog
-- [View all changes](category/changelog) - Historical development log
+### I want to create or extend libraries
 
+Start here if you're building shared services, utilities, or components.
+
+- [Quick Start](getting-started/quick-start) → [Library Development Tutorial](getting-started/library-development)
+- **Guides:** [Creating Libraries](guides/library/creating-a-library) | [Testing Libraries](guides/library/testing-libraries) | [API Conventions](guides/library/api-conventions)
+
+### I maintain the monorepo
+
+Start here for CI/CD, releases, and Nx tooling.
+
+- **Guides:** [Nx Commands](guides/monorepo/nx-commands) | [CI/CD](guides/monorepo/ci-cd) | [Releases](guides/monorepo/releases)
+
+## Reference
+
+- [Architecture Overview](architecture/overview) - System design
+- [Services](architecture/services) - Service documentation
+- [Storage](architecture/storage) - Storage architecture
+- [Performance](architecture/performance) - Large dataset handling
+- [Backend API](architecture/backend-api) - API specification
+- [API Documentation](api/) - Generated TypeScript docs
+- [Changelog](category/changelog) - Release history
+- [Contributing](contributing) - How to contribute
+
+<!-- LIBRARIES_START -->
 ## Libraries
 
 | Package | Description |
@@ -40,13 +57,17 @@ Angular application for Excel add-in development using Nx monorepo architecture.
 | `@excel-platform/data/storage` | Storage abstraction |
 | `@excel-platform/data/api` | API services |
 | `@excel-platform/data/query` | Query execution |
+<!-- LIBRARIES_END -->
 
+<!-- SCRIPTS_START -->
 ## NPM Scripts
 
-```bash
-npm start          # Dev server
-npm run build      # Production build
-npm run test:ci    # Run tests
-npm run lint       # Lint code
-npm run docs:serve # View documentation
-```
+| Command | Description |
+|---------|-------------|
+| `npm start` | Dev server at localhost:4200 |
+| `npm run start:dev` | Dev server with HTTPS |
+| `npm run build` | Production build |
+| `npm run test:ci` | Run all tests (headless) |
+| `npm run lint` | Lint TypeScript and templates |
+| `npm run docs:serve` | View documentation locally |
+<!-- SCRIPTS_END -->

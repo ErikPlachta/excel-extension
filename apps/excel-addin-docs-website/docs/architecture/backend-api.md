@@ -1,16 +1,15 @@
-# Backend API Specification
-
-**Version**: 1.0.0
-**Last Updated**: 2025-12-03
-**Status**: Design Reference
-
-> Reference document for frontend integration. Describes API contracts, authentication flow, and data structures implemented by this Databricks-based backend.
-
 ---
+sidebar_position: 5
+title: Backend API
+---
+
+# Backend API
+
+Reference for the Databricks-based backend API. Covers architecture, authentication, endpoints, and data structures.
 
 ## Architecture Overview
 
-```t
+```
 ┌─────────────┐     ┌──────────────────┐     ┌─────────────────┐
 │   Frontend  │────▶│  Azure Function  │────▶│  Databricks API │
 │ (Excel Add) │     │    (Gateway)     │     │    (Backend)    │
@@ -31,13 +30,21 @@
 | Backend   | Databricks + FastAPI      | Operation execution, data access  |
 | Storage   | Delta Lake                | Users, tokens, configs, telemetry |
 
----
+## Base URLs
 
-## 1. Authentication System
+| Environment | Gateway (Azure Function)              | Internal (Databricks)   |
+| ----------- | ------------------------------------- | ----------------------- |
+| Local       | `http://localhost:7071`               | `http://localhost:8001` |
+| Dev         | `https://{app}-dev.azurewebsites.net` | internal                |
+| Prod        | `https://{app}.azurewebsites.net`     | internal                |
+
+## Authentication
+
+All authenticated endpoints require `Authorization: Bearer <access_token>` header.
 
 ### Auth Flow
 
-```md
+```
 1. Frontend initiates Azure AD SSO login
 2. Azure AD returns identity token to frontend
 3. Frontend sends Azure AD token to POST /auth/signin
@@ -111,11 +118,7 @@ type RoleId = "analyst" | "admin" | "automation";
 const ROLES = [
   { id: "analyst", label: "Analyst", description: "Query access" },
   { id: "admin", label: "Admin", description: "Full access" },
-  {
-    id: "automation",
-    label: "Automation",
-    description: "Service account access",
-  },
+  { id: "automation", label: "Automation", description: "Service account access" },
 ];
 ```
 
@@ -128,15 +131,11 @@ Roles are resolved from two sources:
 
 Priority: Delta overrides > Azure AD groups
 
----
+## Operations
 
-## 2. Operation Execution
+### Execute Operation
 
-Operations use the existing endpoint pattern with operation name in URL path.
-
-### Request
-
-```txt
+```
 POST /operations/{operation_name}
 Authorization: Bearer {accessToken}
 Content-Type: application/json
@@ -189,20 +188,18 @@ interface ApiError {
 
 When results are truncated:
 
-```txt
+```
 X-Total-Count: 50000
 X-Page: 1
 X-Page-Size: 1000
 X-Truncated: true
 ```
 
----
-
-## 3. API Catalog
+## API Catalog
 
 ### Endpoint
 
-```txt
+```
 GET /api/catalog
 Authorization: Bearer {accessToken}
 
@@ -246,9 +243,7 @@ interface ApiColumnDefinition {
 | `get_customer_detail_v1` | Customer Detail | `customer_id`            | analyst, admin    |
 | `run_risk_report_v1`     | Risk Report     | `start_date`, `end_date` | admin, automation |
 
----
-
-## 4. User Data Persistence
+## User Data Endpoints
 
 ### Query Configurations (Saved Reports)
 
@@ -343,11 +338,7 @@ interface QueryRun {
 | `GET`  | `/api/users/me/query-runs?workbookId={id}` | Get run history |
 | `POST` | `/api/users/me/query-runs`                 | Log a run       |
 
----
-
-## 5. Data Storage (Delta Lake)
-
-All user and auth data stored in Delta Lake tables:
+## Data Storage (Delta Lake)
 
 | Table                  | Path                          | Purpose                                            |
 | ---------------------- | ----------------------------- | -------------------------------------------------- |
@@ -359,9 +350,7 @@ All user and auth data stored in Delta Lake tables:
 | `query_configurations` | `delta:/users/configurations` | Saved reports                                      |
 | `query_runs`           | `delta:/audit/query_runs`     | Execution history                                  |
 
----
-
-## 6. Security Requirements
+## Security
 
 | Requirement      | Implementation                           |
 | ---------------- | ---------------------------------------- |
@@ -381,104 +370,118 @@ https://*.sharepoint.com
 http://localhost:* (dev only)
 ```
 
----
+### Rate Limits
 
-## 7. Performance Settings
+| Operation                | Max RPS | Max Concurrent |
+| ------------------------ | ------- | -------------- |
+| Default                  | 10      | 20             |
+| `get_customer_detail_v1` | 5       | 10             |
+| `run_risk_report_v1`     | 1       | 2              |
 
-| Setting           | Default | Description                       |
-| ----------------- | ------- | --------------------------------- |
-| `maxRowsPerQuery` | 10,000  | Truncate results exceeding this   |
-| `apiPageSize`     | 1,000   | Default pagination size           |
-| `chunkBackoffMs`  | 100     | Delay between chunks if streaming |
+## Health Check
 
-When results exceed `maxRowsPerQuery`:
-
-- Return truncated data
-- Set `X-Truncated: true` header
-- Log warning event
-
----
-
-## 8. Response Examples
-
-### POST /auth/signin
-
-Request:
-
-```json
-{ "azureAdToken": "eyJ0eXAiOiJKV1QiLCJhbGci..." }
+```
+GET /health
 ```
 
-Response:
+No auth required.
 
-```json
+```typescript
+// Response
 {
-  "access": {
-    "token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "expiresAt": 1701619200000
-  },
-  "refresh": {
-    "token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "expiresAt": 1702224000000
-  }
+  status: "healthy" | "degraded" | "unhealthy",
+  gateway: { status: string },
+  downstream?: { status: string }
 }
 ```
 
-### POST /operations/get_customer_detail_v1
+## Standard Response Envelope
 
-Request:
+All gateway responses wrapped in:
 
-```json
-{
-  "payload": {
-    "customer_id": "C001",
-    "start_date": "2024-01-01",
-    "end_date": "2024-01-31"
-  }
+```typescript
+interface ApiEnvelope<T> {
+  status: "success" | "error";
+  data: T | null;
+  hash: string | null; // SHA-256 of data
+  warnings: string[];
 }
 ```
 
-Response:
+## Error Codes
 
-```json
-{
-  "status": "success",
-  "data": {
-    "rows": [
-      {
-        "customer_id": "C001",
-        "name": "Acme Corp",
-        "email": "contact@acme.com",
-        "created_at": "2023-06-15T10:30:00Z"
-      }
-    ],
-    "metrics": {
-      "row_count": 1,
-      "duration_ms": 245
-    }
-  },
-  "meta": {
-    "execution_id": "550e8400-e29b-41d4-a716-446655440000",
-    "operation": "get_customer_detail_v1",
-    "timestamp_utc": "2024-12-03T20:15:30Z",
-    "integrity_hash": "a1b2c3d4e5f6..."
-  }
+```typescript
+// 400 Bad Request - validation error
+{ status: "error", data: null, warnings: ["field X required"] }
+
+// 401 Unauthorized - missing/invalid token
+{ status: "error", data: null, warnings: ["token expired"] }
+
+// 403 Forbidden - RBAC denied
+{ status: "error", data: null, warnings: ["role not authorized for operation"] }
+
+// 429 Too Many Requests - rate limited
+{ status: "error", data: null, warnings: ["rate limit exceeded"] }
+
+// 500 Internal Server Error
+{ status: "error", data: null, warnings: ["internal error"] }
+```
+
+## TypeScript Types (Frontend)
+
+```typescript
+// Auth
+interface TokenPair {
+  access: { token: string; expiresAt: string };
+  refresh: { token: string; expiresAt: string };
+}
+
+interface UserProfile {
+  id: string;
+  email: string;
+  displayName: string;
+  roles: string[];
+}
+
+// Operations
+interface OperationRequest<T = Record<string, unknown>> {
+  payload: {
+    meta: { request_id: string };
+    data: T;
+  };
+  metadata?: { execution_id?: string };
+}
+
+interface OperationResponse<T = Record<string, unknown>> {
+  status: string;
+  data: T | null;
+  meta: { execution_time_ms: number; config_hash: string } | null;
+}
+
+// Catalog
+interface ApiParameter {
+  name: string;
+  type: string;
+  required: boolean;
+  description: string | null;
+}
+
+interface ApiDefinition {
+  id: string;
+  name: string;
+  description: string | null;
+  allowedRoles: string[] | null;
+  parameters: ApiParameter[];
+  responseSchema: Record<string, unknown> | null;
+}
+
+interface CatalogResponse {
+  operations: ApiDefinition[];
+  roles: string[];
 }
 ```
 
-### Error Response
-
-```json
-{
-  "error": "VALIDATION_ERROR",
-  "message": "Invalid parameters",
-  "details": ["customer_id is required", "start_date must be valid date"]
-}
-```
-
----
-
-## 9. Frontend Implementation Checklist
+## Frontend Implementation Checklist
 
 **Auth & Security:**
 

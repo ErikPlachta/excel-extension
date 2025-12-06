@@ -1,4 +1,7 @@
-# Storage Architecture
+---
+sidebar_position: 2
+title: Storage Architecture
+---
 
 Reference guide for browser storage APIs used in the Excel Add-In extension.
 
@@ -38,20 +41,20 @@ All storage APIs supported in modern browsers and Office.js environments:
 
 ## Storage Tiers
 
-**Tier 1: localStorage (< 100 KB)**
+### Tier 1: localStorage (< 100 KB)
 
 - User authentication state
 - User preferences and settings
 - UI state, global query parameters
 - Saved query configurations
 
-**Tier 2: IndexedDB (100 KB+)**
+### Tier 2: IndexedDB (100 KB+)
 
 - Query result caching (10k+ row datasets)
 - Large API response caching
 - Backup snapshots
 
-**Tier 3: Cache API (Future)**
+### Tier 3: Cache API (Future)
 
 - HTTP response caching for real API calls
 
@@ -107,62 +110,6 @@ interface QueryResultCache {
 1. **Service Worker on localhost:** May not work in Excel Desktop when sideloaded to `http://localhost:4200` (HTTP not HTTPS). Works fine on GitHub Pages (HTTPS).
 2. **Storage Persistence:** Clearing browser cache/data will clear IndexedDB and localStorage. No direct control over persistence guarantees.
 3. **Quota Prompts:** IndexedDB quota requests may behave differently between Desktop and Online (browser-dependent).
-
-### Manual Verification Checklist
-
-- [ ] Sideload in Excel Desktop (macOS) → Save config → Reload add-in → Verify config persists
-- [ ] Sideload in Excel Desktop (Windows) → Save config → Reload add-in → Verify config persists
-- [ ] Sideload in Excel Online (Chrome) → Save config → Reload add-in → Verify config persists
-- [ ] Cache large query result (10k rows) → Check IndexedDB via DevTools → Verify cached
-- [ ] Wait for TTL expiration → Call clearExpiredCache → Verify removed
-- [ ] Export backup → Import backup → Verify state restored
-- [ ] Document any quota warnings or storage failures
-
-## Service Worker Evaluation
-
-### Feasibility Assessment
-
-**Pros:**
-
-- Offline support for entire app (no network required after initial load)
-- Background sync for query runs (retry on network recovery)
-- Cache management for API responses
-- Progressive Web App (PWA) capabilities
-
-**Cons:**
-
-- HTTPS requirement (works for GH Pages, may not work for localhost sideload in Desktop)
-- Debugging complexity (hidden background processes)
-- Version management complexity (SW updates require careful handling)
-- Increased development/testing overhead
-
-### Decision Criteria
-
-| Question                                       | Answer                                 | Implication                 |
-| ---------------------------------------------- | -------------------------------------- | --------------------------- |
-| Is offline support critical for MVP?           | NO (mock data phase, no real APIs yet) | Defer to later phase        |
-| Does HTTPS requirement work with dev sideload? | UNCLEAR (needs testing)                | Risk for local dev workflow |
-| Can defer to post-MVP?                         | YES (Phase 10+ after formula features) | Lower priority              |
-| Complexity vs benefit?                         | HIGH complexity, LOW immediate benefit | Not worth it for Phase 4    |
-
-### Recommendation
-
-**Defer Service Workers to Phase 10+ (post-MVP).**
-
-**Rationale:**
-
-- Current mock data doesn't require network calls (no offline use case yet)
-- IndexedDB already provides offline caching for query results
-- HTTPS requirement adds friction to local dev sideloading
-- Formula features (Phase 6-9) are higher priority than offline support
-
-**Future Implementation Plan (Phase 10+):**
-
-- Implement Service Worker for GitHub Pages deployment only
-- Use Workbox library for SW generation/management
-- Cache app shell (HTML, JS, CSS) for offline access
-- Background sync for real API query runs
-- Test HTTPS sideload flow for Excel Desktop (if feasible)
 
 ## Backup/Restore Functionality
 

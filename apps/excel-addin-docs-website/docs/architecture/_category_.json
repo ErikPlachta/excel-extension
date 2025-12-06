@@ -1,9 +1,9 @@
 {
   "label": "Architecture",
-  "position": 3,
+  "position": 4,
   "collapsed": false,
   "link": {
     "type": "generated-index",
-    "description": "System architecture and design documentation."
+    "description": "System architecture, design decisions, and reference documentation."
   }
 }

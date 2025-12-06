@@ -1,10 +1,15 @@
-# Architecture
+---
+sidebar_position: 4
+title: Service Architecture
+---
+
+# Service Architecture
 
 Angular 20 task-pane add-in for Excel. Standalone components, Office.js wrapper, data-driven config.
 
 ## Core Services
 
-### ExcelService (`src/app/core/excel.service.ts`)
+### ExcelService (`apps/excel-addin/src/app/core/excel.service.ts`)
 
 **Low-level Office.js wrapper**
 
@@ -37,7 +42,7 @@ Angular 20 task-pane add-in for Excel. Standalone components, Office.js wrapper,
 - Used by QueriesComponent to disable formulas during query execution
 - Setting: `queryExecution.disableFormulasDuringRun` (default: true)
 
-### FormulaScannerService (`src/app/core/formula-scanner.service.ts`) - NEW Phase 9
+### FormulaScannerService (`apps/excel-addin/src/app/core/formula-scanner.service.ts`) - Phase 9
 
 **Formula dependency detection and impact assessment**
 
@@ -71,7 +76,7 @@ Angular 20 task-pane add-in for Excel. Standalone components, Office.js wrapper,
 - Focuses on Office.js API calls, delegates ownership decisions to `WorkbookService`
 - Injected dependencies: `TelemetryService`, `SettingsService`
 
-### WorkbookService (`src/app/core/workbook.service.ts`)
+### WorkbookService (`apps/excel-addin/src/app/core/workbook.service.ts`)
 
 **Workbook abstraction & ownership model**
 
@@ -97,7 +102,7 @@ Angular 20 task-pane add-in for Excel. Standalone components, Office.js wrapper,
 
 **Ownership:** Metadata stored in hidden `_Extension_Ownership` sheet. Extension only mutates managed tables. User table name conflicts → create suffixed alternate.
 
-### AuthService (`src/app/core/auth.service.ts`)
+### AuthService (`apps/excel-addin/src/app/core/auth.service.ts`)
 
 **JWT Authentication & role management (Phase 7)**
 
@@ -106,7 +111,7 @@ Angular 20 task-pane add-in for Excel. Standalone components, Office.js wrapper,
 - `state$: Observable<AuthState>` – Reactive auth state stream
 - `tokens$: Observable<TokenPair | null>` – JWT token changes
 
-**JWT Authentication (NEW Phase 7):**
+**JWT Authentication (Phase 7):**
 - `signInWithJwt(email, password, roles)` – Generate mock JWT tokens, update state
 - `refreshAccessToken()` – Refresh access token using refresh token
 - `getAccessToken()` – Get current access token (null if expired/unauthenticated)
@@ -131,7 +136,7 @@ Angular 20 task-pane add-in for Excel. Standalone components, Office.js wrapper,
 - Hydrates from storage on init
 - Persists on state changes
 
-### JwtHelperService (`src/app/core/jwt-helper.service.ts`) - NEW Phase 7
+### JwtHelperService (`apps/excel-addin/src/app/core/jwt-helper.service.ts`) - Phase 7
 
 **Mock JWT token generation and validation**
 
@@ -150,7 +155,7 @@ Angular 20 task-pane add-in for Excel. Standalone components, Office.js wrapper,
 - Deterministic for testing (timestamp-based)
 - Production-ready structure (swap encoding for real JWT library)
 
-### SettingsService (`src/app/core/settings.service.ts`)
+### SettingsService (`apps/excel-addin/src/app/core/settings.service.ts`)
 
 **App-wide settings**
 
@@ -166,7 +171,7 @@ Angular 20 task-pane add-in for Excel. Standalone components, Office.js wrapper,
 - Deep merge for partial updates (telemetry + queryExecution)
 - Comprehensive TSDoc coverage
 
-### TelemetryService (`src/app/core/telemetry.service.ts`)
+### TelemetryService (`apps/excel-addin/src/app/core/telemetry.service.ts`)
 
 **Centralized logging**
 
@@ -176,7 +181,7 @@ Angular 20 task-pane add-in for Excel. Standalone components, Office.js wrapper,
 - `normalizeError()` for Excel operations → `ExcelOperationResult`
 - Comprehensive TSDoc coverage
 
-### AppContextService (`src/app/core/app-context.service.ts`)
+### AppContextService (`apps/excel-addin/src/app/core/app-context.service.ts`)
 
 **Host & auth context**
 
@@ -185,7 +190,7 @@ Angular 20 task-pane add-in for Excel. Standalone components, Office.js wrapper,
 - Provides centralized context for telemetry enrichment
 - Comprehensive TSDoc coverage
 
-### AppConfigService (`src/app/core/app-config.service.ts`) - Phase 2 + Phase 7
+### AppConfigService (`apps/excel-addin/src/app/core/app-config.service.ts`) - Phase 2 + Phase 7
 
 **Observable config management with remote loading**
 
@@ -206,7 +211,7 @@ Angular 20 task-pane add-in for Excel. Standalone components, Office.js wrapper,
   - Automatically adds `Authorization: Bearer <token>` header when authenticated
   - Uses lazy injection to avoid circular dependency with AuthService
 
-### ConfigValidatorService (`src/app/core/config-validator.service.ts`) - NEW Phase 2
+### ConfigValidatorService (`apps/excel-addin/src/app/core/config-validator.service.ts`) - Phase 2
 
 **Config validation**
 
@@ -223,9 +228,9 @@ Angular 20 task-pane add-in for Excel. Standalone components, Office.js wrapper,
 
 **Key Distinction:**
 
-- **ApiDefinition** (`src/app/types/api.types.ts`) = Catalog entry describing available data source
-- **QueryInstance** (`src/app/types/query.types.ts`) = Configured instance with specific parameters + Excel target
-- **QueryConfiguration** (`src/app/types/query-configuration.types.ts`) = Collection of QueryInstances (saved report)
+- **ApiDefinition** (`libs/shared/types/src/lib/api.types.ts`) = Catalog entry describing available data source
+- **QueryInstance** (`libs/shared/types/src/lib/query.types.ts`) = Configured instance with specific parameters + Excel target
+- **QueryConfiguration** (`libs/shared/types/src/lib/query-configuration.types.ts`) = Collection of QueryInstances (saved report)
 
 **Flow:**
 
@@ -264,16 +269,15 @@ const result = await this.excel.upsertQueryTable(query, rows, {
 ```
 
 **Phase 3 Improvements:**
-- ✅ Added `WorkbookService` ownership write methods (`recordOwnership`, `updateOwnership`, `deleteOwnership`)
-- ✅ Added `ExcelService` low-level helpers (`writeOwnershipRecord`, `deleteOwnershipRecord`)
-- ✅ Extracted `ExcelService` helper methods (`computeHeaderAndValues`, `writeQueryTableData`)
-- ✅ Clear service boundary documentation
-- ✅ 6 new tests added (73 total tests passing)
-- 🔜 **TODO (Phase 4):** Extract ownership decision logic from `upsertQueryTable` (see TSDoc note)
+- Added `WorkbookService` ownership write methods (`recordOwnership`, `updateOwnership`, `deleteOwnership`)
+- Added `ExcelService` low-level helpers (`writeOwnershipRecord`, `deleteOwnershipRecord`)
+- Extracted `ExcelService` helper methods (`computeHeaderAndValues`, `writeQueryTableData`)
+- Clear service boundary documentation
+- 6 new tests added (73 total tests passing)
 
 ## Query Services
 
-### ApiCatalogService (`src/app/shared/api-catalog.service.ts`) - Phase 1 + Phase 2
+### ApiCatalogService (`apps/excel-addin/src/app/shared/api-catalog.service.ts`) - Phase 1 + Phase 2
 
 **API catalog management (config-driven)**
 
@@ -288,11 +292,11 @@ const result = await this.excel.upsertQueryTable(query, rows, {
 - Reactive updates when config changes (hot-reload support)
 - Kept synchronous methods for backward compatibility
 
-### QueryApiMockService (`src/app/shared/query-api-mock.service.ts`)
+### QueryApiMockService (`apps/excel-addin/src/app/shared/query-api-mock.service.ts`)
 
 **API execution (mock implementation)**
 
-- `executeApi(apiId, params)` → `Promise<any[]>` **[NEW Phase 1]**
+- `executeApi(apiId, params)` → `Promise<any[]>` **[Phase 1]**
 - `executeQuery(id, params)` → `Promise<{query, rows}>` **[DEPRECATED - use executeApi]**
 - `getQueries()`, `getQueryById()` **[DEPRECATED - use ApiCatalogService]**
 - **Phase 4:** Integrated IndexedDB caching - checks cache before generating mocks
@@ -302,7 +306,7 @@ const result = await this.excel.upsertQueryTable(query, rows, {
 - In-process mock data, no HTTP
 - Injected `ApiCatalogService` for validation, `IndexedDBService` for caching, `SettingsService`, `TelemetryService`
 
-### QueryStateService (`src/app/shared/query-state.service.ts`)
+### QueryStateService (`apps/excel-addin/src/app/shared/query-state.service.ts`)
 
 **Parameters & runs**
 
@@ -314,7 +318,7 @@ const result = await this.excel.upsertQueryTable(query, rows, {
 - `setLastRun(queryId, run)` – Store location/metadata
 - **Phase 4:** Uses `StorageHelperService` instead of direct `localStorage`
 
-### QueryConfigurationService (`src/app/shared/query-configuration.service.ts`)
+### QueryConfigurationService (`apps/excel-addin/src/app/shared/query-configuration.service.ts`)
 
 **Reusable configurations**
 
@@ -324,7 +328,7 @@ const result = await this.excel.upsertQueryTable(query, rows, {
 - **Phase 1:** Validates apiIds against `ApiCatalogService` on save
 - **Phase 4:** Uses `StorageHelperService` + `QueryValidationService` for validation
 
-### QueryQueueService (`src/app/shared/query-queue.service.ts`)
+### QueryQueueService (`apps/excel-addin/src/app/shared/query-queue.service.ts`)
 
 **Sequential execution**
 
@@ -334,7 +338,7 @@ const result = await this.excel.upsertQueryTable(query, rows, {
 
 ## Storage Services (Phase 4)
 
-### StorageHelperService (`src/app/shared/storage-helper.service.ts`)
+### StorageHelperService (`apps/excel-addin/src/app/shared/storage-helper.service.ts`)
 **Multi-backend storage abstraction**
 
 **Tier 1 (localStorage):**
@@ -354,7 +358,7 @@ const result = await this.excel.upsertQueryTable(query, rows, {
 - Type safety with generics
 - Future-proof for new storage APIs
 
-### IndexedDBService (`src/app/shared/indexeddb.service.ts`)
+### IndexedDBService (`apps/excel-addin/src/app/shared/indexeddb.service.ts`)
 **Query result caching with TTL**
 
 **Operations:**
@@ -380,7 +384,7 @@ interface QueryResultCache {
 - Manual clear via Settings
 - Auto cleanup on app init
 
-### BackupRestoreService (`src/app/shared/backup-restore.service.ts`)
+### BackupRestoreService (`apps/excel-addin/src/app/shared/backup-restore.service.ts`)
 **Export/import app state**
 
 **Operations:**
@@ -404,7 +408,7 @@ interface AppStateBackup {
 - Minor mismatch: Allow with warning (v1.2.0 → v1.1.0)
 - Patch mismatch: Allow silently (v1.0.1 → v1.0.0)
 
-### QueryValidationService (`src/app/shared/query-validation.service.ts`)
+### QueryValidationService (`apps/excel-addin/src/app/shared/query-validation.service.ts`)
 **Configuration and parameter validation**
 
 **Operations:**
@@ -454,12 +458,12 @@ User → QueryHomeComponent
 State-based in `AppComponent`:
 
 - `currentView: ViewId` – No URL changes in Excel
-- Routes in `src/app/core/app.routes.ts` for browser usage
-- Nav driven by `AppConfig.navItems` from `src/app/shared/app-config.default.ts`
+- Routes in `apps/excel-addin/src/app/core/app.routes.ts` for browser usage
+- Nav driven by `AppConfig.navItems` from `libs/data/api/src/lib/app-config.default.ts`
 
 ## UI Primitives
 
-`src/app/shared/ui/`:
+`libs/shared/ui/src/lib/`:
 
 - `ButtonComponent` – `variant`, `size`, `iconName`
 - `StatusBannerComponent` – `type`, `title`, `message`
@@ -472,7 +476,7 @@ State-based in `AppComponent`:
 
 ## Data-Driven Config
 
-### AppConfig (`src/app/shared/app-config.default.ts`) - Phase 2 Enhanced
+### AppConfig (`libs/data/api/src/lib/app-config.default.ts`) - Phase 2 Enhanced
 
 **Structure-driven shell configuration:**
 
@@ -499,7 +503,7 @@ Replaced standalone `APP_TEXT` with nested config structure:
 
 ## Types
 
-`src/app/types/`:
+`libs/shared/types/src/lib/`:
 
 - `auth.types.ts` – `AuthState`, role types
 - `jwt.types.ts` – `TokenPair`, `AccessToken`, `RefreshToken`, `TokenPayload`, `TokenValidationResult`, `JWT_CONFIG` **[Phase 7]**

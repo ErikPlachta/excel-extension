@@ -1,3 +1,8 @@
+---
+sidebar_position: 3
+title: Performance & Large Datasets
+---
+
 # Performance & Large Datasets
 
 Reference guide for handling large datasets in Excel add-ins.
@@ -113,22 +118,22 @@ const remaining = rows.slice(1000);
 
 **10k rows (default maxRows):**
 
-- ✅ Completes without errors
-- ✅ Telemetry shows 10 chunks written
-- ✅ Each chunk sync takes ~100-200ms
-- ✅ Total time ~10-15 seconds
+- Completes without errors
+- Telemetry shows 10 chunks written
+- Each chunk sync takes ~100-200ms
+- Total time ~10-15 seconds
 
 **25k rows (exceeds maxRows):**
 
-- ✅ QueryApiMockService truncates to 10k rows
-- ✅ Warning logged: `executeApi:rowLimitExceeded`
-- ✅ User sees first 10k rows only
-- ✅ Telemetry context shows `{rowCount: 25000, maxRows: 10000, truncated: true}`
+- QueryApiMockService truncates to 10k rows
+- Warning logged: `executeApi:rowLimitExceeded`
+- User sees first 10k rows only
+- Telemetry context shows `{rowCount: 25000, maxRows: 10000, truncated: true}`
 
 **Chunk size = 500:**
 
-- ✅ 10k rows → 20 chunks instead of 10
-- ✅ Slower total time (~20 seconds) but safer for Excel Online
+- 10k rows → 20 chunks instead of 10
+- Slower total time (~20 seconds) but safer for Excel Online
 
 ### Failure Modes & Fixes
 

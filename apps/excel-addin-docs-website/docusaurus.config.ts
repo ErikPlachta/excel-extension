@@ -113,8 +113,8 @@ const config: Config = {
         {
           title: 'Documentation',
           items: [
-            { label: 'Getting Started', to: '/getting-started' },
-            { label: 'Architecture', to: '/architecture/STORAGE-ARCHITECTURE' },
+            { label: 'Getting Started', to: '/getting-started/quick-start' },
+            { label: 'Architecture', to: '/architecture/overview' },
           ],
         },
         {

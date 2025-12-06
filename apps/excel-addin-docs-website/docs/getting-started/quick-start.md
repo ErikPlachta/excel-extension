@@ -1,9 +1,9 @@
 ---
-sidebar_position: 2
-title: Getting Started
+sidebar_position: 1
+title: Quick Start
 ---
 
-# Getting Started
+# Quick Start
 
 Setup guide for Excel Platform development.
 
@@ -84,6 +84,8 @@ npx nx affected --target=test # Test affected projects
 
 ## Next Steps
 
-- Read [Storage Architecture](architecture/STORAGE-ARCHITECTURE)
-- Check [Performance Guide](architecture/PERFORMANCE)
-- Browse [API Documentation](api/)
+Choose your path:
+
+- **App Developer?** → [App Development Tutorial](app-development) → [Patterns Guide](../guides/app/patterns)
+- **Library Developer?** → [Library Development Tutorial](library-development) → [Creating Libraries](../guides/library/creating-a-library)
+- **Monorepo Maintainer?** → [Nx Commands](../guides/monorepo/nx-commands) → [CI/CD](../guides/monorepo/ci-cd)

@@ -1,8 +1,13 @@
+---
+sidebar_position: 1
+title: Common Patterns
+---
+
 # Common Patterns
 
 ## Adding a Nav Item
 
-1. **Update config** (`src/app/shared/app-config.default.ts`):
+1. **Update config** (`libs/data/api/src/lib/app-config.default.ts`):
 
 ```typescript
 {
@@ -16,7 +21,7 @@
 }
 ```
 
-2. **Add text** (`src/app/shared/app-text.ts`):
+2. **Add text** (`libs/data/api/src/lib/app-text.ts`):
 
 ```typescript
 nav: {
@@ -25,7 +30,7 @@ nav: {
 }
 ```
 
-3. **Create component** (`src/app/features/foo/foo.component.ts`):
+3. **Create component** (`apps/excel-addin/src/app/features/foo/foo.component.ts`):
 
 ```typescript
 import { Component } from "@angular/core";
@@ -41,13 +46,13 @@ import { CommonModule } from "@angular/common";
 export class FooComponent {}
 ```
 
-4. **Wire to shell** (`src/app/core/app.component.ts`):
+4. **Wire to shell** (`apps/excel-addin/src/app/core/app.component.ts`):
    Add case to `selectView()` switch or template.
 
 ## Adding a Routed View
 
 1. Create standalone component with `templateUrl`/`styleUrl`
-2. Add route to `src/app/core/app.routes.ts`:
+2. Add route to `apps/excel-addin/src/app/core/app.routes.ts`:
 
 ```typescript
 { path: 'foo', component: FooComponent }
@@ -262,7 +267,7 @@ if (config) {
 }
 ```
 
-## Storage Patterns (Phase 4)
+## Storage Patterns
 
 ### Multi-Tier Storage
 
@@ -356,7 +361,7 @@ async executeApi(apiId: string, params: ExecuteQueryParams): Promise<any[]> {
 
 ## TSDoc Standards
 
-````typescript
+```typescript
 /**
  * Executes a query and writes results to Excel table.
  *
@@ -383,4 +388,4 @@ async upsertQueryTable(
   rows: any[],
   params: ExecuteQueryParams
 ): Promise<ExcelOperationResult<QueryRunLocation>>
-````
+```
