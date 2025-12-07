@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { ApiDefinition, ApiParameter, QueryConfiguration, QueryConfigurationItem } from '@excel-platform/shared/types';
+import { ApiDefinition, ApiParameter, ExecuteApiParams, QueryConfiguration, QueryConfigurationItem } from '@excel-platform/shared/types';
 import { ApiCatalogService } from './api-catalog.service';
 import { ValidationResult } from './config-validator.service';
 
@@ -80,7 +80,7 @@ export class QueryValidationService {
    */
   validateConfigurationItem(
     item: QueryConfigurationItem,
-    parameterValues?: Record<string, any>
+    parameterValues?: ExecuteApiParams
   ): ValidationResult {
     const errors: string[] = [];
 
@@ -126,7 +126,7 @@ export class QueryValidationService {
    */
   validateParameters(
     api: ApiDefinition,
-    parameterValues: Record<string, any>
+    parameterValues: ExecuteApiParams
   ): ValidationResult {
     const errors: string[] = [];
 
@@ -167,7 +167,7 @@ export class QueryValidationService {
    * @param value - Parameter value to validate
    * @returns Validation result
    */
-  private validateParameterType(param: ApiParameter, value: any): ValidationResult {
+  private validateParameterType(param: ApiParameter, value: ExecuteApiParams[string]): ValidationResult {
     const errors: string[] = [];
 
     switch (param.type) {

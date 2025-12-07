@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { ConfigValidatorService } from './config-validator.service';
-import { AppConfig } from '@excel-platform/shared/types';
+import { AppConfig, ApiDefinition, ApiParameter, NavItemConfig } from '@excel-platform/shared/types';
 
 describe('ConfigValidatorService', () => {
   let service: ConfigValidatorService;
@@ -45,7 +45,7 @@ describe('ConfigValidatorService', () => {
         navItems: [],
         roles: [],
         rootIdsAndClasses: {},
-      } as any;
+      } as Partial<AppConfig>;
 
       const result = service.validate(invalidConfig);
 
@@ -58,7 +58,7 @@ describe('ConfigValidatorService', () => {
         defaultViewId: 'sso',
         roles: [],
         rootIdsAndClasses: {},
-      } as any;
+      } as Partial<AppConfig>;
 
       const result = service.validate(invalidConfig);
 
@@ -102,7 +102,7 @@ describe('ConfigValidatorService', () => {
           {
             id: 'nav-3',
             labelKey: 'nav.three',
-            actionType: '' as any,
+            actionType: '' as NavItemConfig['actionType'],
           },
         ],
         roles: [],
@@ -139,7 +139,7 @@ describe('ConfigValidatorService', () => {
           userBannerClass: 'user-banner',
           hostStatusClass: 'host-status',
         },
-        apiCatalog: {} as any,
+        apiCatalog: {} as unknown as ApiDefinition[],
       };
 
       const result = service.validate(invalidConfig);
@@ -170,16 +170,16 @@ describe('ConfigValidatorService', () => {
             id: '',
             name: 'API 1',
             parameters: [],
-          } as any,
+          } as Partial<ApiDefinition> as ApiDefinition,
           {
             id: 'api-2',
             name: '',
             parameters: [],
-          } as any,
+          } as Partial<ApiDefinition> as ApiDefinition,
           {
             id: 'api-3',
             name: 'API 3',
-            parameters: undefined as any,
+            parameters: undefined as unknown as ApiParameter[],
           },
         ],
       };
@@ -209,7 +209,7 @@ describe('ConfigValidatorService', () => {
           userBannerClass: 'user-banner',
           hostStatusClass: 'host-status',
         },
-        text: 'invalid' as any,
+        text: 'invalid' as unknown as AppConfig['text'],
       };
 
       const result = service.validate(invalidConfig);
@@ -237,7 +237,7 @@ describe('ConfigValidatorService', () => {
         },
         text: {
           nav: {},
-        } as any,
+        } as Partial<AppConfig['text']> as AppConfig['text'],
       };
 
       const result = service.validate(invalidConfig);
@@ -321,7 +321,7 @@ describe('ConfigValidatorService', () => {
         navItems: [],
         roles: [],
         rootIdsAndClasses: {},
-      } as any;
+      } as Partial<AppConfig>;
 
       expect(() => service.validateOrThrow(invalidConfig)).toThrow();
     });
@@ -331,7 +331,7 @@ describe('ConfigValidatorService', () => {
         navItems: [],
         roles: [],
         rootIdsAndClasses: {},
-      } as any;
+      } as Partial<AppConfig>;
 
       expect(() => service.validateOrThrow(invalidConfig)).toThrowError(/Config validation failed/);
       expect(() => service.validateOrThrow(invalidConfig)).toThrowError(/defaultViewId/);

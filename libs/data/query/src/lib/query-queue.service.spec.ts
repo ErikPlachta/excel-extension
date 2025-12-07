@@ -1,6 +1,14 @@
 import { QueryQueueService } from './query-queue.service';
-import { TelemetryService } from "@excel-platform/core/telemetry";
+import { TelemetryService, WorkflowTelemetryEvent } from "@excel-platform/core/telemetry";
 import { QueryConfigurationItem } from '@excel-platform/shared/types';
+
+/** Progress state from QueryQueueService.progress$ */
+interface QueueProgress {
+  configId: string | null;
+  total: number;
+  completed: number;
+  currentItemId: string | null;
+}
 
 describe('QueryQueueService', () => {
   let service: QueryQueueService;
@@ -13,7 +21,10 @@ describe('QueryQueueService', () => {
     ]);
 
     // createWorkflowEvent returns the same object passed in
-    telemetrySpy.createWorkflowEvent.and.callFake((event: any) => event as any);
+    telemetrySpy.createWorkflowEvent.and.callFake(
+      (event: Omit<WorkflowTelemetryEvent, 'category'> & { category?: string }) =>
+        ({ category: 'system', ...event }) as WorkflowTelemetryEvent
+    );
 
     service = new QueryQueueService(telemetrySpy);
   });
@@ -180,7 +191,7 @@ describe('QueryQueueService', () => {
       .createSpy('runner')
       .and.returnValue(Promise.resolve({ ok: true, rowCount: 10 }));
 
-    const progressUpdates: any[] = [];
+    const progressUpdates: QueueProgress[] = [];
     service.progress$.subscribe((progress) => {
       progressUpdates.push({ ...progress });
     });

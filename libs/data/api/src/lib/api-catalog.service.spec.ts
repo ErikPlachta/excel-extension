@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { ApiCatalogService } from './api-catalog.service';
-import { ApiDefinition } from '@excel-platform/shared/types';
+import { ApiDefinition, RoleId } from '@excel-platform/shared/types';
 
 describe('ApiCatalogService', () => {
   let service: ApiCatalogService;
@@ -113,7 +113,7 @@ describe('ApiCatalogService', () => {
       const noRoleRestrictionApis = apis.filter(api => !api.allowedRoles || api.allowedRoles.length === 0);
 
       if (noRoleRestrictionApis.length > 0) {
-        const guestApis = service.getApisByRole(['guest' as any]);
+        const guestApis = service.getApisByRole(['guest' as RoleId]);
 
         noRoleRestrictionApis.forEach(api => {
           const found = guestApis.find(a => a.id === api.id);
@@ -136,7 +136,7 @@ describe('ApiCatalogService', () => {
     });
 
     it('should return empty array for role with no access', () => {
-      const apis = service.getApisByRole(['nonexistent-role' as any]);
+      const apis = service.getApisByRole(['nonexistent-role' as RoleId]);
 
       // Should only return APIs with no role restrictions
       apis.forEach(api => {
