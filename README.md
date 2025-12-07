@@ -134,8 +134,8 @@ For a deeper description of event shapes, sinks, and where telemetry is emitted,
 ## Documentation
 
 - [Documentation Site](https://erikplachta.github.io/excel-extension/)
-- [Getting Started](website/docs/getting-started.md)
-- [Architecture](website/docs/architecture/)
+- [Getting Started](apps/excel-addin-docs-website/docs/getting-started.md)
+- [Architecture](apps/excel-addin-docs-website/docs/architecture/)
 - Local docs: `npm run docs:serve`
 
 ## Additional Resources
