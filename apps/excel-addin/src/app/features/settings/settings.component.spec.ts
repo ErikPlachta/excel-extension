@@ -2,7 +2,7 @@ import { TestBed } from "@angular/core/testing";
 import { SettingsComponent } from "./settings.component";
 import { SettingsService } from "@excel-platform/core/settings";
 import { ExcelService } from "@excel-platform/core/excel";
-import { TelemetryService } from "@excel-platform/core/telemetry";
+import { TelemetryService, FeatureTelemetryEvent } from "@excel-platform/core/telemetry";
 import { BackupRestoreService } from "@excel-platform/data/storage";
 
 describe("SettingsComponent", () => {
@@ -35,7 +35,9 @@ describe("SettingsComponent", () => {
     mockExcel.purgeExtensionManagedContent.and.returnValue(Promise.resolve());
 
     mockTelemetry = jasmine.createSpyObj("TelemetryService", ["logEvent", "createFeatureEvent"]);
-    mockTelemetry.createFeatureEvent.and.callFake((e: any) => ({ ...e, category: e.category || "settings" }));
+    mockTelemetry.createFeatureEvent.and.callFake(
+      (e: Partial<FeatureTelemetryEvent>) => ({ ...e, category: e.category || "settings" }) as FeatureTelemetryEvent
+    );
 
     mockBackupRestore = jasmine.createSpyObj("BackupRestoreService", ["exportBackup", "importBackup"]);
     mockBackupRestore.importBackup.and.returnValue(Promise.resolve());

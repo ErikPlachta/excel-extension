@@ -70,7 +70,7 @@ export interface ApiParameter {
   required: boolean;
 
   /** Default value if not provided */
-  defaultValue?: any;
+  defaultValue?: string | number | boolean | Date | null;
 
   /** Description for UI help text */
   description?: string;
