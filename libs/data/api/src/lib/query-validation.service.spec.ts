@@ -44,7 +44,7 @@ describe('QueryValidationService', () => {
     },
     targetSheetName: 'Sheet1',
     targetTableName: 'SalesTable',
-    writeMode: 'overwrite' as any,
+    writeMode: 'overwrite',
     includeInBatch: true,
   };
 

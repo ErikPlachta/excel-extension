@@ -16,7 +16,7 @@ class ApiCatalogServiceStub {
 }
 
 class StorageHelperServiceMock {
-  private store = new Map<string, any>();
+  private store = new Map<string, unknown>();
 
   getItem<T>(key: string, defaultValue: T): T {
     return this.store.has(key) ? this.store.get(key) : defaultValue;

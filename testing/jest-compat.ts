@@ -3,6 +3,11 @@
  * This allows existing Jasmine tests to work with Jest
  */
 
+/* eslint-disable @typescript-eslint/no-explicit-any --
+   Jest/Jasmine compatibility layer requires dynamic typing for spy APIs.
+   These anys are unavoidable when bridging two testing frameworks with
+   different type systems for mocking and spying. */
+
 interface JasmineSpyAnd {
   returnValue: (value: any) => jest.Mock;
   callFake: (fn: (...args: any[]) => any) => jest.Mock;

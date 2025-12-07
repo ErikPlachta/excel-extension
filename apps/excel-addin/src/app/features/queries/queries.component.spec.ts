@@ -3,7 +3,7 @@ import { QueriesComponent } from "./queries.component";
 import { QueryConfigurationItem, QueryConfiguration } from '@excel-platform/shared/types';
 import { ExcelService, FormulaScannerService } from "@excel-platform/core/excel";
 import { AuthService } from "@excel-platform/core/auth";
-import { TelemetryService } from "@excel-platform/core/telemetry";
+import { TelemetryService, FeatureTelemetryEvent, WorkflowTelemetryEvent } from "@excel-platform/core/telemetry";
 import { SettingsService } from "@excel-platform/core/settings";
 import { QueryApiMockService, ApiCatalogService } from "@excel-platform/data/api";
 import { QueryStateService, QueryConfigurationService, QueryQueueService } from "@excel-platform/data/query";
@@ -42,8 +42,12 @@ describe("QueriesComponent", () => {
       "createFeatureEvent",
       "createWorkflowEvent",
     ]);
-    mockTelemetry.createFeatureEvent.and.callFake((e: any) => ({ ...e, category: e.category || "ui" }));
-    mockTelemetry.createWorkflowEvent.and.callFake((e: any) => ({ ...e, category: e.category || "query" }));
+    mockTelemetry.createFeatureEvent.and.callFake(
+      (e: Partial<FeatureTelemetryEvent>) => ({ ...e, category: e.category || "ui" }) as FeatureTelemetryEvent
+    );
+    mockTelemetry.createWorkflowEvent.and.callFake(
+      (e: Partial<WorkflowTelemetryEvent>) => ({ ...e, category: e.category || "query" }) as WorkflowTelemetryEvent
+    );
 
     mockSettings = jasmine.createSpyObj("SettingsService", [], {
       value: {

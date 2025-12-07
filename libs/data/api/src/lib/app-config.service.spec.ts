@@ -110,7 +110,7 @@ describe('AppConfigService', () => {
     });
 
     it('should return false when remote config validation fails', async () => {
-      const invalidConfig: any = {
+      const invalidConfig: Partial<AppConfig> = {
         // Missing required fields
         navItems: [],
       };

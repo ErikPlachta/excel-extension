@@ -266,7 +266,7 @@ describe("AuthService", () => {
 
       // All auth state persists should have null accessToken
       authStateCalls.forEach(([, state]) => {
-        expect((state as any).accessToken).toBeNull();
+        expect((state as unknown as { accessToken: unknown }).accessToken).toBeNull();
       });
     });
 

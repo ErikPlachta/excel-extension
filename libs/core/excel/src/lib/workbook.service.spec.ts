@@ -17,7 +17,7 @@ describe("WorkbookService ownership helpers", () => {
 
     // Simulate running inside Excel so resolveTableTarget
     // exercises its non-null path in this suite.
-    (excelSpy as any).isExcel = true;
+    Object.defineProperty(excelSpy, 'isExcel', { value: true });
 
     workbook = new WorkbookService(excelSpy as unknown as ExcelService);
   });
@@ -152,7 +152,7 @@ describe("WorkbookService ownership helpers", () => {
     });
 
     it("is a no-op when not in Excel", async () => {
-      (excelSpy as any).isExcel = false;
+      Object.defineProperty(excelSpy, 'isExcel', { value: false });
 
       await workbook.recordOwnership({
         sheetName: "Sheet1",
@@ -178,7 +178,7 @@ describe("WorkbookService ownership helpers", () => {
     });
 
     it("is a no-op when not in Excel", async () => {
-      (excelSpy as any).isExcel = false;
+      Object.defineProperty(excelSpy, 'isExcel', { value: false });
 
       await workbook.updateOwnership("q1-sales", "Sheet1", "tbl_Sales");
 
@@ -200,7 +200,7 @@ describe("WorkbookService ownership helpers", () => {
     });
 
     it("is a no-op when not in Excel", async () => {
-      (excelSpy as any).isExcel = false;
+      Object.defineProperty(excelSpy, 'isExcel', { value: false });
 
       await workbook.deleteOwnership("q1-sales", "Sheet1", "tbl_Sales");
 
@@ -275,7 +275,7 @@ describe("WorkbookService ownership helpers", () => {
     });
 
     it("returns null when not in Excel", async () => {
-      (excelSpy as any).isExcel = false;
+      Object.defineProperty(excelSpy, 'isExcel', { value: false });
 
       const result = await workbook.resolveTableTarget("api", {
         sheetName: "Sheet1",
