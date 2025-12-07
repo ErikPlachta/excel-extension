@@ -189,7 +189,7 @@ export class QueryValidationService {
 
       case 'date':
         // Accept Date objects, ISO strings, or valid date strings
-        if (!(value instanceof Date) && isNaN(Date.parse(value))) {
+        if (!(value instanceof Date) && (typeof value !== 'string' || isNaN(Date.parse(value)))) {
           errors.push(
             `Parameter ${param.key} must be a valid date, got: ${typeof value} (${value})`
           );
