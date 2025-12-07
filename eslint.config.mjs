@@ -13,6 +13,7 @@ export default [
       "_TEMPLATES/**",
       "_ARCHIVE/**",
       "public/**",
+      "coverage/**",
       "src/index.html",
       "**/*.html",
     ],

@@ -125,7 +125,7 @@ export class QueryApiMockService {
   /**
    * Execute API without checking cache. Used internally by executeApi().
    *
-   * @private
+   * @internal
    * @param apiId - API identifier
    * @param params - Parameter values for API execution
    * @returns Promise of result rows
@@ -186,7 +186,7 @@ export class QueryApiMockService {
    * Creates deterministic key by sorting parameter keys to ensure
    * same params in different order produce same cache key.
    *
-   * @private
+   * @internal
    * @param apiId - API identifier
    * @param params - Parameter values
    * @returns Cache key string

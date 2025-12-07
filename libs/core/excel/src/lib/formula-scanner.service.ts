@@ -16,13 +16,13 @@ declare const Excel: any;
 /**
  * Scans workbook formulas for table/column dependencies.
  *
- * Detects Excel structured references (e.g., Table1[Column], Table1[@Column])
+ * Detects Excel structured references (e.g., Table1[Column], Table1[\@Column])
  * in formulas across all worksheets. Used to warn users before query updates
  * that would affect formula-dependent columns.
  *
  * **Key Features:**
  * - Workbook-wide formula scanning with caching (5-min TTL)
- * - Structured reference parsing (handles @, #, spaces in column names)
+ * - Structured reference parsing (handles \@, #, spaces in column names)
  * - Query impact assessment before execution
  * - CSV report generation for formula dependencies
  *
@@ -55,7 +55,7 @@ export class FormulaScannerService {
    * Handles:
    * - Table1[Column] - basic column reference
    * - Table1[[Column]] - column with specifiers
-   * - Table1[@Column] - this row reference
+   * - Table1[\@Column] - this row reference
    * - Table1[#Headers] - special items (#Headers, #All, #Data, #Totals)
    * - Column names with spaces: Table1[Sales Amount]
    */
@@ -294,7 +294,7 @@ export class FormulaScannerService {
   /**
    * Gets all formula dependencies grouped by table name.
    *
-   * @returns ExcelOperationResult with Map<tableName, FormulaDependency[]>
+   * @returns ExcelOperationResult with Map\<tableName, FormulaDependency[]\>
    */
   async getTableDependencies(): Promise<ExcelOperationResult<Map<string, FormulaDependency[]>>> {
     const scanResult = await this.scanWorkbook();
@@ -356,7 +356,7 @@ export class FormulaScannerService {
 
   /**
    * Converts column letter(s) to zero-based index.
-   * E.g., 'A' -> 0, 'B' -> 1, 'AA' -> 26
+   * E.g., 'A' -\> 0, 'B' -\> 1, 'AA' -\> 26
    */
   private columnLetterToIndex(letters: string): number {
     let result = 0;
@@ -368,7 +368,7 @@ export class FormulaScannerService {
 
   /**
    * Converts zero-based column index + row number to Excel address.
-   * E.g., (0, 1) -> 'A1', (26, 5) -> 'AA5'
+   * E.g., (0, 1) -\> 'A1', (26, 5) -\> 'AA5'
    */
   private indexToAddress(col: number, row: number): string {
     let letters = "";

@@ -2,7 +2,7 @@
  * Operations API types aligned with backend specification.
  *
  * @remarks
- * These types define the contract for POST /operations/{operation_name} endpoints.
+ * These types define the contract for POST /operations/\{operation_name\} endpoints.
  * Source of truth: docs/architecture/BACKEND-API-SPEC.md
  *
  * The response format wraps data with status, metrics, and metadata for:
@@ -36,7 +36,7 @@ export interface ExecutionMeta {
 }
 
 /**
- * Wrapped response format from POST /operations/{name} endpoints.
+ * Wrapped response format from POST /operations/\{name\} endpoints.
  *
  * @remarks
  * All operation responses are wrapped in this format to provide:
@@ -85,7 +85,7 @@ export interface ExecutionResponse<T = Record<string, unknown>> {
 }
 
 /**
- * Request payload for POST /operations/{name} endpoints.
+ * Request payload for POST /operations/\{name\} endpoints.
  */
 export interface ExecutionRequest {
   /** Operation parameters */

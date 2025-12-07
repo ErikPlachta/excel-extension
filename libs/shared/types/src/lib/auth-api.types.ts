@@ -128,7 +128,7 @@ export interface IAuthApiService {
 
 /**
  * Injection token key constant for auth API service.
- * @deprecated Use AUTH_API_TOKEN from @excel-platform/core/auth instead.
+ * @deprecated Use AUTH_API_TOKEN from \@excel-platform/core/auth instead.
  * Kept for backward compatibility only.
  */
 export const AUTH_API_SERVICE = 'AUTH_API_SERVICE';
