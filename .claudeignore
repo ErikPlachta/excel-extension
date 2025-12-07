@@ -1,0 +1,9 @@
+# Archived files - do not process
+_ARCHIVE/
+
+# Build outputs
+dist/
+node_modules/
+
+# Docusaurus cache
+apps/excel-addin-docs-website/.docusaurus/
