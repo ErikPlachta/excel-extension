@@ -26,34 +26,34 @@
 ## Implementation Steps
 
 ### Phase 0: Create Feature Branch
-- [ ] Create branch `feat/docs-typedoc-integration` from develop
+- [x] Create branch `feat/docs-typedoc-integration` from develop
 
 ### Phase 1: Move website to apps/
-- [ ] Move `website/` → `apps/website/`
-- [ ] Update root `package.json` docs scripts to use new path
-- [ ] Verify Docusaurus still builds from new location
+- [x] Move `website/` → `apps/excel-addin-docs-website/`
+- [x] Update root `package.json` docs scripts to use new path
+- [x] Verify Docusaurus still builds from new location
 
 ### Phase 2: Setup TypeDoc + Plugin
-- [ ] Install in apps/website/: `typedoc`, `typedoc-plugin-markdown`, `docusaurus-plugin-typedoc`
-- [ ] Create `apps/website/typedoc.json` with library entryPoints
-- [ ] Update `apps/website/docusaurus.config.ts` with plugin config
+- [x] Install in apps/website/: `typedoc`, `typedoc-plugin-markdown`, `docusaurus-plugin-typedoc`
+- [x] Create `apps/excel-addin-docs-website/typedoc.json` with library entryPoints
+- [x] Update `apps/excel-addin-docs-website/docusaurus.config.ts` with plugin config
 
 ### Phase 3: Configure TypeDoc for Monorepo
-- [ ] Set entryPoints to all `../../libs/*/src/index.ts` files
-- [ ] Configure tsconfig path for TypeDoc to resolve aliases
-- [ ] Output generated markdown to `docs/api/` (auto-generated on build)
+- [x] Set entryPoints to all `../../libs/*/src/index.ts` files
+- [x] Configure tsconfig path for TypeDoc to resolve aliases
+- [x] Output generated markdown to `docs/api/` (auto-generated on build)
 
 ### Phase 4: Update Sidebar & Navigation
-- [ ] Update `apps/website/sidebars.ts` for API section
-- [ ] Update `apps/website/docs/api/index.md` as API landing page
-- [ ] Ensure auto-generated docs appear in sidebar
+- [x] Update `apps/excel-addin-docs-website/sidebars.ts` for API section
+- [x] Update `apps/excel-addin-docs-website/docs/api/index.md` as API landing page
+- [x] Ensure auto-generated docs appear in sidebar
 
 ### Phase 5: Clean Up Root
-- [ ] Delete `tsconfig.compodoc.json`
-- [ ] Delete `.compodocrc.json`
-- [ ] Remove `docs:api` and `docs:api:serve` scripts from root package.json
-- [ ] Remove `@compodoc/compodoc` from devDependencies (optional)
-- [ ] Clean up `dist/docs/` directory
+- [x] Delete `tsconfig.compodoc.json`
+- [x] Delete `.compodocrc.json`
+- [x] Remove `docs:api` and `docs:api:serve` scripts from root package.json
+- [x] Remove `@compodoc/compodoc` from devDependencies (optional)
+- [x] Clean up `dist/docs/` directory
 
 ## Files to Modify
 
