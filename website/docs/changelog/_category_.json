@@ -1,9 +1,0 @@
-{
-  "label": "Changelog",
-  "position": 5,
-  "collapsed": true,
-  "link": {
-    "type": "generated-index",
-    "description": "Historical development changelog organized by date and phase."
-  }
-}

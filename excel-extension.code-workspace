@@ -6,5 +6,12 @@
   ],
   "settings": {
     "cSpell.words": ["addins", "taskpane"],
+    "files.exclude": {
+      "node_modules": true,
+      "**/dist": true,
+      ".nx": true,
+      ".angular": true,
+      "coverage": true,
+    },
   },
 }
