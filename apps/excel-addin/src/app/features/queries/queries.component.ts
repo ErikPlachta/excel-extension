@@ -12,6 +12,13 @@ import { QueryStateService, QueryConfigurationService, QueryQueueService } from 
 import { ApiDefinition, QueryConfiguration, QueryConfigurationItem, QueryParameterValues, QueryWriteMode, QueryImpactAssessment, RoleId } from '@excel-platform/shared/types';
 import { SectionComponent, TableComponent, DropdownComponent, UiDropdownItem, ButtonComponent, ProgressIndicatorComponent } from '@excel-platform/shared/ui';
 
+/**
+ * Query management component for configuring and executing API queries.
+ *
+ * Provides UI for selecting APIs, configuring query parameters, managing
+ * saved configurations, and executing batch queries with progress tracking.
+ * Integrates with Excel to write query results to designated tables.
+ */
 @Component({
   selector: "app-queries",
   standalone: true,

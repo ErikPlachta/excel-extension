@@ -5,6 +5,12 @@ import { SettingsService } from "@excel-platform/core/settings";
 import { TelemetryService } from "@excel-platform/core/telemetry";
 import { BackupRestoreService } from "@excel-platform/data/storage";
 
+/**
+ * Settings page component for configuring application preferences.
+ *
+ * Manages telemetry settings, query execution parameters, backup/restore
+ * functionality, and managed table cleanup operations.
+ */
 @Component({
   selector: "app-settings",
   standalone: true,

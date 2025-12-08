@@ -4,6 +4,12 @@ import { TelemetryService } from "@excel-platform/core/telemetry";
 import { WorkbookService } from "@excel-platform/core/excel";
 import { SectionComponent, TableComponent } from '@excel-platform/shared/ui';
 
+/**
+ * Tables view component displaying all Excel tables in the workbook.
+ *
+ * Lists table names, worksheets, row counts, and managed status.
+ * Managed tables are those created by the add-in for query output.
+ */
 @Component({
   selector: "app-tables",
   standalone: true,

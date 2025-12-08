@@ -3,6 +3,12 @@ import { Component } from "@angular/core";
 import { AuthService } from "@excel-platform/core/auth";
 import { SectionComponent } from '@excel-platform/shared/ui';
 
+/**
+ * User profile component displaying current user information.
+ *
+ * Shows authentication status, user details, assigned roles, and
+ * role-based access indicators (admin, analyst).
+ */
 @Component({
   selector: "app-user",
   standalone: true,

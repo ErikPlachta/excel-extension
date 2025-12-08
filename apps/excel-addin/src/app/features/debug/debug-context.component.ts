@@ -5,6 +5,12 @@ import { WorkbookService } from "@excel-platform/core/excel";
 import { QueryStateService } from "@excel-platform/data/query";
 import { AppContextService } from "@excel-platform/core/telemetry";
 
+/**
+ * Debug component displaying raw application context state.
+ *
+ * Shows JSON dumps of host status, auth state, API definitions,
+ * and Excel context for development and troubleshooting purposes.
+ */
 @Component({
   selector: "app-debug-context",
   standalone: true,
