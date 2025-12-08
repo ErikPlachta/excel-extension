@@ -4,6 +4,12 @@ import { TelemetryService } from "@excel-platform/core/telemetry";
 import { ExcelService, WorkbookService } from "@excel-platform/core/excel";
 import { SectionComponent, TableComponent } from '@excel-platform/shared/ui';
 
+/**
+ * Worksheets view component displaying all sheets in the workbook.
+ *
+ * Lists worksheet names retrieved from the active Excel workbook.
+ * Handles non-Excel environments gracefully with loading states.
+ */
 @Component({
   selector: "app-worksheets",
   standalone: true,

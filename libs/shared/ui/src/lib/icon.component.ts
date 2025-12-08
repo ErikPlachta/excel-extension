@@ -1,8 +1,16 @@
 import { CommonModule } from "@angular/common";
 import { Component, Input } from "@angular/core";
 
+/**
+ * Available icon names for the IconComponent.
+ */
 export type UiIconName = "play" | "table" | "user" | "warning";
 
+/**
+ * Icon component rendering semantic icons via CSS classes.
+ *
+ * Maps icon names to CSS class names for consistent iconography.
+ */
 @Component({
   selector: "app-icon",
   standalone: true,
