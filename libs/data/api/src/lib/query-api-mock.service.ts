@@ -48,6 +48,13 @@ export class ApiAuthError extends Error {
   }
 }
 
+/**
+ * Mock API service for local development and testing.
+ *
+ * Fetches data from external mock APIs (JSONPlaceholder, RandomUser, DummyJSON)
+ * and local mock data files. Includes caching via IndexedDB with TTL expiration.
+ * Validates auth tokens before data access per backend security spec.
+ */
 @Injectable({ providedIn: "root" })
 export class QueryApiMockService {
   constructor(
@@ -125,7 +132,7 @@ export class QueryApiMockService {
   /**
    * Execute API without checking cache. Used internally by executeApi().
    *
-   * @private
+   * @internal
    * @param apiId - API identifier
    * @param params - Parameter values for API execution
    * @returns Promise of result rows
@@ -186,7 +193,7 @@ export class QueryApiMockService {
    * Creates deterministic key by sorting parameter keys to ensure
    * same params in different order produce same cache key.
    *
-   * @private
+   * @internal
    * @param apiId - API identifier
    * @param params - Parameter values
    * @returns Cache key string
