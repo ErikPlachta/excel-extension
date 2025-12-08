@@ -1,6 +1,12 @@
 import { CommonModule } from "@angular/common";
 import { ChangeDetectionStrategy, Component, Input } from "@angular/core";
 
+/**
+ * Progress indicator component showing completion status.
+ *
+ * Displays a progress bar with count label (completed/total) and
+ * optional current item identifier for batch operation tracking.
+ */
 @Component({
   selector: "app-progress-indicator",
   standalone: true,

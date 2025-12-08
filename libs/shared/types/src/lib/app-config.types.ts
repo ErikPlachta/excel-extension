@@ -125,7 +125,7 @@ export type TextCatalogSection = 'nav' | 'auth' | 'query' | 'worksheet' | 'table
  *
  * @param catalog - The TextCatalog to access
  * @param section - The section key to retrieve
- * @returns The section's Record<string, string> or undefined if not found/invalid
+ * @returns The section's Record\<string, string\> or undefined if not found/invalid
  *
  * @example
  * ```typescript

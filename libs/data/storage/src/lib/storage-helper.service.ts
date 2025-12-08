@@ -17,7 +17,7 @@ import { IndexedDBService } from './indexeddb.service';
  * - Future-proofing for new storage APIs
  *
  * **Storage Tiers:**
- * - **Tier 1 (localStorage):** < 100 KB - Settings, auth tokens, UI state (sync API)
+ * - **Tier 1 (localStorage):** less than 100 KB - Settings, auth tokens, UI state (sync API)
  * - **Tier 2 (IndexedDB):** 100 KB+ - Query results, cached API responses (async API)
  *
  * **Usage:**
@@ -41,7 +41,7 @@ export class StorageHelperService {
   /**
    * Get item from localStorage with type safety and telemetry.
    *
-   * Use for small data (< 100 KB): settings, auth tokens, UI state.
+   * Use for small data (less than 100 KB): settings, auth tokens, UI state.
    * Returns defaultValue if key doesn't exist or parse fails.
    * Logs errors via TelemetryService (unlike StorageBaseService).
    *
@@ -59,7 +59,7 @@ export class StorageHelperService {
   /**
    * Set item in localStorage with type safety and telemetry.
    *
-   * Use for small data (< 100 KB): settings, auth tokens, UI state.
+   * Use for small data (less than 100 KB): settings, auth tokens, UI state.
    * Automatically stringifies value to JSON.
    *
    * @param key - Storage key
@@ -72,7 +72,7 @@ export class StorageHelperService {
   /**
    * Get item from IndexedDB for large datasets.
    *
-   * Use for large data (> 100 KB): query results, cached API responses.
+   * Use for large data (100 KB or more): query results, cached API responses.
    * Returns null if key doesn't exist or read fails.
    *
    * @param key - Storage key (typically queryId)
@@ -90,7 +90,7 @@ export class StorageHelperService {
   /**
    * Set item in IndexedDB for large datasets.
    *
-   * Use for large data (> 100 KB): query results, cached API responses.
+   * Use for large data (100 KB or more): query results, cached API responses.
    * Supports TTL-based expiration.
    *
    * @param key - Storage key (typically queryId)

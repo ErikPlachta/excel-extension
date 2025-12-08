@@ -111,14 +111,12 @@ async function main() {
   await writeFile(join(base, "top-customers.json"), JSON.stringify(topCustomers, null, 2));
   await writeFile(join(base, "inventory-status.json"), JSON.stringify(inventory, null, 2));
 
-  // eslint-disable-next-line no-console
   console.log(
     `Generated mock data: sales-summary=${sales.length}, top-customers=${topCustomers.length}, inventory-status=${inventory.length}`
   );
 }
 
 main().catch((err) => {
-  // eslint-disable-next-line no-console
   console.error("Failed to generate mock data", err);
   process.exit(1);
 });

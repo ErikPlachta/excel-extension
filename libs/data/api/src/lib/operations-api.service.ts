@@ -16,7 +16,7 @@ import { ApiConfigService } from './api-config.service';
  * Use this service in production mode with a real operations server.
  *
  * **Endpoints (per BACKEND-API-SPEC.md):**
- * - POST /operations/{operation_name} - Execute named operation
+ * - POST /operations/\{operation_name\} - Execute named operation
  *
  * **Response format:**
  * ```json

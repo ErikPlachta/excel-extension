@@ -2,11 +2,22 @@ import { CommonModule } from "@angular/common";
 import { Component, EventEmitter, Input, Output } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 
+/**
+ * Data structure for dropdown options.
+ */
 export interface UiDropdownItem {
+  /** Value submitted when this option is selected. */
   value: string;
+  /** Display text shown in the dropdown. */
   label: string;
 }
 
+/**
+ * Dropdown select component with accessibility support.
+ *
+ * Wraps native select element with proper ARIA attributes,
+ * label association, and two-way binding support.
+ */
 @Component({
   selector: "app-dropdown",
   standalone: true,
