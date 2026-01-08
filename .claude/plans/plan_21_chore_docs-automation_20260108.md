@@ -80,34 +80,45 @@ Hard-coded docs in `apps/excel-addin-docs-website/docs/` drift from actual code:
 
 ## Implementation Plan
 
-### Phase 1: Add TSDoc to library index files
+### Phase 1: Convert existing comments to TSDoc
 
-Add `@packageDocumentation` blocks to each lib's `src/index.ts`:
+All index.ts files already have `// description` comments. Convert to `@packageDocumentation` TSDoc format:
 
+**Before:**
+```ts
+// @excel-platform/core/auth
+// Core authentication services for JWT and SSO management
+
+export * from './lib/auth.service';
+```
+
+**After:**
 ```ts
 /**
  * @packageDocumentation
- * Authentication service with JWT token handling and SSO mock support.
+ * Core authentication services for JWT and SSO management.
  */
-export * from "./lib/auth.service";
+export * from './lib/auth.service';
 ```
 
 **Files to update (12 total):**
 
-| Library        | Path                               |
-| -------------- | ---------------------------------- |
-| core/auth      | `libs/core/auth/src/index.ts`      |
-| core/settings  | `libs/core/settings/src/index.ts`  |
-| core/telemetry | `libs/core/telemetry/src/index.ts` |
-| core/excel     | `libs/core/excel/src/index.ts`     |
-| shared/types   | `libs/shared/types/src/index.ts`   |
-| shared/ui      | `libs/shared/ui/src/index.ts`      |
-| shared/util    | `libs/shared/util/src/index.ts`    |
-| data/api       | `libs/data/api/src/index.ts`       |
-| data/query     | `libs/data/query/src/index.ts`     |
-| data/storage   | `libs/data/storage/src/index.ts`   |
-| office/common  | `libs/office/common/src/index.ts`  |
-| office/excel   | `libs/office/excel/src/index.ts`   |
+| Library        | Path                               | Current Description |
+| -------------- | ---------------------------------- | ------------------- |
+| core/auth      | `libs/core/auth/src/index.ts`      | Core authentication services for JWT and SSO management |
+| core/excel     | `libs/core/excel/src/index.ts`     | Excel service library for Office.js operations |
+| core/settings  | `libs/core/settings/src/index.ts`  | Core settings service for application configuration |
+| core/telemetry | `libs/core/telemetry/src/index.ts` | Core telemetry and app context services |
+| shared/types   | `libs/shared/types/src/index.ts`   | Shared type definitions for the Excel Platform |
+| shared/ui      | `libs/shared/ui/src/index.ts`      | Shared UI components for the Excel Platform |
+| shared/util    | `libs/shared/util/src/index.ts`    | Shared utility functions for the Excel Platform |
+| data/api       | `libs/data/api/src/index.ts`       | API services, catalog, and configuration |
+| data/query     | `libs/data/query/src/index.ts`     | Query management services |
+| data/storage   | `libs/data/storage/src/index.ts`   | Storage services for localStorage and IndexedDB |
+| office/common  | `libs/office/common/src/index.ts`  | ⚠️ Placeholder - empty scaffold |
+| office/excel   | `libs/office/excel/src/index.ts`   | ⚠️ Placeholder - empty scaffold |
+
+**Note:** Placeholder libs (office/common, office/excel) will be marked as "Placeholder library" in generated docs.
 
 **Done when:** Each index.ts has a `@packageDocumentation` comment with description.
 
@@ -162,34 +173,63 @@ function getServices() {
 
 ### Phase 3: Add more generated sections
 
-Extend intro.md with new markers:
+Extend intro.md and architecture docs with new markers.
+
+**3a. Directory structure in intro.md:**
 
 ```md
 <!-- DIRECTORY_START -->
-```
-
 apps/
-├── excel-addin/ # Main Angular application
+├── excel-addin/              # Main Angular application
 └── excel-addin-docs-website/ # Documentation site
 libs/
-├── core/ # Core services
-├── data/ # Data layer
-├── office/ # Office.js integration
-└── shared/ # Shared utilities
-
-```
+├── core/                     # Core services (auth, excel, settings, telemetry)
+├── data/                     # Data layer (api, query, storage)
+├── office/                   # Office.js integration (common, excel)
+└── shared/                   # Shared utilities (types, ui, util)
 <!-- DIRECTORY_END -->
+```
 
+**3b. Services section (25 services discovered):**
+
+```md
 <!-- SERVICES_START -->
 | Service | Library | Description |
 |---------|---------|-------------|
-| AuthService | core/auth | JWT authentication |
-| ExcelService | core/excel | Office.js wrapper |
-...
+| AuthService | core/auth | JWT authentication and token management |
+| JwtHelperService | core/auth | JWT token parsing and validation |
+| AuthApiService | core/auth | Authentication API calls |
+| AuthApiMockService | core/auth | Mock authentication for development |
+| ExcelService | core/excel | Office.js Excel operations wrapper |
+| WorkbookService | core/excel | Workbook and worksheet management |
+| FormulaScannerService | core/excel | Formula detection in ranges |
+| SettingsService | core/settings | Application preferences |
+| TelemetryService | core/telemetry | Logging and analytics |
+| AppContextService | core/telemetry | Application context tracking |
+| ApiCatalogService | data/api | API endpoint catalog |
+| ApiConfigService | data/api | API configuration |
+| AppConfigService | data/api | Application configuration |
+| ConfigValidatorService | data/api | Configuration validation |
+| OperationsApiService | data/api | Operations API calls |
+| OperationsApiMockService | data/api | Mock operations API |
+| QueryApiMockService | data/api | Mock query API |
+| QueryValidationService | data/api | Query parameter validation |
+| QueryConfigurationService | data/query | Query configuration management |
+| QueryQueueService | data/query | Query execution queue |
+| QueryStateService | data/query | Query state management |
+| StorageHelperService | data/storage | Storage abstraction (localStorage/IndexedDB) |
+| StorageBaseService | data/storage | Base localStorage operations |
+| IndexedDBService | data/storage | IndexedDB operations |
+| UserKeyedStorageService | data/storage | User-scoped storage |
+| BackupRestoreService | data/storage | Data backup and restore |
 <!-- SERVICES_END -->
 ```
 
-**Done when:** New sections auto-populate from source.
+**3c. Update architecture/services.md and architecture/overview.md:**
+
+Add same markers to pull from source instead of hardcoded content.
+
+**Done when:** New sections auto-populate from source in all target files.
 
 ---
 
@@ -266,13 +306,15 @@ Add generated sections to `.claude/CLAUDE.md`:
 
 | File                             | Action                             |
 | -------------------------------- | ---------------------------------- |
-| `libs/*/src/index.ts` (12 files) | Add TSDoc `@packageDocumentation`  |
-| `scripts/generate-docs.mjs`      | Rewrite for dynamic extraction     |
-| `scripts/validate-docs.mjs`      | **Create** - validation script     |
+| `libs/*/src/index.ts` (12 files) | Convert `//` comments to TSDoc `@packageDocumentation` |
+| `scripts/generate-docs.mjs`      | Rewrite for dynamic extraction from source |
+| `scripts/validate-docs.mjs`      | **Create** - validation script |
 | `apps/.../docs/intro.md`         | Add DIRECTORY and SERVICES markers |
-| `.claude/CLAUDE.md`              | Add marker sections                |
-| `.github/workflows/ci.yml`       | Add validation step                |
-| `package.json`                   | Add `docs:validate` script         |
+| `apps/.../docs/architecture/services.md` | Add SERVICES marker section |
+| `apps/.../docs/architecture/overview.md` | Add DIRECTORY marker section |
+| `.claude/CLAUDE.md`              | Add LIBS and SCRIPTS marker sections |
+| `.github/workflows/ci.yml`       | Add `Validate docs freshness` step |
+| `package.json`                   | Add `docs:validate` script |
 
 ---
 
@@ -288,11 +330,28 @@ Add generated sections to `.claude/CLAUDE.md`:
 
 ## Risk & Mitigation
 
-**Risk:** TSDoc parsing edge cases
-**Mitigation:** Simple regex extraction, fallback to "No description"
+| Risk | Likelihood | Impact | Mitigation |
+|------|------------|--------|------------|
+| TSDoc parsing edge cases | Low | Low | Simple regex extraction, fallback to "No description" |
+| Script breaks if lib structure changes | Medium | Low | Graceful degradation, CI catches issues |
+| Generated docs don't match expected format | Low | Medium | Test on branch before merging |
+| CI validation too strict | Medium | Low | Start with warnings, not failures |
 
-**Risk:** Script breaks if lib structure changes
-**Mitigation:** Graceful degradation, CI catches issues
+---
+
+## Rollback Plan
+
+If issues arise after merge:
+
+1. **Revert generate-docs.mjs:** `git revert` the script changes
+2. **Restore hardcoded arrays:** Keep backup of original LIBRARY_DEFINITIONS and SCRIPT_DEFINITIONS
+3. **Remove CI step:** Comment out validation step in ci.yml
+4. **TSDoc comments are safe:** They don't affect runtime, can stay even if generation reverts
+
+**Backup before modifying:**
+```bash
+cp scripts/generate-docs.mjs scripts/generate-docs.mjs.backup
+```
 
 ---
 
