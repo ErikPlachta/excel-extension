@@ -32,7 +32,8 @@
     "test:watch": "nx test excel-addin --watch",
     "docs": "cd apps/excel-addin-docs-website && npm run build",
     "docs:serve": "cd apps/excel-addin-docs-website && npm start",
-    "docs:generate": "node scripts/generate-docs.mjs"
+    "docs:generate": "node scripts/generate-docs.mjs",
+    "docs:validate": "node scripts/validate-docs.mjs"
   },
   "private": true,
   "dependencies": {

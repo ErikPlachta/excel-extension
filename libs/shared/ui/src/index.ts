@@ -1,6 +1,7 @@
-// @excel-platform/shared/ui
-// Shared UI components for the Excel Platform
-
+/**
+ * @packageDocumentation
+ * Shared UI components for the Excel Platform.
+ */
 export * from './lib/button.component';
 export * from './lib/card.component';
 export * from './lib/dropdown.component';

@@ -1,6 +1,7 @@
-// @excel-platform/data/storage
-// Storage services library for localStorage and IndexedDB operations
-
+/**
+ * @packageDocumentation
+ * Storage services for localStorage and IndexedDB operations.
+ */
 export { StorageBaseService } from './lib/storage-base.service';
 export { StorageHelperService } from './lib/storage-helper.service';
 export { IndexedDBService } from './lib/indexeddb.service';

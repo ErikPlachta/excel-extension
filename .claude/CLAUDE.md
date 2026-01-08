@@ -20,8 +20,8 @@ npm run docs:serve      # Local docs server
 ### Testing & Linting
 
 ```bash
-npm test                # Unit tests (Karma/Jasmine, interactive)
-npm run test:ci         # Headless tests (single run, ChromeHeadless)
+npm test                # Unit tests (Jest)
+npm run test:ci         # Headless tests (Jest, single run)
 npm run lint            # ESLint for TypeScript + templates
 npm run lint:office     # Office add-in specific linting
 npm run prettier        # Format code
@@ -37,16 +37,18 @@ npm run validate:dev-manifest  # Validate dev-manifest.xml
 
 ## Architecture
 
-Angular 20 task-pane add-in for Excel using standalone components and Office.js. No NgModules. Entry at `apps/excel-addin/src/main.ts` bootstraps `AppComponent` with `provideRouter(routes)`.
+Angular 21 task-pane add-in for Excel using standalone components and Office.js. No NgModules. Entry at `apps/excel-addin/src/main.ts` bootstraps `AppComponent` with `provideRouter(routes)`.
 
+<!-- DIRECTORY_START -->
 ### Directory Structure
 
-- **`apps/excel-addin/src/app/core/`** – Root shell, core services
-- **`apps/excel-addin/src/app/features/`** – Feature views
-- **`apps/excel-addin/src/app/shared/`** – Query domain models/services, utilities
-- **`libs/shared/types/`** – Shared types (auth, queries, app config, UI)
-- **`libs/shared/ui/`** – UI primitive components
-- **`libs/data/api/`** – App config defaults, text catalog
+- **`apps/excel-addin/`** – Main Excel add-in application
+- **`apps/excel-addin-docs-website/`** – Docusaurus documentation site
+- **`libs/core/`** – auth, excel, settings, telemetry
+- **`libs/shared/`** – types, ui, util
+- **`libs/data/`** – api, query, storage
+- **`libs/office/`** – common, excel (placeholders)
+<!-- DIRECTORY_END -->
 
 ### Key Services (Summary)
 
@@ -85,14 +87,14 @@ async ngOnInit() {
 
 ## Deployment
 
-- **CI** (`.github/workflows/ci.yml`): PR → lint + build + test
-- **CD** (`.github/workflows/deploy.yml`): Push to `main` → GitHub Pages
-- Base href `/excel-extension/` set in workflow
+- **CI** (`.github/workflows/ci.yml`): PR → lint + test + build
+- **CD** (`.github/workflows/cd.yml`): Push to `main` → GitHub Pages (docs only)
+- Base href `/excel-extension/` set in Docusaurus config
 
 ## Gotchas
 
 - **NPM scripts:** Use `npm run watch`, not `npm watch`
-- **Tests:** Office globals undefined in Jest; keep `isExcel` guards
+- **Tests:** Office globals undefined in Jest; always gate on `isExcel`
 - **Blank taskpane:** Dev server not running; start `npm start`
 - **Append mode removed:** Only overwrite semantics supported
 
