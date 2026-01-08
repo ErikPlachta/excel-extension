@@ -52,28 +52,52 @@ High-level system design for the Excel Platform.
 
 ## Monorepo Structure
 
+<!-- DIRECTORY_START -->
+## Directory Structure
+
 ```
-excel-extension/
-├── apps/
-│   ├── excel-addin/              # Main Angular application
-│   └── excel-addin-docs-website/ # Documentation site
-├── libs/
-│   ├── core/                     # Core services
-│   │   ├── auth/                 # Authentication
-│   │   ├── settings/             # User preferences
-│   │   └── telemetry/            # Logging
-│   ├── data/                     # Data layer
-│   │   ├── api/                  # API definitions
-│   │   ├── query/                # Query management
-│   │   └── storage/              # Storage abstraction
-│   ├── office/                   # Office.js integration
-│   │   └── excel/                # Excel-specific
-│   └── shared/                   # Shared utilities
-│       ├── types/                # Type definitions
-│       ├── ui/                   # UI components
-│       └── util/                 # Utilities
-└── docs/                         # Documentation
+apps/
+├── excel-addin/
+└── excel-addin-docs-website/
+
+libs/
+├── core/
+│   ├── auth/
+│   ├── excel/
+│   ├── settings/
+│   └── telemetry/
+├── shared/
+│   ├── types/
+│   ├── ui/
+│   └── util/
+├── data/
+│   ├── api/
+│   ├── query/
+│   └── storage/
+└── office/
+    ├── common/
+    └── excel/
 ```
+<!-- DIRECTORY_END -->
+
+<!-- LIBRARIES_START -->
+## Libraries
+
+| Package | Description |
+|---------|-------------|
+| `@excel-platform/core/auth` | Core authentication services for JWT and SSO management |
+| `@excel-platform/core/excel` | Excel service library for Office.js operations |
+| `@excel-platform/core/settings` | Core settings service for application configuration |
+| `@excel-platform/core/telemetry` | Core telemetry and app context services |
+| `@excel-platform/shared/types` | Shared type definitions for the Excel Platform |
+| `@excel-platform/shared/ui` | Shared UI components for the Excel Platform |
+| `@excel-platform/shared/util` | Shared utility functions for the Excel Platform |
+| `@excel-platform/data/api` | API services, catalog, and configuration |
+| `@excel-platform/data/query` | Query management services |
+| `@excel-platform/data/storage` | Storage services for localStorage and IndexedDB operations |
+| `@excel-platform/office/common` | Common Office.js utilities (placeholder) |
+| `@excel-platform/office/excel` | Excel-specific Office.js utilities (placeholder) |
+<!-- LIBRARIES_END -->
 
 ## Application Architecture
 

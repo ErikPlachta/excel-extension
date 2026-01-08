@@ -104,6 +104,7 @@ libs/
 | `npm run dev-certs` | Install HTTPS dev certificates |
 | `npm run docs:generate` | Regenerate intro.md content |
 | `npm run docs:serve` | View documentation locally |
+| `npm run docs:validate` | Run docs:validate |
 | `npm run graph` | View Nx dependency graph |
 | `npm run lint:office` | Office add-in specific linting |
 | `npm run prettier` | Format code |
@@ -111,3 +112,36 @@ libs/
 | `npm run test:watch` | Run tests in watch mode |
 | `npm run validate:dev-manifest` | Validate Office manifest |
 <!-- SCRIPTS_END -->
+
+<!-- SERVICES_START -->
+## Services
+
+| Service | Library | Description |
+|---------|---------|-------------|
+| `AuthApiMockService` | core/auth | Auth API Mock Service |
+| `AuthApiService` | core/auth | Auth API Service |
+| `AuthService` | core/auth | Authentication Service |
+| `JwtHelperService` | core/auth | JWT Helper Service |
+| `ExcelService` | core/excel | Angular service that wraps the Office.js Excel APIs. |
+| `FormulaScannerService` | core/excel | Scans workbook formulas for table/column dependencies. |
+| `WorkbookService` | core/excel | Provides a typed, feature-friendly abstraction over workb... |
+| `SettingsService` | core/settings | Settings Service |
+| `AppContextService` | core/telemetry | App Context Service |
+| `TelemetryService` | core/telemetry | Centralized telemetry service for application operations ... |
+| `ApiCatalogService` | data/api | API Catalog Service |
+| `ApiConfigService` | data/api | Service for building API URLs. |
+| `AppConfigService` | data/api | AppConfig Service |
+| `ConfigValidatorService` | data/api | Config Validator Service |
+| `OperationsApiMockService` | data/api | Operations API Mock Service |
+| `OperationsApiService` | data/api | Operations API Service |
+| `QueryApiMockService` | data/api | Mock API service for local development and testing. |
+| `QueryValidationService` | data/api | Query Validation Service |
+| `QueryConfigurationService` | data/query | Simple local-storage backed store for named query configu... |
+| `QueryQueueService` | data/query | Simple in-memory execution queue for `QueryConfigurationI... |
+| `QueryStateService` | data/query | Per-query Run checkbox state used for batch execution. |
+| `BackupRestoreService` | data/storage | Backup/Restore Service |
+| `IndexedDBService` | data/storage | IndexedDB Service |
+| `StorageBaseService` | data/storage | Storage Base Service |
+| `StorageHelperService` | data/storage | Storage Helper Service |
+| `UserKeyedStorageService` | data/storage | User-Keyed Storage Service |
+<!-- SERVICES_END -->

@@ -11,7 +11,7 @@ reviewers: @ErikPlachta
 approvers: @ErikPlachta
 Branch: chore/docs-automation
 Base Branch: develop
-pull_request:
+pull_request: "#94"
 issues:
 milestone:
 release:
@@ -72,7 +72,7 @@ Hard-coded docs in `apps/excel-addin-docs-website/docs/` drift from actual code:
 - [x] Library descriptions extracted from TSDoc in source
 - [x] NPM scripts read from package.json dynamically
 - [x] Directory structure generated from filesystem
-- [ ] Service list generated from \*.service.ts files (deferred)
+- [x] Service list generated from *.service.ts files (26 services)
 - [x] CI validates docs match source
 - [x] Regenerating docs updates all marker sections
 
@@ -122,6 +122,8 @@ export * from './lib/auth.service';
 
 **Done when:** Each index.ts has a `@packageDocumentation` comment with description.
 
+**✅ COMPLETED:** All 12 index.ts files converted.
+
 ---
 
 ### Phase 2: Rewrite generate-docs.mjs
@@ -168,6 +170,8 @@ function getServices() {
 ```
 
 **Done when:** Running `npm run docs:generate` reads from actual source files.
+
+**✅ COMPLETED:** Script rewritten with `extractTSDocDescription()`, `getLibraries()`, `getScripts()`, `generateDirectoryStructure()`.
 
 ---
 
@@ -231,6 +235,11 @@ Add same markers to pull from source instead of hardcoded content.
 
 **Done when:** New sections auto-populate from source in all target files.
 
+**✅ COMPLETED:**
+- Directory structure added to intro.md ✓
+- Services extraction added (26 services from *.service.ts) ✓
+- Architecture docs markers added (services.md, overview.md) ✓
+
 ---
 
 ### Phase 4: Add CI validation
@@ -274,6 +283,8 @@ Add to `.github/workflows/ci.yml`:
 
 **Done when:** CI fails if docs are stale.
 
+**✅ COMPLETED:** Created `validate-docs.mjs`, added `docs:validate` script, added CI step. Validates libraries, directory, scripts, and services sections.
+
 ---
 
 ### Phase 5: Update CLAUDE.md
@@ -299,6 +310,8 @@ Add generated sections to `.claude/CLAUDE.md`:
 ```
 
 **Done when:** CLAUDE.md has marker sections that regenerate.
+
+**✅ COMPLETED:** Added DIRECTORY markers to CLAUDE.md.
 
 ---
 

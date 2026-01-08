@@ -17,10 +17,10 @@ import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
-const INTRO_PATH = path.join(
-  ROOT,
-  "apps/excel-addin-docs-website/docs/intro.md"
-);
+const DOCS_DIR = path.join(ROOT, "apps/excel-addin-docs-website/docs");
+const INTRO_PATH = path.join(DOCS_DIR, "intro.md");
+const SERVICES_PATH = path.join(DOCS_DIR, "architecture/services.md");
+const OVERVIEW_PATH = path.join(DOCS_DIR, "architecture/overview.md");
 const LIBS_DIR = path.join(ROOT, "libs");
 const PACKAGE_JSON = path.join(ROOT, "package.json");
 
@@ -217,6 +217,115 @@ function generateScriptsTable() {
 }
 
 /**
+ * Recursively find all service files
+ */
+function findServiceFiles(dir, files = []) {
+  const entries = fs.readdirSync(dir, { withFileTypes: true });
+  for (const entry of entries) {
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      findServiceFiles(fullPath, files);
+    } else if (entry.name.endsWith(".service.ts")) {
+      files.push(fullPath);
+    }
+  }
+  return files;
+}
+
+/**
+ * Extract service class name and description from a service file
+ */
+function extractServiceInfo(filePath) {
+  const content = fs.readFileSync(filePath, "utf-8");
+
+  // Extract class name
+  const classMatch = content.match(/export\s+class\s+(\w+Service)/);
+  if (!classMatch) return null;
+
+  const className = classMatch[1];
+
+  // Find all TSDoc blocks and get the one closest to the class declaration
+  const classIdx = content.indexOf(`export class ${className}`);
+  const beforeClass = content.substring(0, classIdx);
+
+  // Find the last TSDoc block before the class (may have @Injectable between)
+  const tsdocBlocks = [...beforeClass.matchAll(/\/\*\*[\s\S]*?\*\//g)];
+  const lastBlock = tsdocBlocks.length > 0 ? tsdocBlocks[tsdocBlocks.length - 1][0] : null;
+
+  let description = "Service";
+  if (lastBlock) {
+    // Get first non-empty content line after /**
+    const lines = lastBlock.split("\n");
+    for (const line of lines) {
+      const cleaned = line.replace(/^\s*\/?\*+\s?/, "").replace(/\*\/.*$/, "").trim();
+      if (cleaned && !cleaned.startsWith("@") && cleaned.length > 0) {
+        // Get text before dash separator if present
+        let desc = cleaned.split(/\s+[-–]\s+/)[0].trim();
+        // Truncate if too long
+        if (desc.length > 60) {
+          desc = desc.substring(0, 57) + "...";
+        }
+        description = desc;
+        break;
+      }
+    }
+  }
+
+  // Fallback: derive from class name
+  if (description === "Service" || description.length === 0) {
+    description = className.replace(/Service$/, "").replace(/([A-Z])/g, " $1").trim() + " Service";
+  }
+
+  // Extract library from path (e.g., libs/core/auth/src/lib/auth.service.ts -> core/auth)
+  const pathMatch = filePath.match(/libs\/(\w+)\/(\w+)\//);
+  const library = pathMatch ? `${pathMatch[1]}/${pathMatch[2]}` : "unknown";
+
+  return { className, description, library };
+}
+
+/**
+ * Get all services from libs directory
+ */
+function getServices() {
+  const serviceFiles = findServiceFiles(LIBS_DIR);
+  const services = [];
+
+  for (const file of serviceFiles) {
+    const info = extractServiceInfo(file);
+    if (info) {
+      services.push(info);
+    }
+  }
+
+  // Sort by library then by class name
+  services.sort((a, b) => {
+    if (a.library !== b.library) return a.library.localeCompare(b.library);
+    return a.className.localeCompare(b.className);
+  });
+
+  return services;
+}
+
+/**
+ * Generate services markdown table
+ */
+function generateServicesTable() {
+  const services = getServices();
+  const lines = [
+    "## Services",
+    "",
+    "| Service | Library | Description |",
+    "|---------|---------|-------------|",
+  ];
+
+  for (const svc of services) {
+    lines.push(`| \`${svc.className}\` | ${svc.library} | ${svc.description} |`);
+  }
+
+  return lines.join("\n");
+}
+
+/**
  * Generate directory structure tree for apps and libs
  */
 function generateDirectoryStructure() {
@@ -289,50 +398,69 @@ function replaceSection(content, startMarker, endMarker, newContent) {
 }
 
 /**
+ * Update a file with marker sections
+ */
+function updateFile(filePath, sections) {
+  if (!fs.existsSync(filePath)) {
+    console.warn(`File not found: ${filePath}`);
+    return false;
+  }
+
+  let content = fs.readFileSync(filePath, "utf-8");
+  let updated = false;
+
+  for (const [startMarker, endMarker, newContent] of sections) {
+    if (content.includes(startMarker) && content.includes(endMarker)) {
+      content = replaceSection(content, startMarker, endMarker, newContent);
+      updated = true;
+    }
+  }
+
+  if (updated) {
+    fs.writeFileSync(filePath, content);
+  }
+  return updated;
+}
+
+/**
  * Main execution
  */
 function main() {
   console.log("Generating documentation from source...");
 
-  // Read intro.md
-  let content = fs.readFileSync(INTRO_PATH, "utf-8");
-
-  // Generate and replace directory structure
-  const dirStructure = generateDirectoryStructure();
-  content = replaceSection(
-    content,
-    "<!-- DIRECTORY_START -->",
-    "<!-- DIRECTORY_END -->",
-    dirStructure
-  );
-
-  // Generate and replace libraries
+  // Generate all content
   const libs = getLibraries();
-  const librariesTable = generateLibrariesTable();
-  content = replaceSection(
-    content,
-    "<!-- LIBRARIES_START -->",
-    "<!-- LIBRARIES_END -->",
-    librariesTable
-  );
-
-  // Generate and replace scripts
   const scripts = getScripts();
+  const services = getServices();
+  const dirStructure = generateDirectoryStructure();
+  const librariesTable = generateLibrariesTable();
   const scriptsTable = generateScriptsTable();
-  content = replaceSection(
-    content,
-    "<!-- SCRIPTS_START -->",
-    "<!-- SCRIPTS_END -->",
-    scriptsTable
-  );
+  const servicesTable = generateServicesTable();
 
-  // Write updated content
-  fs.writeFileSync(INTRO_PATH, content);
+  // Update intro.md
+  updateFile(INTRO_PATH, [
+    ["<!-- DIRECTORY_START -->", "<!-- DIRECTORY_END -->", dirStructure],
+    ["<!-- LIBRARIES_START -->", "<!-- LIBRARIES_END -->", librariesTable],
+    ["<!-- SCRIPTS_START -->", "<!-- SCRIPTS_END -->", scriptsTable],
+    ["<!-- SERVICES_START -->", "<!-- SERVICES_END -->", servicesTable],
+  ]);
 
-  console.log("✓ Updated intro.md");
+  // Update architecture/services.md
+  updateFile(SERVICES_PATH, [
+    ["<!-- SERVICES_START -->", "<!-- SERVICES_END -->", servicesTable],
+  ]);
+
+  // Update architecture/overview.md
+  updateFile(OVERVIEW_PATH, [
+    ["<!-- DIRECTORY_START -->", "<!-- DIRECTORY_END -->", dirStructure],
+    ["<!-- LIBRARIES_START -->", "<!-- LIBRARIES_END -->", librariesTable],
+  ]);
+
+  console.log("✓ Updated documentation");
   console.log(`  - Directory: apps + libs tree`);
   console.log(`  - Libraries: ${libs.length} entries (from TSDoc)`);
   console.log(`  - Scripts: ${scripts.length} entries (from package.json)`);
+  console.log(`  - Services: ${services.length} entries (from *.service.ts)`);
 }
 
 main();

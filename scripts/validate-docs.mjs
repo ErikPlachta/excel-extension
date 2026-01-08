@@ -190,6 +190,22 @@ function validateGeneratedSections() {
   } else {
     info("Scripts section is present");
   }
+
+  // Check services section exists
+  const servicesSection = extractSection(
+    content,
+    "<!-- SERVICES_START -->",
+    "<!-- SERVICES_END -->"
+  );
+
+  if (!servicesSection) {
+    error("SERVICES markers not found in intro.md");
+  } else if (!servicesSection.includes("Service")) {
+    error("Services section appears empty. Run: npm run docs:generate");
+  } else {
+    const serviceCount = (servicesSection.match(/\| `/g) || []).length;
+    info(`Services section is present (${serviceCount} services)`);
+  }
 }
 
 /**
