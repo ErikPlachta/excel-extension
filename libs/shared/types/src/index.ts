@@ -1,6 +1,7 @@
-// @excel-platform/shared/types
-// Shared type definitions for the Excel Platform
-
+/**
+ * @packageDocumentation
+ * Shared type definitions for the Excel Platform.
+ */
 export * from './lib/auth.types';
 export * from './lib/jwt.types';
 export * from './lib/api.types';
