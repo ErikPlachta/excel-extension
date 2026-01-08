@@ -1,1 +1,4 @@
-// @excel-platform/office/common - Placeholder
+/**
+ * @packageDocumentation
+ * Common Office.js utilities (placeholder).
+ */

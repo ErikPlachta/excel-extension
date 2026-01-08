@@ -39,14 +39,16 @@ npm run validate:dev-manifest  # Validate dev-manifest.xml
 
 Angular 21 task-pane add-in for Excel using standalone components and Office.js. No NgModules. Entry at `apps/excel-addin/src/main.ts` bootstraps `AppComponent` with `provideRouter(routes)`.
 
+<!-- DIRECTORY_START -->
 ### Directory Structure
 
-- **`apps/excel-addin/src/app/`** – Root shell, AppComponent, routes
-- **`apps/excel-addin/src/app/features/`** – Feature views (Home, Queries, Tables, etc.)
-- **`libs/core/`** – Core services (auth, excel, settings, telemetry)
-- **`libs/shared/types/`** – Shared types (auth, queries, app config, UI)
-- **`libs/shared/ui/`** – UI primitive components
-- **`libs/data/api/`** – App config defaults, API services
+- **`apps/excel-addin/`** – Main Excel add-in application
+- **`apps/excel-addin-docs-website/`** – Docusaurus documentation site
+- **`libs/core/`** – auth, excel, settings, telemetry
+- **`libs/shared/`** – types, ui, util
+- **`libs/data/`** – api, query, storage
+- **`libs/office/`** – common, excel (placeholders)
+<!-- DIRECTORY_END -->
 
 ### Key Services (Summary)
 

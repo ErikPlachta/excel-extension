@@ -48,6 +48,9 @@ jobs:
       - name: Lint affected
         run: npx nx affected --target=lint --parallel=3
 
+      - name: Validate docs freshness
+        run: npm run docs:validate
+
       - name: Test affected
         run: npx nx affected --target=test --parallel=3 --ci
 
