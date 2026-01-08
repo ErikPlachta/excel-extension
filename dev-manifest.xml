@@ -87,7 +87,7 @@
       </bt:ShortStrings>
       <bt:LongStrings>
         <bt:String id="GetStarted.Description"
-          DefaultValue="This is the development task pane for excel-extension. Before using it in Excel, start the Angular dev server (npm start or npm run start:dev) so https://localhost:4200 is reachable. If you click 'Show Task Pane' and see a blank surface, the dev server is likely not running." />
+          DefaultValue="Dev task pane for excel-extension. Run 'npm start' first so localhost:4200 is reachable. Blank pane means dev server not running." />
         <bt:String id="TaskpaneButton.Tooltip"
           DefaultValue="Show the excel-extension dev task pane (requires localhost:4200 dev server)" />
       </bt:LongStrings>
