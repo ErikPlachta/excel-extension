@@ -617,6 +617,7 @@ export class ExcelService {
         },
       });
       table = createNewTable();
+      await ctx.sync();
     } else {
       if (!table.showHeaders) {
         table.showHeaders = true;
