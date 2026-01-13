@@ -26,7 +26,7 @@ export interface UiListItem {
   standalone: true,
   imports: [CommonModule],
   template: `
-    <ul *ngIf="items?.length; else empty">
+    <ul *ngIf="items.length; else empty">
       <li *ngFor="let item of items" (click)="select(item)" class="list-item">
         <div class="list-main">
           <strong>{{ item.label }}</strong>

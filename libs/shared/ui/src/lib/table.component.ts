@@ -14,7 +14,7 @@ import { Component, Input } from "@angular/core";
   standalone: true,
   imports: [CommonModule],
   template: `
-    <table *ngIf="rows?.length; else empty" [attr.aria-label]="ariaLabel" role="grid">
+    <table *ngIf="rows.length; else empty" [attr.aria-label]="ariaLabel" role="grid">
       <thead>
         <tr role="row">
           <th *ngFor="let col of columns" scope="col" role="columnheader">{{ col.header }}</th>
