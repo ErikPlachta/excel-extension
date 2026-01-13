@@ -9,6 +9,12 @@ import type {
   UserProfile,
   TokenPair,
 } from "@excel-platform/shared/types";
+import {
+  TokenPairSchema,
+  UserProfileSchema,
+  SignOutResponseSchema,
+  RevokeResponseSchema,
+} from "@excel-platform/shared/types";
 import { ApiConfigService } from "@excel-platform/data/api";
 
 /**
@@ -49,12 +55,17 @@ export class AuthApiService implements IAuthApiService {
    *
    * @param request - Sign-in request with Azure AD token
    * @returns Token pair (access + refresh)
-   * @throws Error if authentication fails
+   * @throws Error if authentication fails or response validation fails
    */
   async signIn(request: SignInRequest): Promise<TokenPair> {
-    return firstValueFrom(
-      this.http.post<TokenPair>(this.apiConfig.buildUrl('/auth/signin'), request)
+    const response = await firstValueFrom(
+      this.http.post<unknown>(this.apiConfig.buildUrl('/auth/signin'), request)
     );
+    const parsed = TokenPairSchema.safeParse(response);
+    if (!parsed.success) {
+      throw new Error(`Invalid signIn response: ${parsed.error.message}`);
+    }
+    return parsed.data as TokenPair;
   }
 
   /**
@@ -63,12 +74,17 @@ export class AuthApiService implements IAuthApiService {
    *
    * @param refreshToken - Current refresh token
    * @returns New token pair
-   * @throws Error if refresh token is invalid or revoked
+   * @throws Error if refresh token is invalid or revoked, or response validation fails
    */
   async refresh(refreshToken: string): Promise<TokenPair> {
-    return firstValueFrom(
-      this.http.post<TokenPair>(this.apiConfig.buildUrl('/auth/refresh'), { refreshToken })
+    const response = await firstValueFrom(
+      this.http.post<unknown>(this.apiConfig.buildUrl('/auth/refresh'), { refreshToken })
     );
+    const parsed = TokenPairSchema.safeParse(response);
+    if (!parsed.success) {
+      throw new Error(`Invalid refresh response: ${parsed.error.message}`);
+    }
+    return parsed.data as TokenPair;
   }
 
   /**
@@ -76,12 +92,17 @@ export class AuthApiService implements IAuthApiService {
    * Requires valid access token in Authorization header (added by interceptor).
    *
    * @returns User profile
-   * @throws Error if not authenticated
+   * @throws Error if not authenticated or response validation fails
    */
   async getProfile(): Promise<UserProfile> {
-    return firstValueFrom(
-      this.http.get<UserProfile>(this.apiConfig.buildUrl('/auth/profile'))
+    const response = await firstValueFrom(
+      this.http.get<unknown>(this.apiConfig.buildUrl('/auth/profile'))
     );
+    const parsed = UserProfileSchema.safeParse(response);
+    if (!parsed.success) {
+      throw new Error(`Invalid profile response: ${parsed.error.message}`);
+    }
+    return parsed.data as UserProfile;
   }
 
   /**
@@ -89,11 +110,17 @@ export class AuthApiService implements IAuthApiService {
    * Invalidates current session on server.
    *
    * @returns Sign-out result
+   * @throws Error if response validation fails
    */
   async signOut(): Promise<SignOutResponse> {
-    return firstValueFrom(
-      this.http.post<SignOutResponse>(this.apiConfig.buildUrl('/auth/signout'), {})
+    const response = await firstValueFrom(
+      this.http.post<unknown>(this.apiConfig.buildUrl('/auth/signout'), {})
     );
+    const parsed = SignOutResponseSchema.safeParse(response);
+    if (!parsed.success) {
+      throw new Error(`Invalid signOut response: ${parsed.error.message}`);
+    }
+    return parsed.data as SignOutResponse;
   }
 
   /**
@@ -102,10 +129,16 @@ export class AuthApiService implements IAuthApiService {
    *
    * @param refreshToken - Refresh token to revoke
    * @returns Revocation result
+   * @throws Error if response validation fails
    */
   async revoke(refreshToken: string): Promise<RevokeResponse> {
-    return firstValueFrom(
-      this.http.post<RevokeResponse>(this.apiConfig.buildUrl('/auth/revoke'), { refreshToken })
+    const response = await firstValueFrom(
+      this.http.post<unknown>(this.apiConfig.buildUrl('/auth/revoke'), { refreshToken })
     );
+    const parsed = RevokeResponseSchema.safeParse(response);
+    if (!parsed.success) {
+      throw new Error(`Invalid revoke response: ${parsed.error.message}`);
+    }
+    return parsed.data as RevokeResponse;
   }
 }

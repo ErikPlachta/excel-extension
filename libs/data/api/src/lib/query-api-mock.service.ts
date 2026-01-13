@@ -229,9 +229,24 @@ export class QueryApiMockService {
             .default as ExecuteQueryResultRow[];
           break;
         default:
+          this.telemetry.logEvent({
+            category: "query",
+            name: "mock:unknownApiId",
+            severity: "warn",
+            context: { queryId },
+          });
           return [];
       }
-    } catch {
+    } catch (error) {
+      this.telemetry.logEvent({
+        category: "query",
+        name: "mock:loadError",
+        severity: "error",
+        context: {
+          queryId,
+          error: error instanceof Error ? error.message : String(error),
+        },
+      });
       return [];
     }
 
