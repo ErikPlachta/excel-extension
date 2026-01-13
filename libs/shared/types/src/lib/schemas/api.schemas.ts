@@ -65,11 +65,11 @@ export const ExecutionResponseSchema = z.object({
 export const TokenPairSchema = z.object({
   access: z.object({
     token: z.string(),
-    expiresAt: z.string(),
+    expiresAt: z.number(),
   }),
   refresh: z.object({
     token: z.string(),
-    expiresAt: z.string(),
+    expiresAt: z.number(),
   }),
 });
 
@@ -81,6 +81,20 @@ export const UserProfileSchema = z.object({
   email: z.string().email(),
   displayName: z.string(),
   roles: z.array(z.string()),
+});
+
+/**
+ * Schema for sign-out response from auth endpoints.
+ */
+export const SignOutResponseSchema = z.object({
+  success: z.boolean(),
+});
+
+/**
+ * Schema for token revocation response from auth endpoints.
+ */
+export const RevokeResponseSchema = z.object({
+  success: z.boolean(),
 });
 
 /**
@@ -118,4 +132,6 @@ export type ExecuteApiResultRowParsed = z.infer<typeof ExecuteApiResultRowSchema
 export type ExecutionResponseParsed = z.infer<typeof ExecutionResponseSchema>;
 export type TokenPairParsed = z.infer<typeof TokenPairSchema>;
 export type UserProfileParsed = z.infer<typeof UserProfileSchema>;
+export type SignOutResponseParsed = z.infer<typeof SignOutResponseSchema>;
+export type RevokeResponseParsed = z.infer<typeof RevokeResponseSchema>;
 export type CatalogResponseParsed = z.infer<typeof CatalogResponseSchema>;
