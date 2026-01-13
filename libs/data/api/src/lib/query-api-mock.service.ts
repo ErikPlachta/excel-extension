@@ -232,7 +232,7 @@ export class QueryApiMockService {
           this.telemetry.logEvent({
             category: "query",
             name: "mock:unknownApiId",
-            severity: "warning",
+            severity: "warn",
             context: { queryId },
           });
           return [];
