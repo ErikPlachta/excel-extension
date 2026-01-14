@@ -43,6 +43,11 @@ export const QueryExecutionSettingsSchema = z.object({
   apiPageSize: z.number().min(1),
   chunkBackoffMs: z.number().min(0),
   disableFormulasDuringRun: z.boolean(),
+  excelRunTimeoutMs: z.number().min(1000),
+  maxExecutionTimeMs: z.number().min(1000),
+  fetchTimeoutMs: z.number().min(1000),
+  maxConcurrentRequests: z.number().min(1).max(20),
+  cleanupOnPartialFailure: z.boolean(),
 });
 
 /**

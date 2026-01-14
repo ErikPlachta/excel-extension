@@ -27,6 +27,11 @@ const DEFAULT_SETTINGS: AppSettings = {
     apiPageSize: 1000,
     chunkBackoffMs: 100,
     disableFormulasDuringRun: true,
+    excelRunTimeoutMs: 30000,
+    maxExecutionTimeMs: 120000,
+    fetchTimeoutMs: 30000,
+    maxConcurrentRequests: 5,
+    cleanupOnPartialFailure: true,
   },
 };
 

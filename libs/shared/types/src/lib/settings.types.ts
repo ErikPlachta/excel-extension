@@ -44,6 +44,21 @@ export interface QueryExecutionSettings {
 
   /** Disable Excel formula recalculation during query execution (default: true) */
   disableFormulasDuringRun: boolean;
+
+  /** Maximum time for a single Excel.run() operation in ms (default: 30000) */
+  excelRunTimeoutMs: number;
+
+  /** Maximum time for total query execution including all chunks in ms (default: 120000) */
+  maxExecutionTimeMs: number;
+
+  /** Maximum time for a single API fetch in ms (default: 30000) */
+  fetchTimeoutMs: number;
+
+  /** Maximum concurrent API requests (default: 5) */
+  maxConcurrentRequests: number;
+
+  /** Whether to auto-cleanup partial writes on error (default: true) */
+  cleanupOnPartialFailure: boolean;
 }
 
 export interface AppSettings {
