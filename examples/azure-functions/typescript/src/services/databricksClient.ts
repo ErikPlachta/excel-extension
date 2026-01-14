@@ -63,6 +63,12 @@ interface DatabricksResponse {
   };
 }
 
+/** Response from chunk endpoint (flat structure, not nested) */
+interface DatabricksChunkResponse {
+  chunk_index: number;
+  data_array?: unknown[][];
+}
+
 // =============================================================================
 // Client
 // =============================================================================
@@ -131,7 +137,7 @@ export class DatabricksClient {
    * Get a specific result chunk by index.
    */
   async getChunk(statementId: string, chunkIndex: number): Promise<StatementResult> {
-    const response = await this.fetch(
+    const response = await this.fetchChunk(
       `/api/2.0/sql/statements/${statementId}/result/chunks/${chunkIndex}`
     );
 
@@ -158,6 +164,14 @@ export class DatabricksClient {
   }
 
   private async fetch(path: string, options?: RequestInit): Promise<DatabricksResponse> {
+    return this.doFetch<DatabricksResponse>(path, options);
+  }
+
+  private async fetchChunk(path: string): Promise<DatabricksChunkResponse> {
+    return this.doFetch<DatabricksChunkResponse>(path);
+  }
+
+  private async doFetch<T>(path: string, options?: RequestInit): Promise<T> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
@@ -177,7 +191,7 @@ export class DatabricksClient {
         throw new Error(`Databricks API error ${response.status}: ${text}`);
       }
 
-      return response.json() as Promise<DatabricksResponse>;
+      return response.json() as Promise<T>;
     } finally {
       clearTimeout(timeoutId);
     }
