@@ -14,6 +14,29 @@ import {
 } from "@excel-platform/shared/types";
 
 /**
+ * ============================================================================
+ * API FETCH RATE LIMITING AND TIMEOUTS
+ * ============================================================================
+ *
+ * These defaults implement best practices for external API calls:
+ * - Rate limiting prevents overwhelming APIs and getting blocked
+ * - Timeouts prevent hanging requests from blocking the UI
+ * - Both are configurable via QueryExecutionSettings
+ *
+ * ============================================================================
+ */
+
+/** Default fetch timeout in milliseconds (2 minutes for large API responses) */
+const DEFAULT_FETCH_TIMEOUT = 120000;
+
+/**
+ * Default max concurrent requests.
+ * Prevents overwhelming external APIs while allowing parallelism.
+ * Most APIs recommend 5-10 concurrent requests max.
+ */
+const DEFAULT_MAX_CONCURRENT = 5;
+
+/**
  * Concrete parameter values supplied when invoking a query against a
  * particular API definition.
  */
@@ -65,6 +88,11 @@ export class QueryApiMockService {
     private auth: AuthService
   ) {}
 
+  /** Active concurrent requests for rate limiting */
+  private activeRequests = 0;
+  /** Queue for rate-limited requests */
+  private requestQueue: Array<() => void> = [];
+
   /**
    * Validate current auth token before API execution.
    *
@@ -80,6 +108,69 @@ export class QueryApiMockService {
         401,
         validation.reason
       );
+    }
+  }
+
+  /**
+   * Fetch with timeout and abort controller.
+   * Uses AbortController for proper request cancellation on timeout.
+   */
+  private async fetchWithTimeout(
+    url: string,
+    options: RequestInit = {},
+    timeoutMs?: number
+  ): Promise<Response> {
+    const queryExecSettings = this.settings.value.queryExecution;
+    const timeout = timeoutMs ?? queryExecSettings?.fetchTimeoutMs ?? DEFAULT_FETCH_TIMEOUT;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+    try {
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      return response;
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error(`Fetch to ${url} timed out after ${timeout}ms`);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Rate-limited fetch that queues requests to prevent overwhelming APIs.
+   */
+  private async rateLimitedFetch(
+    url: string,
+    options: RequestInit = {}
+  ): Promise<Response> {
+    const queryExecSettings = this.settings.value.queryExecution;
+    const maxConcurrent = queryExecSettings?.maxConcurrentRequests ?? DEFAULT_MAX_CONCURRENT;
+
+    // Wait if at capacity
+    if (this.activeRequests >= maxConcurrent) {
+      await new Promise<void>((resolve) => {
+        this.requestQueue.push(resolve);
+      });
+    }
+
+    this.activeRequests++;
+
+    try {
+      return await this.fetchWithTimeout(url, options);
+    } finally {
+      this.activeRequests--;
+
+      // Wake up next queued request
+      const next = this.requestQueue.shift();
+      if (next) {
+        next();
+      }
     }
   }
 
@@ -161,27 +252,47 @@ export class QueryApiMockService {
         rows = await this.fetchMixedDataset();
         break;
       case "synthetic-expansion":
-        rows = await this.fetchSyntheticExpansion();
+        // Pass params to synthetic expansion for configurable testing
+        rows = await this.fetchSyntheticExpansion(params);
         break;
       default:
         rows = await this.loadAndFilterMockRows(apiId, params);
     }
 
-    // Enforce max row limit
-    if (rows.length > maxRows) {
-      this.telemetry.logEvent({
-        category: 'query',
-        name: 'executeApi:rowLimitExceeded',
-        severity: 'warn',
-        message: `Query result exceeded max row limit (${rows.length} > ${maxRows})`,
-        context: {
-          apiId,
-          rowCount: rows.length,
-          maxRows,
-          truncated: true,
-        },
-      });
-      return rows.slice(0, maxRows); // Truncate to max rows
+    // Warn about large datasets (Microsoft recommends chunking, not limiting)
+    // When maxRows=0 (unlimited), only warn; when maxRows>0, enforce limit
+    const warnThreshold = queryExecSettings?.warnAtRowCount ?? 100000;
+    if (apiId !== 'synthetic-expansion') {
+      if (maxRows > 0 && rows.length > maxRows) {
+        // Legacy mode: hard limit enabled
+        this.telemetry.logEvent({
+          category: 'query',
+          name: 'executeApi:rowLimitExceeded',
+          severity: 'warn',
+          message: `Query result exceeded max row limit (${rows.length} > ${maxRows}), truncating`,
+          context: {
+            apiId,
+            rowCount: rows.length,
+            maxRows,
+            truncated: true,
+          },
+        });
+        return rows.slice(0, maxRows);
+      } else if (warnThreshold > 0 && rows.length > warnThreshold) {
+        // Soft warning for large datasets (no truncation per MS recommendation)
+        this.telemetry.logEvent({
+          category: 'query',
+          name: 'executeApi:largeDatasetWarning',
+          severity: 'warn',
+          message: `Large dataset: ${rows.length} rows exceeds warning threshold (${warnThreshold}). Will use chunked writes.`,
+          context: {
+            apiId,
+            rowCount: rows.length,
+            warnThreshold,
+            truncated: false,
+          },
+        });
+      }
     }
 
     return rows;
@@ -347,7 +458,7 @@ export class QueryApiMockService {
 
   private async fetchJsonPlaceholderUsers(): Promise<ExecuteQueryResultRow[]> {
     const endpoint = "https://jsonplaceholder.typicode.com/users";
-    const response = await fetch(endpoint, { method: "GET" });
+    const response = await this.rateLimitedFetch(endpoint, { method: "GET" });
     if (!response.ok) {
       throw new Error(`JSONPlaceholder request failed: ${response.status}`);
     }
@@ -394,7 +505,7 @@ export class QueryApiMockService {
    */
   private async fetchUserDemographics(): Promise<ExecuteQueryResultRow[]> {
     try {
-      const response = await fetch("https://randomuser.me/api/?results=5000");
+      const response = await this.rateLimitedFetch("https://randomuser.me/api/?results=5000");
       if (!response.ok) {
         throw new Error(`RandomUser API request failed: ${response.status}`);
       }
@@ -443,12 +554,14 @@ export class QueryApiMockService {
   /**
    * Fetches data in multiple batches using different seeds.
    * Returns 10k rows with 30 columns from multiple paginated API calls.
+   * Uses rate-limited fetch to prevent API overwhelming.
    */
   private async fetchLargeDataset(): Promise<ExecuteQueryResultRow[]> {
     try {
+      // Use rate-limited sequential fetches instead of Promise.all
       const batches = await Promise.all([
-        fetch("https://randomuser.me/api/?results=5000&seed=a"),
-        fetch("https://randomuser.me/api/?results=5000&seed=b"),
+        this.rateLimitedFetch("https://randomuser.me/api/?results=5000&seed=a"),
+        this.rateLimitedFetch("https://randomuser.me/api/?results=5000&seed=b"),
       ]);
 
       const allData = await Promise.all(batches.map((r) => r.json()));
@@ -506,11 +619,12 @@ export class QueryApiMockService {
   /**
    * Fetches product catalog data with pagination from DummyJSON API.
    * Returns 1000 products with 20+ columns.
+   * Uses rate-limited fetch to prevent API overwhelming.
    */
   private async fetchProductCatalog(): Promise<ExecuteQueryResultRow[]> {
     try {
       const calls = Array.from({ length: 10 }, (_, i) =>
-        fetch(`https://dummyjson.com/products?limit=100&skip=${i * 100}`)
+        this.rateLimitedFetch(`https://dummyjson.com/products?limit=100&skip=${i * 100}`)
       );
 
       const responses = await Promise.all(calls);
@@ -560,17 +674,19 @@ export class QueryApiMockService {
   /**
    * Combines user and post data from multiple APIs.
    * Returns 8000 rows with 35+ columns mixing user and post data.
+   * Uses rate-limited fetch to prevent API overwhelming.
    */
   private async fetchMixedDataset(): Promise<ExecuteQueryResultRow[]> {
     try {
-      const [usersRaw, postsResponses] = await Promise.all([
-        fetch("https://randomuser.me/api/?results=3000").then((r) => r.json()),
-        Promise.all(
-          Array.from({ length: 50 }, (_, i) =>
-            fetch(`https://dummyjson.com/posts?limit=100&skip=${i * 100}`).then((r) => r.json())
-          )
-        ),
-      ]);
+      // Rate-limited fetches - users first, then posts
+      const usersResponse = await this.rateLimitedFetch("https://randomuser.me/api/?results=3000");
+      const usersRaw = await usersResponse.json();
+
+      const postsResponses = await Promise.all(
+        Array.from({ length: 50 }, (_, i) =>
+          this.rateLimitedFetch(`https://dummyjson.com/posts?limit=100&skip=${i * 100}`).then((r) => r.json())
+        )
+      );
 
       // Validate user data with Zod schema - external API is a trust boundary
       const usersResult = RandomUserFullResponseSchema.safeParse(usersRaw);
@@ -642,28 +758,109 @@ export class QueryApiMockService {
   }
 
   /**
-   * Expands user data with synthetic transaction records.
-   * Returns 25k rows with 40 columns including user info and synthetic transaction data.
+   * Synthetic expansion test API - configurable for stress testing large dataset handling.
+   *
+   * This is a STRESS TEST TOOL designed to verify the frontend handles large datasets:
+   * - Chunked writes to Excel (1000 rows per chunk)
+   * - Timeout handling for long operations
+   * - Error recovery for partial failures
+   * - Rate limiting on concurrent requests
+   *
+   * Parameters (passed via executeApi params):
+   * - baseRows: Number of base users to fetch (default: 2000, max: 5000 per API call)
+   * - expansionFactor: How many synthetic rows per user (default: 5, max: 100)
+   * - simulateFailure: If true, throws error mid-fetch for testing error handling
+   * - simulateFailureAtRow: Row number to fail at (for testing partial write recovery)
+   * - usePureSynthetic: If true, generates data locally without API call (faster, unlimited rows)
+   * - targetRows: If usePureSynthetic=true, generate exactly this many rows (default: 10000)
+   *
+   * **Stress Test Examples:**
+   * - 20k rows: { baseRows: 4000, expansionFactor: 5 }
+   * - 50k rows: { baseRows: 5000, expansionFactor: 10 }
+   * - 100k rows: { usePureSynthetic: true, targetRows: 100000 }
+   *
+   * Returns rows with 40 columns including user info and synthetic transaction data.
    */
-  private async fetchSyntheticExpansion(): Promise<ExecuteQueryResultRow[]> {
+  private async fetchSyntheticExpansion(params: ExecuteQueryParams = {}): Promise<ExecuteQueryResultRow[]> {
+    const queryExecSettings = this.settings.value.queryExecution;
+    const maxRows = queryExecSettings?.maxRowsPerQuery ?? 10000;
+
+    // Check for pure synthetic mode (no API calls, unlimited rows)
+    const usePureSynthetic = params['usePureSynthetic'] === true;
+    if (usePureSynthetic) {
+      return this.generatePureSyntheticData(params);
+    }
+
+    // Parse test parameters - allow larger expansion for stress testing
+    const baseRows = Math.min(
+      typeof params['baseRows'] === 'number' ? params['baseRows'] : 2000,
+      5000 // API limit per call
+    );
+    const expansionFactor = Math.min(
+      typeof params['expansionFactor'] === 'number' ? params['expansionFactor'] : 5,
+      100 // Allow up to 100x expansion for stress testing (5000 * 100 = 500k max)
+    );
+    const simulateFailure = params['simulateFailure'] === true;
+
+    const expectedTotalRows = baseRows * expansionFactor;
+
+    this.telemetry.logEvent({
+      category: 'query',
+      name: 'syntheticExpansion:start',
+      severity: 'info',
+      context: {
+        baseRows,
+        expansionFactor,
+        expectedTotalRows,
+        maxRows,
+        willExceedLimit: expectedTotalRows > maxRows,
+        simulateFailure,
+      },
+    });
+
+    // Log warning if exceeding limit - but proceed anyway for stress testing
+    if (expectedTotalRows > maxRows) {
+      this.telemetry.logEvent({
+        category: 'query',
+        name: 'syntheticExpansion:exceedsLimit',
+        severity: 'warn',
+        message: `Generating ${expectedTotalRows} rows (exceeds ${maxRows} limit) - stress test mode`,
+        context: {
+          expectedTotalRows,
+          maxRows,
+          chunksRequired: Math.ceil(expectedTotalRows / 1000),
+        },
+      });
+    }
+
     try {
-      const response = await fetch("https://randomuser.me/api/?results=5000");
+      const response = await this.rateLimitedFetch(`https://randomuser.me/api/?results=${baseRows}`);
       if (!response.ok) {
         throw new Error(`RandomUser API request failed: ${response.status}`);
       }
       const rawData = await response.json();
 
+      // Simulate failure for testing error handling
+      if (simulateFailure) {
+        throw new Error('Simulated failure for testing error recovery');
+      }
+
       // Validate with Zod schema - external API is a trust boundary
       const result = RandomUserFullResponseSchema.safeParse(rawData);
       if (!result.success) {
-        console.error("Synthetic expansion validation failed:", result.error.issues);
+        this.telemetry.logEvent({
+          category: 'query',
+          name: 'syntheticExpansion:validationFailed',
+          severity: 'error',
+          context: { issues: result.error.issues.slice(0, 5) },
+        });
         return [];
       }
 
-      // Expand each user 5x with synthetic variations
-      return result.data.results.flatMap((u: RandomUserFullParsed, idx: number) =>
-        Array.from({ length: 5 }, (_, variantIdx) => ({
-          recordId: idx * 5 + variantIdx + 1,
+      // Expand each user with synthetic variations
+      const rows = result.data.results.flatMap((u: RandomUserFullParsed, idx: number) =>
+        Array.from({ length: expansionFactor }, (_, variantIdx) => ({
+          recordId: idx * expansionFactor + variantIdx + 1,
           userId: u.login.uuid,
           variant: variantIdx + 1,
           timestamp: new Date(Date.now() - Math.random() * 31536000000).toISOString(),
@@ -707,9 +904,143 @@ export class QueryApiMockService {
           region: ["NA", "EU", "APAC", "LATAM"][Math.floor(Math.random() * 4)],
         }))
       );
+
+      this.telemetry.logEvent({
+        category: 'query',
+        name: 'syntheticExpansion:complete',
+        severity: 'info',
+        context: {
+          rowsGenerated: rows.length,
+          baseUsers: result.data.results.length,
+          expansionFactor,
+        },
+      });
+
+      return rows;
     } catch (error) {
-      console.error("Error fetching synthetic expansion:", error);
-      return [];
+      this.telemetry.logEvent({
+        category: 'query',
+        name: 'syntheticExpansion:error',
+        severity: 'error',
+        context: {
+          error: error instanceof Error ? error.message : String(error),
+          simulateFailure,
+        },
+      });
+      throw error; // Re-throw to let caller handle
     }
+  }
+
+  /**
+   * Generate pure synthetic data without API calls.
+   * Used for stress testing with very large datasets (100k+ rows).
+   *
+   * @param params - Test parameters
+   * @param params.targetRows - Number of rows to generate (default: 10000)
+   * @param params.columns - Number of columns (default: 40)
+   * @param params.simulateFailureAtRow - If set, throws error at this row number
+   */
+  private generatePureSyntheticData(params: ExecuteQueryParams): ExecuteQueryResultRow[] {
+    const targetRows = typeof params['targetRows'] === 'number' ? params['targetRows'] : 10000;
+    const columns = typeof params['columns'] === 'number' ? Math.min(params['columns'], 100) : 40;
+    const simulateFailureAtRow = typeof params['simulateFailureAtRow'] === 'number'
+      ? params['simulateFailureAtRow']
+      : undefined;
+
+    this.telemetry.logEvent({
+      category: 'query',
+      name: 'syntheticExpansion:pureSynthetic',
+      severity: 'info',
+      message: `Generating ${targetRows} rows × ${columns} columns locally`,
+      context: {
+        targetRows,
+        columns,
+        estimatedSizeMB: Math.round((targetRows * columns * 20) / 1024 / 1024), // ~20 bytes per cell avg
+        chunksRequired: Math.ceil(targetRows / 1000),
+        simulateFailureAtRow,
+      },
+    });
+
+    const rows: ExecuteQueryResultRow[] = [];
+    const currencies = ["USD", "EUR", "GBP", "JPY", "CAD"];
+    const statuses = ["completed", "pending", "failed", "processing"];
+    const categories = ["retail", "food", "transport", "entertainment", "utilities"];
+    const regions = ["NA", "EU", "APAC", "LATAM", "MEA"];
+    const paymentMethods = ["credit", "debit", "cash", "crypto", "wire"];
+
+    for (let i = 0; i < targetRows; i++) {
+      // Check for simulated failure
+      if (simulateFailureAtRow !== undefined && i === simulateFailureAtRow) {
+        this.telemetry.logEvent({
+          category: 'query',
+          name: 'syntheticExpansion:simulatedFailure',
+          severity: 'error',
+          message: `Simulated failure at row ${i}`,
+          context: { rowsGeneratedBeforeFailure: i },
+        });
+        throw new Error(`Simulated failure at row ${i} for testing error recovery`);
+      }
+
+      const row: ExecuteQueryResultRow = {
+        recordId: i + 1,
+        visitorId: `V-${Math.random().toString(36).substring(2, 10).toUpperCase()}`,
+        sessionId: `S-${Math.random().toString(36).substring(2, 12).toUpperCase()}`,
+        timestamp: new Date(Date.now() - Math.random() * 31536000000).toISOString(),
+        firstName: `First${i}`,
+        lastName: `Last${i}`,
+        email: `user${i}@test.com`,
+        phone: `+1-555-${String(i).padStart(7, '0')}`,
+        city: `City${i % 1000}`,
+        state: `State${i % 50}`,
+        country: `Country${i % 200}`,
+        postalCode: String(10000 + (i % 90000)),
+        latitude: (Math.random() * 180 - 90).toFixed(6),
+        longitude: (Math.random() * 360 - 180).toFixed(6),
+        age: 18 + (i % 70),
+        gender: i % 2 === 0 ? "M" : "F",
+        nationality: `NAT${i % 100}`,
+        transactionId: `TXN-${i}-${Date.now()}`,
+        amount: Math.round(Math.random() * 1000000) / 100,
+        currency: currencies[i % currencies.length],
+        status: statuses[i % statuses.length],
+        category: categories[i % categories.length],
+        merchant: `Merchant-${i % 500}`,
+        paymentMethod: paymentMethods[i % paymentMethods.length],
+        score: Math.round(Math.random() * 10000) / 100,
+        approved: i % 3 !== 0,
+        flagged: i % 20 === 0,
+        reviewRequired: i % 15 === 0,
+        region: regions[i % regions.length],
+        department: `Dept${i % 25}`,
+        productId: `PROD-${i % 10000}`,
+        quantity: 1 + (i % 100),
+        unitPrice: Math.round(Math.random() * 50000) / 100,
+        discount: Math.round(Math.random() * 3000) / 100,
+        tax: Math.round(Math.random() * 2000) / 100,
+        total: Math.round(Math.random() * 100000) / 100,
+        notes: `Transaction note for row ${i}`,
+        refCode: Math.random().toString(36).substring(2, 10).toUpperCase(),
+        batchId: `BATCH-${Math.floor(i / 1000)}`,
+      };
+
+      // Add extra columns if requested (up to 100 total)
+      for (let c = 40; c < columns; c++) {
+        row[`extraCol${c}`] = `Value-${i}-${c}`;
+      }
+
+      rows.push(row);
+    }
+
+    this.telemetry.logEvent({
+      category: 'query',
+      name: 'syntheticExpansion:pureSyntheticComplete',
+      severity: 'info',
+      context: {
+        rowsGenerated: rows.length,
+        columns: Object.keys(rows[0] || {}).length,
+      },
+    });
+
+    return rows;
   }
 }

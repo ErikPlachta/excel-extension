@@ -21,12 +21,20 @@ const DEFAULT_SETTINGS: AppSettings = {
     },
   },
   queryExecution: {
-    maxRowsPerQuery: 10000,
-    chunkSize: 1000,
+    maxRowsPerQuery: 0, // 0 = unlimited (Microsoft recommends chunking, not limits)
+    chunkSize: 5000, // MS recommends 5k-20k; adaptive sizing reduces for wide tables
     enableProgressiveLoading: true,
     apiPageSize: 1000,
     chunkBackoffMs: 100,
     disableFormulasDuringRun: true,
+    excelRunTimeoutMs: 60000, // 60s per chunk for wide tables
+    maxExecutionTimeMs: 600000, // 10 minutes for 100k+ rows
+    fetchTimeoutMs: 120000, // 2 min for large API responses
+    maxConcurrentRequests: 5,
+    cleanupOnPartialFailure: true,
+    suspendCalculationThreshold: 5000, // Suspend calc for >5k rows per MS recommendation
+    maxChunkRetries: 3, // Retry with smaller chunks up to 3 times
+    warnAtRowCount: 100000, // Warn user about datasets >100k rows
   },
 };
 
