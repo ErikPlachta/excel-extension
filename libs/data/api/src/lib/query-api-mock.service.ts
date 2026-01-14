@@ -738,19 +738,26 @@ export class QueryApiMockService {
   }
 
   /**
-   * Synthetic expansion test API - configurable for testing large dataset handling.
+   * Synthetic expansion test API - configurable for stress testing large dataset handling.
    *
-   * This is a TEST TOOL designed to simulate various large data scenarios:
-   * - Normal operation within limits
-   * - Exceeding row limits (to test truncation handling)
-   * - Very large payloads (to test chunking)
-   * - Error scenarios (to test recovery)
+   * This is a STRESS TEST TOOL designed to verify the frontend handles large datasets:
+   * - Chunked writes to Excel (1000 rows per chunk)
+   * - Timeout handling for long operations
+   * - Error recovery for partial failures
+   * - Rate limiting on concurrent requests
    *
    * Parameters (passed via executeApi params):
-   * - baseRows: Number of base users to fetch (default: 2000, capped by settings)
-   * - expansionFactor: How many synthetic rows per user (default: 5)
+   * - baseRows: Number of base users to fetch (default: 2000, max: 5000 per API call)
+   * - expansionFactor: How many synthetic rows per user (default: 5, max: 100)
    * - simulateFailure: If true, throws error mid-fetch for testing error handling
-   * - respectLimit: If true (default), caps output at maxRowsPerQuery
+   * - simulateFailureAtRow: Row number to fail at (for testing partial write recovery)
+   * - usePureSynthetic: If true, generates data locally without API call (faster, unlimited rows)
+   * - targetRows: If usePureSynthetic=true, generate exactly this many rows (default: 10000)
+   *
+   * **Stress Test Examples:**
+   * - 20k rows: { baseRows: 4000, expansionFactor: 5 }
+   * - 50k rows: { baseRows: 5000, expansionFactor: 10 }
+   * - 100k rows: { usePureSynthetic: true, targetRows: 100000 }
    *
    * Returns rows with 40 columns including user info and synthetic transaction data.
    */
@@ -758,17 +765,22 @@ export class QueryApiMockService {
     const queryExecSettings = this.settings.value.queryExecution;
     const maxRows = queryExecSettings?.maxRowsPerQuery ?? 10000;
 
-    // Parse test parameters
+    // Check for pure synthetic mode (no API calls, unlimited rows)
+    const usePureSynthetic = params['usePureSynthetic'] === true;
+    if (usePureSynthetic) {
+      return this.generatePureSyntheticData(params);
+    }
+
+    // Parse test parameters - allow larger expansion for stress testing
     const baseRows = Math.min(
       typeof params['baseRows'] === 'number' ? params['baseRows'] : 2000,
-      5000 // API limit
+      5000 // API limit per call
     );
     const expansionFactor = Math.min(
       typeof params['expansionFactor'] === 'number' ? params['expansionFactor'] : 5,
-      10 // Reasonable cap
+      100 // Allow up to 100x expansion for stress testing (5000 * 100 = 500k max)
     );
     const simulateFailure = params['simulateFailure'] === true;
-    const respectLimit = params['respectLimit'] !== false; // Default true
 
     const expectedTotalRows = baseRows * expansionFactor;
 
@@ -782,34 +794,22 @@ export class QueryApiMockService {
         expectedTotalRows,
         maxRows,
         willExceedLimit: expectedTotalRows > maxRows,
-        respectLimit,
         simulateFailure,
       },
     });
 
-    // Check if expansion would exceed limit
-    if (expectedTotalRows > maxRows && respectLimit) {
-      // Calculate safe base rows to stay within limit
-      const safeBaseRows = Math.floor(maxRows / expansionFactor);
-
+    // Log warning if exceeding limit - but proceed anyway for stress testing
+    if (expectedTotalRows > maxRows) {
       this.telemetry.logEvent({
         category: 'query',
-        name: 'syntheticExpansion:limitAdjusted',
+        name: 'syntheticExpansion:exceedsLimit',
         severity: 'warn',
-        message: `Reducing base rows from ${baseRows} to ${safeBaseRows} to stay within ${maxRows} row limit`,
+        message: `Generating ${expectedTotalRows} rows (exceeds ${maxRows} limit) - stress test mode`,
         context: {
-          requestedBaseRows: baseRows,
-          adjustedBaseRows: safeBaseRows,
-          expansionFactor,
+          expectedTotalRows,
           maxRows,
+          chunksRequired: Math.ceil(expectedTotalRows / 1000),
         },
-      });
-
-      // Use adjusted base rows - recursive call with safe params
-      return this.fetchSyntheticExpansion({
-        ...params,
-        baseRows: safeBaseRows,
-        respectLimit: false, // Already adjusted, don't adjust again
       });
     }
 
@@ -909,5 +909,118 @@ export class QueryApiMockService {
       });
       throw error; // Re-throw to let caller handle
     }
+  }
+
+  /**
+   * Generate pure synthetic data without API calls.
+   * Used for stress testing with very large datasets (100k+ rows).
+   *
+   * @param params - Test parameters
+   * @param params.targetRows - Number of rows to generate (default: 10000)
+   * @param params.columns - Number of columns (default: 40)
+   * @param params.simulateFailureAtRow - If set, throws error at this row number
+   */
+  private generatePureSyntheticData(params: ExecuteQueryParams): ExecuteQueryResultRow[] {
+    const targetRows = typeof params['targetRows'] === 'number' ? params['targetRows'] : 10000;
+    const columns = typeof params['columns'] === 'number' ? Math.min(params['columns'], 100) : 40;
+    const simulateFailureAtRow = typeof params['simulateFailureAtRow'] === 'number'
+      ? params['simulateFailureAtRow']
+      : undefined;
+
+    this.telemetry.logEvent({
+      category: 'query',
+      name: 'syntheticExpansion:pureSynthetic',
+      severity: 'info',
+      message: `Generating ${targetRows} rows × ${columns} columns locally`,
+      context: {
+        targetRows,
+        columns,
+        estimatedSizeMB: Math.round((targetRows * columns * 20) / 1024 / 1024), // ~20 bytes per cell avg
+        chunksRequired: Math.ceil(targetRows / 1000),
+        simulateFailureAtRow,
+      },
+    });
+
+    const rows: ExecuteQueryResultRow[] = [];
+    const currencies = ["USD", "EUR", "GBP", "JPY", "CAD"];
+    const statuses = ["completed", "pending", "failed", "processing"];
+    const categories = ["retail", "food", "transport", "entertainment", "utilities"];
+    const regions = ["NA", "EU", "APAC", "LATAM", "MEA"];
+    const paymentMethods = ["credit", "debit", "cash", "crypto", "wire"];
+
+    for (let i = 0; i < targetRows; i++) {
+      // Check for simulated failure
+      if (simulateFailureAtRow !== undefined && i === simulateFailureAtRow) {
+        this.telemetry.logEvent({
+          category: 'query',
+          name: 'syntheticExpansion:simulatedFailure',
+          severity: 'error',
+          message: `Simulated failure at row ${i}`,
+          context: { rowsGeneratedBeforeFailure: i },
+        });
+        throw new Error(`Simulated failure at row ${i} for testing error recovery`);
+      }
+
+      const row: ExecuteQueryResultRow = {
+        recordId: i + 1,
+        visitorId: `V-${Math.random().toString(36).substring(2, 10).toUpperCase()}`,
+        sessionId: `S-${Math.random().toString(36).substring(2, 12).toUpperCase()}`,
+        timestamp: new Date(Date.now() - Math.random() * 31536000000).toISOString(),
+        firstName: `First${i}`,
+        lastName: `Last${i}`,
+        email: `user${i}@test.com`,
+        phone: `+1-555-${String(i).padStart(7, '0')}`,
+        city: `City${i % 1000}`,
+        state: `State${i % 50}`,
+        country: `Country${i % 200}`,
+        postalCode: String(10000 + (i % 90000)),
+        latitude: (Math.random() * 180 - 90).toFixed(6),
+        longitude: (Math.random() * 360 - 180).toFixed(6),
+        age: 18 + (i % 70),
+        gender: i % 2 === 0 ? "M" : "F",
+        nationality: `NAT${i % 100}`,
+        transactionId: `TXN-${i}-${Date.now()}`,
+        amount: Math.round(Math.random() * 1000000) / 100,
+        currency: currencies[i % currencies.length],
+        status: statuses[i % statuses.length],
+        category: categories[i % categories.length],
+        merchant: `Merchant-${i % 500}`,
+        paymentMethod: paymentMethods[i % paymentMethods.length],
+        score: Math.round(Math.random() * 10000) / 100,
+        approved: i % 3 !== 0,
+        flagged: i % 20 === 0,
+        reviewRequired: i % 15 === 0,
+        region: regions[i % regions.length],
+        department: `Dept${i % 25}`,
+        productId: `PROD-${i % 10000}`,
+        quantity: 1 + (i % 100),
+        unitPrice: Math.round(Math.random() * 50000) / 100,
+        discount: Math.round(Math.random() * 3000) / 100,
+        tax: Math.round(Math.random() * 2000) / 100,
+        total: Math.round(Math.random() * 100000) / 100,
+        notes: `Transaction note for row ${i}`,
+        refCode: Math.random().toString(36).substring(2, 10).toUpperCase(),
+        batchId: `BATCH-${Math.floor(i / 1000)}`,
+      };
+
+      // Add extra columns if requested (up to 100 total)
+      for (let c = 40; c < columns; c++) {
+        row[`extraCol${c}`] = `Value-${i}-${c}`;
+      }
+
+      rows.push(row);
+    }
+
+    this.telemetry.logEvent({
+      category: 'query',
+      name: 'syntheticExpansion:pureSyntheticComplete',
+      severity: 'info',
+      context: {
+        rowsGenerated: rows.length,
+        columns: Object.keys(rows[0] || {}).length,
+      },
+    });
+
+    return rows;
   }
 }
