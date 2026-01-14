@@ -37,7 +37,7 @@ export const TelemetrySettingsSchema = z.object({
  * Matches QueryExecutionSettings interface from settings.types.ts.
  */
 export const QueryExecutionSettingsSchema = z.object({
-  maxRowsPerQuery: z.number().min(1),
+  maxRowsPerQuery: z.number().min(0), // 0 = unlimited (MS recommends chunking, not limits)
   chunkSize: z.number().min(1),
   enableProgressiveLoading: z.boolean(),
   apiPageSize: z.number().min(1),
@@ -48,6 +48,9 @@ export const QueryExecutionSettingsSchema = z.object({
   fetchTimeoutMs: z.number().min(1000),
   maxConcurrentRequests: z.number().min(1).max(20),
   cleanupOnPartialFailure: z.boolean(),
+  suspendCalculationThreshold: z.number().min(0).default(5000), // 0 = never suspend
+  maxChunkRetries: z.number().min(0).max(10).default(3),
+  warnAtRowCount: z.number().min(0).default(100000), // 0 = no warning
 });
 
 /**

@@ -13,12 +13,74 @@ import {
 import { TelemetryService } from "@excel-platform/core/telemetry";
 import { SettingsService } from "@excel-platform/core/settings";
 
-/** Default timeout for Excel.run operations in ms */
-const DEFAULT_EXCEL_RUN_TIMEOUT = 30000;
-/** Default max execution time for entire operation in ms */
-const DEFAULT_MAX_EXECUTION_TIME = 120000;
-/** Excel cell value max character limit */
+/**
+ * ============================================================================
+ * MICROSOFT OFFICE.JS LIMITS AND BEST PRACTICES
+ * ============================================================================
+ *
+ * Source: Microsoft Learn Documentation (2025)
+ * - https://learn.microsoft.com/en-us/office/dev/add-ins/excel/excel-add-ins-ranges-large
+ * - https://learn.microsoft.com/en-us/office/dev/add-ins/excel/performance
+ * - https://learn.microsoft.com/en-us/office/dev/add-ins/concepts/resource-limits-and-performance-optimization
+ *
+ * KEY LIMITS:
+ * -----------
+ * | Limit                    | Value        | Platform    | Notes                              |
+ * |--------------------------|--------------|-------------|------------------------------------|
+ * | Payload size             | 5 MB         | Excel Web   | Request/response combined          |
+ * | Cell limit per get       | 5 million    | All         | Per single range operation         |
+ * | Row limit per sheet      | 1,048,576    | All         | Excel's maximum rows               |
+ * | Column limit per sheet   | 16,384       | All         | Excel's maximum columns            |
+ * | Cell character limit     | 32,767       | All         | Max chars per cell value           |
+ *
+ * RECOMMENDED CHUNK SIZES:
+ * ------------------------
+ * - Start with 5,000-20,000 rows when reading/writing millions of cells
+ * - Reduce chunk size for wide tables (many columns)
+ * - If RequestPayloadSizeLimitExceeded error, retry with smaller chunks
+ *
+ * PERFORMANCE OPTIMIZATIONS:
+ * --------------------------
+ * 1. suspendApiCalculationUntilNextSync() - Pause calc during bulk writes
+ * 2. Write data as 2D array to range.values, not row-by-row
+ * 3. Batch multiple operations into single context.sync()
+ * 4. Untrack() proxy objects after use to free memory
+ * 5. Apply formatting AFTER data is written
+ *
+ * ERROR RECOVERY:
+ * ---------------
+ * Microsoft recommends: "If a single large values write fails, retry with
+ * a smaller block size." Our implementation halves chunk size on resource
+ * errors (up to maxChunkRetries times).
+ *
+ * ============================================================================
+ */
+
+/** Default timeout for Excel.run operations in ms (60s for wide tables) */
+const DEFAULT_EXCEL_RUN_TIMEOUT = 60000;
+
+/** Default max execution time for entire operation in ms (10 min for 100k+ rows) */
+const DEFAULT_MAX_EXECUTION_TIME = 600000;
+
+/**
+ * Excel cell value max character limit.
+ * @see https://support.microsoft.com/en-us/office/excel-specifications-and-limits
+ */
 const EXCEL_CELL_CHAR_LIMIT = 32767;
+
+/**
+ * Office.js payload limit in bytes.
+ * Microsoft documents 5MB for Excel Web, we use 4MB to be safe.
+ * @see https://learn.microsoft.com/en-us/office/dev/add-ins/excel/excel-add-ins-ranges-large
+ */
+const OFFICE_JS_PAYLOAD_LIMIT = 4 * 1024 * 1024;
+
+/**
+ * Average bytes per cell for chunk size calculation.
+ * Conservative estimate for mixed content (numbers, short strings).
+ * Adjust based on actual data characteristics if needed.
+ */
+const AVG_BYTES_PER_CELL = 50;
 
 /**
  * Low-level wrapper around the Office.js Excel APIs.
@@ -162,6 +224,40 @@ export class ExcelService {
     }
 
     return 'unknown';
+  }
+
+  /**
+   * Calculate adaptive chunk size based on column count.
+   * Reduces chunk size for wide tables to stay within Office.js payload limit.
+   *
+   * Microsoft's 5k-20k recommendation is for ROWS, but the actual constraint
+   * is the 5MB payload limit (which depends on cells = rows × columns).
+   *
+   * Examples with 4MB payload limit and 50 bytes/cell estimate:
+   * - 10 columns  → max ~8,388 rows/chunk (5k default works)
+   * - 50 columns  → max ~1,677 rows/chunk (5k reduced to 1,677)
+   * - 100 columns → max ~838 rows/chunk (5k reduced to 838)
+   * - 200 columns → max ~419 rows/chunk (5k reduced to 419)
+   *
+   * @param columnCount - Number of columns in the data
+   * @param configuredChunkSize - User-configured chunk size (default: 5000)
+   * @returns Adjusted chunk size that respects payload limit
+   *
+   * @see https://learn.microsoft.com/en-us/office/dev/add-ins/excel/excel-add-ins-ranges-large
+   */
+  private calculateAdaptiveChunkSize(columnCount: number, configuredChunkSize: number): number {
+    // Estimate bytes per row: columns × avg bytes per cell
+    const bytesPerRow = columnCount * AVG_BYTES_PER_CELL;
+
+    // Calculate max rows per chunk to stay under 4MB payload limit
+    // Formula: maxRows = payloadLimit / (columns × avgBytesPerCell)
+    const maxRowsForPayload = Math.floor(OFFICE_JS_PAYLOAD_LIMIT / bytesPerRow);
+
+    // Use the smaller of configured size or payload-safe size
+    const adaptiveSize = Math.min(configuredChunkSize, maxRowsForPayload);
+
+    // Ensure at least 100 rows per chunk for efficiency
+    return Math.max(100, adaptiveSize);
   }
 
   /**
@@ -759,7 +855,10 @@ export class ExcelService {
 
   /**
    * Write table rows in chunks to avoid Excel payload limits.
-   * Includes per-chunk error recovery and detailed result tracking.
+   * Includes per-chunk error recovery with retry-smaller-chunk on payload errors.
+   *
+   * Per Microsoft recommendation: "If a single large values write fails,
+   * retry with a smaller block size."
    */
   private async writeRowsInChunks(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -769,19 +868,21 @@ export class ExcelService {
     rows: unknown[][],
     chunkSize: number = 1000,
     backoffMs: number = 100,
-    onChunkWritten?: (chunkIndex: number, totalChunks: number) => void
+    onChunkWritten?: (chunkIndex: number, totalChunks: number) => void,
+    retriesRemaining?: number
   ): Promise<ChunkedWriteResult> {
     if (rows.length === 0) {
       return { ok: true, rowsWritten: 0, rowsFailed: 0, chunks: [] };
     }
 
+    const queryExecSettings = this.settings.value.queryExecution;
+    const maxRetries = retriesRemaining ?? (queryExecSettings?.maxChunkRetries ?? 3);
+    const chunkTimeoutMs = queryExecSettings?.excelRunTimeoutMs ?? DEFAULT_EXCEL_RUN_TIMEOUT;
+
     const totalChunks = Math.ceil(rows.length / chunkSize);
     const chunkResults: ChunkWriteResult[] = [];
     let rowsWritten = 0;
     let rowsFailed = 0;
-
-    const queryExecSettings = this.settings.value.queryExecution;
-    const chunkTimeoutMs = queryExecSettings?.excelRunTimeoutMs ?? DEFAULT_EXCEL_RUN_TIMEOUT;
 
     for (let i = 0; i < rows.length; i += chunkSize) {
       const chunk = rows.slice(i, i + chunkSize);
@@ -832,6 +933,45 @@ export class ExcelService {
         const errorType = this.classifyError(error);
         const errorMessage = error instanceof Error ? error.message : String(error);
 
+        // Microsoft recommends: retry with smaller chunk on resource/payload errors
+        if (errorType === 'resource' && maxRetries > 0 && chunkSize > 100) {
+          const newChunkSize = Math.max(100, Math.floor(chunkSize / 2));
+
+          this.telemetry.logEvent({
+            category: 'excel',
+            name: 'writeRowsInChunks:retryWithSmallerChunk',
+            severity: 'warn',
+            message: `Payload error, retrying with smaller chunk: ${chunkSize} → ${newChunkSize}`,
+            context: {
+              chunkIndex,
+              originalChunkSize: chunkSize,
+              newChunkSize,
+              retriesRemaining: maxRetries - 1,
+              errorMessage,
+            },
+          });
+
+          // Retry the remaining rows with smaller chunk size
+          const remainingRows = rows.slice(i);
+          const retryResult = await this.writeRowsInChunks(
+            ctx,
+            table,
+            remainingRows,
+            newChunkSize,
+            backoffMs,
+            onChunkWritten,
+            maxRetries - 1
+          );
+
+          // Combine results
+          return {
+            ok: retryResult.ok,
+            rowsWritten: rowsWritten + retryResult.rowsWritten,
+            rowsFailed: retryResult.rowsFailed,
+            chunks: [...chunkResults, ...retryResult.chunks],
+          };
+        }
+
         chunkResults.push({
           chunkIndex,
           startRow,
@@ -863,7 +1003,7 @@ export class ExcelService {
           },
         });
 
-        // Stop on first failure - partial data is not useful
+        // Stop on first non-retriable failure
         break;
       }
     }
@@ -1021,8 +1161,37 @@ export class ExcelService {
 
         if (values.length > 0) {
           const queryExecSettings = this.settings.value.queryExecution;
-          const chunkSize = queryExecSettings?.chunkSize ?? 1000;
+          const configuredChunkSize = queryExecSettings?.chunkSize ?? 1000;
           const backoffMs = queryExecSettings?.chunkBackoffMs ?? 100;
+          const suspendThreshold = queryExecSettings?.suspendCalculationThreshold ?? 5000;
+          const warnAtRowCount = queryExecSettings?.warnAtRowCount ?? 100000;
+
+          // Microsoft recommends: suspend calculation for large writes
+          const shouldSuspendCalc = suspendThreshold > 0 && values.length > suspendThreshold;
+          if (shouldSuspendCalc) {
+            ctx.application.suspendApiCalculationUntilNextSync();
+            this.telemetry.logEvent({
+              category: "excel",
+              name: "upsertQueryTable:suspendCalculation",
+              severity: "debug",
+              context: { queryId, rowCount: values.length, threshold: suspendThreshold },
+            });
+          }
+
+          // Warn about very large datasets
+          if (warnAtRowCount > 0 && values.length > warnAtRowCount) {
+            this.telemetry.logEvent({
+              category: "excel",
+              name: "upsertQueryTable:largeDatasetWarning",
+              severity: "warn",
+              message: `Dataset has ${values.length} rows, which exceeds warning threshold of ${warnAtRowCount}. Operation may be slow.`,
+              context: { queryId, rowCount: values.length, warnAtRowCount },
+            });
+          }
+
+          // Calculate adaptive chunk size based on column count
+          const chunkSize = this.calculateAdaptiveChunkSize(header.length, configuredChunkSize);
+          const wasAdapted = chunkSize !== configuredChunkSize;
 
           this.telemetry.logEvent({
             category: "excel",
@@ -1032,8 +1201,12 @@ export class ExcelService {
               queryId,
               overwriteRowCount: values.length,
               columnCount: header.length,
-              chunkSize,
+              configuredChunkSize,
+              adaptedChunkSize: chunkSize,
+              wasAdapted,
+              estimatedChunks: Math.ceil(values.length / chunkSize),
               willChunk: values.length > chunkSize,
+              calculationSuspended: shouldSuspendCalc,
             },
           });
 

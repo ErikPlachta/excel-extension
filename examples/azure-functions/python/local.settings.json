@@ -1,0 +1,17 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "python",
+
+    "DATABRICKS_HOST": "https://adb-XXXXX.azuredatabricks.net",
+    "DATABRICKS_WAREHOUSE_ID": "your-warehouse-id",
+    "DATABRICKS_TOKEN": "dapi-your-token-here",
+
+    "AZURE_TENANT_ID": "your-tenant-id",
+    "AZURE_CLIENT_ID": "your-client-id",
+    "AZURE_CLIENT_SECRET": "your-client-secret",
+
+    "APPLICATIONINSIGHTS_CONNECTION_STRING": ""
+  }
+}

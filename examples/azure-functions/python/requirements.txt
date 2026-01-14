@@ -1,0 +1,17 @@
+# Azure Functions Python V2 - Databricks Integration
+# Pinned versions verified against Microsoft documentation (January 2025)
+
+# Core Azure Functions runtime
+azure-functions>=1.20.0
+
+# HTTP client (async-first, connection pooling)
+httpx>=0.27.0
+
+# Databricks SDK (optional - use if you prefer SDK over REST)
+# databricks-sdk>=0.20.0
+
+# Azure Identity for Service Principal auth
+azure-identity>=1.15.0
+
+# JSON validation (optional)
+pydantic>=2.5.0

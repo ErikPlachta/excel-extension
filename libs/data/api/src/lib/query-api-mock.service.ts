@@ -13,9 +13,27 @@ import {
   type DummyJsonProductParsed,
 } from "@excel-platform/shared/types";
 
-/** Default fetch timeout in milliseconds */
-const DEFAULT_FETCH_TIMEOUT = 30000;
-/** Default max concurrent requests */
+/**
+ * ============================================================================
+ * API FETCH RATE LIMITING AND TIMEOUTS
+ * ============================================================================
+ *
+ * These defaults implement best practices for external API calls:
+ * - Rate limiting prevents overwhelming APIs and getting blocked
+ * - Timeouts prevent hanging requests from blocking the UI
+ * - Both are configurable via QueryExecutionSettings
+ *
+ * ============================================================================
+ */
+
+/** Default fetch timeout in milliseconds (2 minutes for large API responses) */
+const DEFAULT_FETCH_TIMEOUT = 120000;
+
+/**
+ * Default max concurrent requests.
+ * Prevents overwhelming external APIs while allowing parallelism.
+ * Most APIs recommend 5-10 concurrent requests max.
+ */
 const DEFAULT_MAX_CONCURRENT = 5;
 
 /**
@@ -94,25 +112,8 @@ export class QueryApiMockService {
   }
 
   /**
-   * Wraps a promise with a timeout.
-   */
-  private withTimeout<T>(
-    promise: Promise<T>,
-    timeoutMs: number,
-    operationName: string
-  ): Promise<T> {
-    return Promise.race([
-      promise,
-      new Promise<T>((_, reject) => {
-        setTimeout(() => {
-          reject(new Error(`${operationName} timed out after ${timeoutMs}ms`));
-        }, timeoutMs);
-      }),
-    ]);
-  }
-
-  /**
    * Fetch with timeout and abort controller.
+   * Uses AbortController for proper request cancellation on timeout.
    */
   private async fetchWithTimeout(
     url: string,
@@ -258,21 +259,40 @@ export class QueryApiMockService {
         rows = await this.loadAndFilterMockRows(apiId, params);
     }
 
-    // Enforce max row limit (synthetic-expansion handles its own limits)
-    if (apiId !== 'synthetic-expansion' && rows.length > maxRows) {
-      this.telemetry.logEvent({
-        category: 'query',
-        name: 'executeApi:rowLimitExceeded',
-        severity: 'warn',
-        message: `Query result exceeded max row limit (${rows.length} > ${maxRows})`,
-        context: {
-          apiId,
-          rowCount: rows.length,
-          maxRows,
-          truncated: true,
-        },
-      });
-      return rows.slice(0, maxRows); // Truncate to max rows
+    // Warn about large datasets (Microsoft recommends chunking, not limiting)
+    // When maxRows=0 (unlimited), only warn; when maxRows>0, enforce limit
+    const warnThreshold = queryExecSettings?.warnAtRowCount ?? 100000;
+    if (apiId !== 'synthetic-expansion') {
+      if (maxRows > 0 && rows.length > maxRows) {
+        // Legacy mode: hard limit enabled
+        this.telemetry.logEvent({
+          category: 'query',
+          name: 'executeApi:rowLimitExceeded',
+          severity: 'warn',
+          message: `Query result exceeded max row limit (${rows.length} > ${maxRows}), truncating`,
+          context: {
+            apiId,
+            rowCount: rows.length,
+            maxRows,
+            truncated: true,
+          },
+        });
+        return rows.slice(0, maxRows);
+      } else if (warnThreshold > 0 && rows.length > warnThreshold) {
+        // Soft warning for large datasets (no truncation per MS recommendation)
+        this.telemetry.logEvent({
+          category: 'query',
+          name: 'executeApi:largeDatasetWarning',
+          severity: 'warn',
+          message: `Large dataset: ${rows.length} rows exceeds warning threshold (${warnThreshold}). Will use chunked writes.`,
+          context: {
+            apiId,
+            rowCount: rows.length,
+            warnThreshold,
+            truncated: false,
+          },
+        });
+      }
     }
 
     return rows;
